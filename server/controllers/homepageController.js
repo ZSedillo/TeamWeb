@@ -54,29 +54,52 @@ const uploadImage = async (req, res) => {
 
 
 // Delete Image
+// const deleteImage = async (req, res) => {
+//     try {
+//         const { filename } = req.params;
+
+//         // Find and delete from MongoDB
+//         const deletedImage = await Homepage.findOneAndDelete({ image_url: filename });
+
+//         if (!deletedImage) {
+//             return res.status(404).json({ message: "Image not found in database" });
+//         }
+
+//         // Delete from server storage
+//         const filePath = path.join(__dirname, "../homepage", filename);
+//         fs.unlink(filePath, (err) => {
+//             if (err) {
+//                 console.error("Error deleting file:", err);
+//                 return res.status(500).json({ message: "Failed to delete file from server" });
+//             }
+//             res.json({ message: "Image deleted successfully" });
+//         });
+//     } catch (error) {
+//         console.error("Error deleting image:", error);
+//         res.status(500).json({ message: "Error deleting image" });
+//     }
+// };
+
 const deleteImage = async (req, res) => {
     try {
         const { filename } = req.params;
 
-        // Find and delete from MongoDB
+        // Find the image in the database
         const deletedImage = await Homepage.findOneAndDelete({ image_url: filename });
 
         if (!deletedImage) {
             return res.status(404).json({ message: "Image not found in database" });
         }
 
-        // Delete from server storage
-        const filePath = path.join(__dirname, "../homepage", filename);
-        fs.unlink(filePath, (err) => {
-            if (err) {
-                console.error("Error deleting file:", err);
-                return res.status(500).json({ message: "Failed to delete file from server" });
-            }
-            res.json({ message: "Image deleted successfully" });
-        });
+        // Delete from S3
+        const data = await deleteObject(filename.key);
+        if (data.status !== 204) {
+            return res.status(500).json({ message: "Failed to delete image from S3", error: data });
+        }
+
     } catch (error) {
         console.error("Error deleting image:", error);
-        res.status(500).json({ message: "Error deleting image" });
+        res.status(500).json({ message: "Error deleting image", error: error.message });
     }
 };
 
