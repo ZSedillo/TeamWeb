@@ -84,21 +84,17 @@ const uploadImage = async (req, res) => {
 
 const deleteImage = async (req, res) => {
     try {
-        const { filename } = req.params;
-
-        // Extract the key from the full URL
-        const parsedUrl = url.parse(filename);  // Parse the URL to get the pathname
-        const key = parsedUrl.pathname.substring(1); // Get the object key by removing the leading "/"
+        const { filename } = req.params; // This will now be just the object key (e.g., images/4973147c-b2e4-46f8-ba5a-e0912784d69e)
 
         // Find and delete the image from the database
-        const deletedImage = await Homepage.findOneAndDelete({ image_url: filename });
+        const deletedImage = await Homepage.findOneAndDelete({ image_url: `https://teamweb-image.s3.ap-southeast-1.amazonaws.com/${filename}` });
 
         if (!deletedImage) {
             return res.status(404).json({ message: "Image not found in database" });
         }
 
         // Delete image from S3
-        const data = await deleteObject(key);  // Pass the extracted key
+        const data = await deleteObject(filename);  // Pass the object key (filename) to delete from S3
         if (data.status !== 204) {
             return res.status(500).json({ message: "Failed to delete image from S3", error: data });
         }
@@ -109,6 +105,7 @@ const deleteImage = async (req, res) => {
         res.status(500).json({ message: "Error deleting image", error: error.message });
     }
 };
+
 
 // Get all images
 const getAllImages = async (req, res) => {
