@@ -1,26 +1,24 @@
-const { GetObjectCommand } = require("@aws-sdk/client-s3")
-const dotenv = require("dotenv");
+const { ListObjectsV2Command } = require("@aws-sdk/client-s3");
+const { s3Client } = require("./s3-credentials"); // Ensure this is where your S3 client is initialized
 
-dotenv.config();
-
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY,
-        secretAccessKey: process.env.AWS_SECRET_KEY,
-    }
-});
-
-exports.getObject = async(key) => {
-    try{
+exports.getObject = async () => {
+    try {
         const params = {
-            Bucket: process.env.AWS_SW_BUCKET,
-            Key: key
-        }
-        const command = new GetObjectCommand(params);
+            Bucket: process.env.AWS_SW_BUCKET, // Your S3 Bucket name
+        };
+
+        const command = new ListObjectsV2Command(params);
         const data = await s3Client.send(command);
-        console.log(data);
-    }catch(err){
-        console.log(err);
+
+        if (data.Contents) {
+            // Return the keys of all images in the bucket
+            const imageKeys = data.Contents.map((item) => item.Key);
+            return imageKeys; // You can also include other metadata like LastModified, Size, etc.
+        } else {
+            return []; // No objects found
+        }
+    } catch (err) {
+        console.error("Error fetching image list:", err);
+        throw err;
     }
-}
+};

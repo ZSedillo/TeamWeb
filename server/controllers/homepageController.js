@@ -5,6 +5,7 @@ const fs = require('fs');
 const { v4} = require("uuid");
 const { putObject } = require('../util/putObject');
 const { deleteObject } = require('../util/putObject');
+const { getObject } = require('../util/getObject');
 const url = require('url'); // For URL parsing
 
 // Upload Image
@@ -108,6 +109,15 @@ const deleteImage = async (req, res) => {
 
 
 // Get all images
+// const getAllImages = async (req, res) => {
+//     try {
+//         const images = await Homepage.find();
+//         res.json(images);
+//     } catch (error) {
+//         res.status(500).json({ message: "Error retrieving images" });
+//     }
+// };
+
 const getAllImages = async (req, res) => {
     try {
         const images = await Homepage.find();
