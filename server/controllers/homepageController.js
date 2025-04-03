@@ -94,7 +94,7 @@ const deleteImage = async (req, res) => {
         }
 
         // Delete image from S3
-        const data = await deleteObject(filename);  // Pass the object key (filename) to delete from S3
+        const data = await deleteObject(filename.key);  // Pass the object key (filename) to delete from S3
         if (data.status !== 204) {
             return res.status(500).json({ message: "Failed to delete image from S3", error: data });
         }
