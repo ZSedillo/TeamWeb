@@ -1,5 +1,15 @@
-const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
-const { s3Client } = require("./s3-credentials");
+const { S3Client ,DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const dotenv = require("dotenv");
+
+dotenv.config();
+
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY,
+        secretAccessKey: process.env.AWS_SECRET_KEY,
+    }
+});
 
 exports.deleteObject = async(key) => {
     try {
