@@ -5,6 +5,7 @@ const fs = require('fs');
 const { v4} = require("uuid");
 const { putObject } = require('../util/putObject');
 const { deleteObject } = require('../util/putObject');
+const url = require('url'); // For URL parsing
 
 // Upload Image
 // const uploadImage = async (req, res) => {
@@ -85,19 +86,24 @@ const deleteImage = async (req, res) => {
     try {
         const { filename } = req.params;
 
-        // Find the image in the database
+        // Extract the key from the full URL
+        const parsedUrl = url.parse(filename);  // Parse the URL to get the pathname
+        const key = parsedUrl.pathname.substring(1); // Get the object key by removing the leading "/"
+
+        // Find and delete the image from the database
         const deletedImage = await Homepage.findOneAndDelete({ image_url: filename });
 
         if (!deletedImage) {
             return res.status(404).json({ message: "Image not found in database" });
         }
 
-        // Delete from S3
-        const data = await deleteObject(filename.key);
+        // Delete image from S3
+        const data = await deleteObject(key);  // Pass the extracted key
         if (data.status !== 204) {
             return res.status(500).json({ message: "Failed to delete image from S3", error: data });
         }
 
+        res.json({ message: "Image deleted successfully from database and S3" });
     } catch (error) {
         console.error("Error deleting image:", error);
         res.status(500).json({ message: "Error deleting image", error: error.message });
