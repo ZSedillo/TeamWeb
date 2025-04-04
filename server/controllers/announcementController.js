@@ -35,7 +35,7 @@ const addAnnouncement = async (req, res) => {
     try {
         const { title, description } = req.body;
 
-        let image_url = null;
+        let image_url;
 
         if (req.files && req.files.image) {
             const file = req.files.image;
