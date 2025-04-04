@@ -28,6 +28,25 @@ function Homepage() {
       console.error("Error fetching images:", error);
     }
   };
+  // const fetchImages = async () => {
+  //   try {
+  //       const response = await fetch('/homepage/get-all-images');
+        
+  //       // Check if the response is OK (status 200-299)
+  //       if (!response.ok) {
+  //          throw new Error(`Error: ${response.statusText}`);
+  //       }
+        
+  //       const data = await response.json();
+  //       setImages(data);
+  //       // Your code to handle imageUrls
+  
+  //   } catch (error) {
+  //       console.error("Error fetching images:", error);
+  //   }
+  // };
+  
+
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -109,37 +128,113 @@ function Homepage() {
     setShowDeleteConfirm(true);
   };
 
-  const handleDelete = async () => {
-    if (!selectedImage) return;
+  // Original Code
+  // const handleDelete = async () => {
+  //   if (!selectedImage) return;
 
-    try {
-      const response = await fetch(
-        `http://localhost:3000/homepage/delete-image/${selectedImage.image_url}`,
-        {
-          method: "DELETE",
-        }
-      );
+  //   try {
+  //     const response = await fetch(
+  //       `http://localhost:3000/homepage/delete-image/${selectedImage.image_url}`,
+  //       {
+  //         method: "DELETE",
+  //       }
+  //     );
 
-      if (response.ok) {
-        fetchImages();
-        setShowDeleteConfirm(false);
-        setSelectedImage(null);
+  //     if (response.ok) {
+  //       fetchImages();
+  //       setShowDeleteConfirm(false);
+  //       setSelectedImage(null);
 
-        await fetch("http://localhost:3000/report/add-report", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: username,
-            activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
-          }),
-        });
-      }
-    } catch (error) {
-      console.error("Error deleting image:", error);
+  //       await fetch("http://localhost:3000/report/add-report", {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({
+  //           username: username,
+  //           activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
+  //         }),
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Error deleting image:", error);
+  //   }
+  // };
+
+//   const handleDelete = async () => {
+//     if (!selectedImage) return;
+
+//     // Extract the key from the URL (image_url contains full URL, so we get only the key)
+//     const imageKey = selectedImage.image_url.replace("https://teamweb-image.s3.ap-southeast-1.amazonaws.com/", "");
+
+//     try {
+//         const response = await fetch(
+//             `http://localhost:3000/homepage/delete-image/${imageKey}`, // Use only the object key here
+//             {
+//                 method: "DELETE",
+//             }
+//         );
+
+//         if (response.ok) {
+//             fetchImages();
+//             setShowDeleteConfirm(false);
+//             setSelectedImage(null);
+
+//             await fetch("http://localhost:3000/report/add-report", {
+//                 method: "POST",
+//                 headers: {
+//                     "Content-Type": "application/json",
+//                 },
+//                 body: JSON.stringify({
+//                     username: username,
+//                     activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
+//                 }),
+//             });
+//         }
+//     } catch (error) {
+//         console.error("Error deleting image:", error);
+//     }
+// };
+
+const handleDelete = async () => {
+  if (!selectedImage) return;
+
+  // Log what you're deleting
+  console.log("Trying to delete:", selectedImage.image_url);
+  console.log("Trying to delete:", selectedImage._id);
+
+  const imageKey = selectedImage.image_url.replace("https://teamweb-image.s3.ap-southeast-1.amazonaws.com/", "");
+
+  try {
+    const response = await fetch(`http://localhost:3000/homepage/delete-image/${encodeURIComponent(imageKey)}`, {
+      method: "DELETE",
+    });
+
+    console.log("Delete response:", response.status);
+
+    if (response.ok) {
+      fetchImages();
+      setShowDeleteConfirm(false);
+      setSelectedImage(null);
+
+      await fetch("http://localhost:3000/report/add-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+          activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
+        }),
+      });
+    } else {
+      console.error("Failed to delete image:", await response.text());
     }
-  };
+  } catch (error) {
+    console.error("Error deleting image:", error);
+  }
+};
+
 
   return (
     <>
@@ -197,12 +292,14 @@ function Homepage() {
             </div>
           ) : (
             <div className="image-list">
+
+
+              {/* Currently fixing */}
               {images.map((img) => {
-                const imagePath = `http://localhost:3000/homepage/${img.image_url}`;
                 return (
                   <div key={img._id} className="image-box">
                     <div className="image-container">
-                      <img src={imagePath} alt="News" className="preview-image" />
+                      <img src={img.image_url} alt="News" className="preview-image" />
                     </div>
                     <div className="image-info">
                       <span className="image-filename">{img.image_url}</span>
