@@ -17,39 +17,10 @@ const getAllAnnouncements = async (req, res) => {
 };
 
 // 📌 Add a new announcement
-const addAnnouncement = async (req, res) => {
-    try {
-        const { title, description } = req.body;
-        const image_url = req.file ? req.file.filename : null;
-
-        const newAnnouncement = new announcementModel({ title, description, image_url });
-        await newAnnouncement.save();
-
-        res.status(201).json({ message: "Announcement added successfully", newAnnouncement });
-    } catch (error) {
-        console.error("Error adding announcement:", error);
-        res.status(500).json({ error: "Failed to add announcement" });
-    }
-};
-
-
 // const addAnnouncement = async (req, res) => {
 //     try {
 //         const { title, description } = req.body;
-
-//         let image_url;
-
-//         if (req.files && req.files.image) {
-//             const file = req.files.image;
-//             const fileName = `announcements/${v4()}`;
-//             const { url } = await putObjectAnnouncement(file.data, fileName);
-
-//             if (!url) {
-//                 return res.status(400).json({ message: "Image upload failed" });
-//             }
-
-//             image_url = url;
-//         }
+//         const image_url = req.file ? req.file.filename : null;
 
 //         const newAnnouncement = new announcementModel({ title, description, image_url });
 //         await newAnnouncement.save();
@@ -60,6 +31,39 @@ const addAnnouncement = async (req, res) => {
 //         res.status(500).json({ error: "Failed to add announcement" });
 //     }
 // };
+
+
+const addAnnouncement = async (req, res) => {
+    try {
+        const { title, description } = req.body;
+
+        let image_url = req.file ? req.file.filename : null; // Use let here to allow reassignment
+
+        // Check if an image is being uploaded
+        if (req.files && req.files.image) {
+            const file = req.files.image;
+            const fileName = `announcements/${v4()}`;
+            const { url } = await putObjectAnnouncement(file.data, fileName);
+
+            if (!url) {
+                return res.status(400).json({ message: "Image upload failed" });
+            }
+
+            // Reassign image_url with the URL from the image upload
+            image_url = url;
+        }
+
+        // Create the new announcement with the title, description, and image_url
+        const newAnnouncement = new announcementModel({ title, description, image_url });
+        await newAnnouncement.save();
+
+        res.status(201).json({ message: "Announcement added successfully", newAnnouncement });
+    } catch (error) {
+        console.error("Error adding announcement:", error);
+        res.status(500).json({ error: "Failed to add announcement" });
+    }
+};
+
 
 
 
