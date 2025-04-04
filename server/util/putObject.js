@@ -16,8 +16,8 @@ exports.putObject = async (file, fileName) => {
         const params = {
             Bucket: process.env.AWS_S3_BUCKET,
             Key: fileName,
-            Body: file,
-            ContentType: "image/jpg,jpeg,png",
+            Body: file.buffer || file, // multer uses file.buffer
+            ContentType: file.mimetype, // this sets the correct type like image/jpeg, image/png, etc.
         };
 
         const command = new PutObjectCommand(params);
@@ -27,7 +27,7 @@ exports.putObject = async (file, fileName) => {
             return;
         }
 
-        let url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+        const url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
         console.log(url);
         return { url, key: params.Key };
     } catch (err) {
