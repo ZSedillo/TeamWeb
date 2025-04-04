@@ -83,36 +83,28 @@ const uploadImage = async (req, res) => {
 // };
 
 const deleteImage = async (req, res) => {
-  try {
-    const { id, filename } = req.params; // Extract both image ID and filename (key)
+    try {
+        const { filename } = req.params; // This will now be just the object key (e.g., images/4973147c-b2e4-46f8-ba5a-e0912784d69e)
 
-    // Find and delete the image from the database using the ID
-    const deletedImage = await Homepage.findByIdAndDelete(id);
+        // Find and delete the image from the database
+        const deletedImage = await Homepage.findOneAndDelete({ image_url: `https://teamweb-image.s3.ap-southeast-1.amazonaws.com/${filename}` });
 
-    if (!deletedImage) {
-      return res.status(404).json({ message: "Image not found in database" });
+        if (!deletedImage) {
+            return res.status(404).json({ message: "Image not found in database" });
+        }
+
+        // Delete image from S3
+        const data = await deleteObject(filename.key);  // Pass the object key (filename) to delete from S3
+        if (data.status !== 204) {
+            return res.status(500).json({ message: "Failed to delete image from S3", error: data });
+        }
+
+        res.json({ message: "Image deleted successfully from database and S3" });
+    } catch (error) {
+        console.error("Error deleting image:", error);
+        res.status(500).json({ message: "Error deleting image", error: error.message });
     }
-
-    // Now, delete the image from S3 using the key (filename)
-    const s3Params = {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: filename, // Image S3 object key
-    };
-
-    // Delete the object from S3
-    const data = await deleteObject(s3Params); 
-
-    if (data.$metadata.httpStatusCode !== 204) {
-      return res.status(500).json({ message: "Failed to delete image from S3" });
-    }
-
-    res.json({ message: "Image deleted successfully from database and S3" });
-  } catch (error) {
-    console.error("Error deleting image:", error);
-    res.status(500).json({ message: "Error deleting image", error: error.message });
-  }
 };
-
 
 
 // Get all images
