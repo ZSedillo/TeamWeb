@@ -11,7 +11,7 @@ const s3Client = new S3Client({
     }
 });
 
-exports.deleteObject = async(key) => {
+exports.deleteObjectAnnouncement = async(key) => {
     try {
         const params = {
             Bucket: process.env.AWS_S3_BUCKET1,

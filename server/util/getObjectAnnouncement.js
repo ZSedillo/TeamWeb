@@ -1,7 +1,7 @@
 const { ListObjectsV2Command } = require("@aws-sdk/client-s3");
 const { s3Client } = require("./s3-credentials"); // Ensure this is where your S3 client is initialized
 
-exports.getObject = async () => {
+exports.getObjectAnnouncement = async () => {
     try {
         const params = {
             Bucket: process.env.AWS_SW_BUCKET1, // Your S3 Bucket name

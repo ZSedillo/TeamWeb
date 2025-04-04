@@ -11,7 +11,7 @@ const s3Client = new S3Client({
     }
 });
 
-exports.putObject = async (file, fileName) => {
+exports.putObjectAnnouncement = async (file, fileName) => {
     try {
         const params = {
             Bucket: process.env.AWS_S3_BUCKET1,
