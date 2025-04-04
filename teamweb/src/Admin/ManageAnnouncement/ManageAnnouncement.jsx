@@ -383,7 +383,7 @@ function ManageAnnouncement() {
                                             <div className="card-image-container">
                                                 {imagePath ? (
                                                     <img 
-                                                        src={imagePath} 
+                                                        src={announcement.image_url} 
                                                         alt={announcement.title} 
                                                         className="card-image" 
                                                         loading="lazy"

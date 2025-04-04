@@ -88,7 +88,7 @@ function Announcement() {
                     {currentAnnouncements.length > 0 ? (
                         currentAnnouncements.map((announcement, index) => {
                             const imagePath = announcement.image_url 
-                                ? `http://localhost:3000/announcement/${announcement.image_url}` 
+                                ? `${announcement.image_url}` 
                                 : null;
                             console.log("Rendering image from:", imagePath);
 
@@ -138,7 +138,7 @@ function Announcement() {
                             {selectedAnnouncement.image_url && (
                                 <div className="popup-image-container">
                                     <img 
-                                        src={`http://localhost:3000/announcement/${selectedAnnouncement.image_url}`} 
+                                        src={selectedAnnouncement.image_url} 
                                         alt={selectedAnnouncement.title} 
                                         className="popup-image"
                                     />
