@@ -15,7 +15,6 @@ function Viewer() {
       const response = await fetch("http://localhost:3000/homepage/images");
       if (!response.ok) throw new Error(`Failed to fetch images: ${response.status}`);
       const data = await response.json();
-      console.log(data.image_url);
       setImages(data);
       setError(null);
     } catch (error) {

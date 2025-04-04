@@ -330,7 +330,7 @@ const handleDelete = async () => {
               {selectedImage && (
                 <div className="confirm-image-preview">
                   <img
-                    src={`http://localhost:3000/homepage/${selectedImage.image_url}`}
+                    src={selectedImage.image_url}
                     alt="To be deleted"
                     className="confirm-preview"
                   />
