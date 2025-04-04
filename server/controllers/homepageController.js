@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { v4} = require("uuid");
 const { putObject } = require('../util/putObject');
-const { deleteObject } = require('../util/putObject');
+const { deleteObject } = require('../util/deleteObject');
 const url = require('url'); // For URL parsing
 
 // Upload Image
