@@ -43,14 +43,14 @@ const addAnnouncement = async (req, res) => {
         if (req.files && req.files.image) {
             const file = req.files.image;
             const fileName = `announcements/${v4()}`;
-            const { url } = await putObjectAnnouncement(file.data, fileName);
+            const { url,key } = await putObjectAnnouncement(file.data, fileName);
 
-            if (!url) {
+            if (!url || !key) {
                 return res.status(400).json({ message: "Image upload failed" });
             }
 
             // Reassign image_url with the URL from the image upload
-            image_url = url;
+            image_url = url,key;
         }
 
         // Create the new announcement with the title, description, and image_url
