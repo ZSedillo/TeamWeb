@@ -1,11 +1,7 @@
 const Homepage = require('../models/Homepage')
-
-const path = require('path');
-const fs = require('fs');
 const { v4} = require("uuid");
 const { putObject } = require('../util/putObject');
 const { deleteObject } = require('../util/deleteObject');
-const url = require('url'); // For URL parsing
 
 const uploadImage = async (req, res) => {
     if (!req.files || !req.files.image) {
