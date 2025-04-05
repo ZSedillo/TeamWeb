@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AdminHeader from '../Component/AdminHeader.jsx';
 import UpdateAppointment from './UpdateAppointment';
 import ViewReports from './ViewReports';
-import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar } from 'lucide-react';
+import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 } from 'lucide-react';
 import ExpectedStudents from './ExpectedStudents';
 
 import './ManagePreRegistration.css';
@@ -41,6 +41,9 @@ function ManagePreRegistration() {
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const [showDeleteConfirmationDialog, setShowDeleteConfirmationDialog] = useState(false);
+    const [studentToDelete, setStudentToDelete] = useState(null);
 
 
     const handleDeleteAllPreRegistrations = async () => {
@@ -230,6 +233,113 @@ function ManagePreRegistration() {
             </div>
         );
     };
+    // Add this function after handleDeleteAllPreRegistrations
+
+const handleDeleteStudent = (studentId, studentName) => {
+    setStudentToDelete({ id: studentId, name: studentName });
+    setShowDeleteConfirmationDialog(true);
+};
+
+// Add this new DeleteStudentDialog component next to your other dialog components
+const DeleteStudentDialog = () => {
+    if (!showDeleteConfirmationDialog || !studentToDelete) return null;
+    
+    const confirmDelete = async () => {
+        try {
+            // Add loading state if needed
+            const response = await fetch(`http://localhost:3000/preregistration/${studentToDelete.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            // Log the activity
+            try {
+                const username = localStorage.getItem('username') || 'Admin';
+                await fetch("http://localhost:3000/report/add-report", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        activityLog: `[Manage Pre-Registration] Deleted student record for ${studentToDelete.name}`,
+                    }),
+                });
+            } catch (logError) {
+                console.error('Failed to log activity:', logError);
+            }
+
+            // Update the local state
+            setStudents(prevStudents => prevStudents.filter(student => student._id !== studentToDelete.id));
+            
+            // Close the dialog BEFORE showing the success message
+            setShowDeleteConfirmationDialog(false);
+            setStudentToDelete(null);
+
+            // Show success message
+            toast.success(
+                <div>
+                    <p><strong>Record Deleted</strong></p>
+                    <p>Successfully deleted {studentToDelete.name}'s record</p>
+                </div>,
+                {
+                    position: "top-center",
+                    autoClose: 3000,
+                }
+            );
+
+        } catch (err) {
+            console.error('Failed to delete record:', err);
+            toast.error('Failed to delete record. Please try again.', {
+                position: "top-center",
+                autoClose: 5000,
+            });
+            // Close dialog on error as well
+            setShowDeleteConfirmationDialog(false);
+            setStudentToDelete(null);
+        }
+    };
+
+    const handleCancel = () => {
+        setShowDeleteConfirmationDialog(false);
+        setStudentToDelete(null);
+    };
+
+    return (
+        <div className="confirmation-overlay">
+            <div className="confirmation-dialog">
+                <div className="confirmation-header">
+                    <h3>Confirm Delete</h3>
+                </div>
+                <div className="confirmation-content">
+                    <p>Are you sure you want to delete the record for <strong>{studentToDelete.name}</strong>?</p>
+                    <p>This action cannot be undone.</p>
+                </div>
+                <div className="confirmation-actions">
+                    <button 
+                        className="btn-cancel"
+                        onClick={handleCancel}
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        className="btn-confirm delete"
+                        onClick={confirmDelete}
+                    >
+                        <Trash2 size={14} />
+                        Delete Record
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
     // Fetch data on component mount or when pagination/filters change
     useEffect(() => {
         fetchStudentData();
@@ -565,6 +675,7 @@ function ManagePreRegistration() {
                                 <th>Phone Number</th>
                                 <th>Details</th>
                                 <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
 
@@ -632,6 +743,16 @@ function ManagePreRegistration() {
                                                 ) : (
                                                     <><AlertCircle size={14} /> Pending</>
                                                 )}
+                                            </button>
+                                        </td>
+                                        <td className="cell-action">
+                                            <button
+                                                className="btn-delete"
+                                                onClick={() => handleDeleteStudent(student._id, student.name)}
+                                                title="Delete record"
+                                            >
+                                                <Trash2 size={14} />
+                                                Delete
                                             </button>
                                         </td>
                                         </tr>
@@ -829,6 +950,7 @@ function ManagePreRegistration() {
             <DeleteConfirmationDialog />
             {/* Confirmation Dialog */}
             <ConfirmationDialog />
+            <DeleteStudentDialog /> {/* Add this line */}
             
             {/* Toast notifications container */}
             <ToastContainer />
