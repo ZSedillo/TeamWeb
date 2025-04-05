@@ -247,7 +247,7 @@ const DeleteStudentDialog = () => {
     const confirmDelete = async () => {
         try {
             // Add loading state if needed
-            const response = await fetch(`http://localhost:3000/preregistration/${studentToDelete.id}`, {
+            const response = await fetch(`http://localhost:3000/preregistration/delete/${studentToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
