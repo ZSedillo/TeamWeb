@@ -323,6 +323,68 @@
     background-color: #fde68a;
 }
 
+/* Delete button styling */
+.btn-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #dc2626;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background-color: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.btn-delete:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.btn-delete svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.5;
+}
+
+.btn-delete:disabled {
+    background-color: #f87171;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Add animation for delete action */
+.btn-delete.deleting {
+    position: relative;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.btn-delete.deleting::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    animation: deleteProgress 1s infinite;
+}
+
+@keyframes deleteProgress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
 /* Expanded details row */
 .details-row td {
     padding: 0;
