@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './updateappointment.css';
+import './UpdateAppointment.css';
 import { Calendar, Clock, AlertCircle, User, Users, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
