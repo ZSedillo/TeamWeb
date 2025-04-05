@@ -20,7 +20,7 @@ function Homepage() {
 
   const fetchImages = async () => {
     try {
-      const response = await fetch("http://localhost:3000/homepage/images");
+      const response = await fetch("https://teamweb-production.up.railway.app/homepage/images");
       if (!response.ok) throw new Error("Failed to fetch images");
       const data = await response.json();
       setImages(data);
