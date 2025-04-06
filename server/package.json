@@ -9,8 +9,8 @@
     "build": "cd teamweb && npm run build",
     "postinstall": "npm run build"
   },
-  "engines":{
-    "node":">=14.20.1"
+  "engines": {
+    "node": ">=14.20.1"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.782.0",
@@ -23,6 +23,7 @@
     "mongoose": "^8.9.5",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.10.0",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "serve": "^14.2.4"
   }
 }
