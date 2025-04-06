@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "deploy": "vite build && node index.js"
+    "deploy": "npm run build && node index.js",
+    "build": "cd teamweb && npm run build",
+    "postinstall": "npm run build"
   },
   "engines":{
     "node":">=14.20.1"
