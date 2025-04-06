@@ -26,41 +26,53 @@ function EnrolledStudents() {
     const [limit] = useState(10);
 
     // Fetch data from API
-    const fetchStudentData = async () => {
-        try {
-            setLoading(true);
-            
-            // Construct query parameters based on active filters
-            let queryParams = new URLSearchParams({
-                page: currentPage,
-                limit: limit,
-                enrollment: true // Only fetch enrolled students
-            });
-            
-            // Add filters to query parameters if they exist
-            if (searchTerm) queryParams.append('search', searchTerm);
-            if (selectedGrade) queryParams.append('grade', selectedGrade);
-            if (selectedStrand) queryParams.append('strand', selectedStrand);
-            
-            const response = await fetch(
-                `https://teamweb-kera.onrender.com/preregistration/enrolled?${queryParams.toString()}`
-            );
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            setEnrolledStudents(data.preregistration);
-            setTotalPages(data.totalPages);
-            setTotalRecords(data.totalRecords);
-        } catch (err) {
-            setError('Failed to fetch enrolled students data: ' + err.message);
-            console.error(err);
-        } finally {
-            setLoading(false);
+// Fetch data from API
+const fetchStudentData = async () => {
+    try {
+        setLoading(true);
+        
+        // Construct query parameters based on active filters
+        let queryParams = new URLSearchParams({
+            page: currentPage,
+            limit: limit,
+            enrollment: true // Only fetch enrolled students
+        });
+        
+        // Add filters to query parameters if they exist
+        if (searchTerm) queryParams.append('search', searchTerm);
+        if (selectedGrade) queryParams.append('grade', selectedGrade);
+        if (selectedStrand) queryParams.append('strand', selectedStrand);
+        
+        console.log("Fetching with params:", queryParams.toString()); // Debug log
+        
+        const response = await fetch(
+            `https://teamweb-kera.onrender.com/preregistration/enrolled?${queryParams.toString()}`
+        );
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
-    };
+        
+        const data = await response.json();
+        
+        if (!data.preregistration || data.preregistration.length === 0) {
+            // Clear the data when no results are found
+            setEnrolledStudents([]);
+        } else {
+            setEnrolledStudents(data.preregistration);
+        }
+        
+        setTotalPages(data.totalPages);
+        setTotalRecords(data.totalRecords);
+    } catch (err) {
+        setError('Failed to fetch enrolled students data: ' + err.message);
+        console.error(err);
+        // Clear the data on error too
+        setEnrolledStudents([]);
+    } finally {
+        setLoading(false);
+    }
+};
 
     // Fetch data on initial load and when filters or pagination changes
     useEffect(() => {
@@ -85,13 +97,6 @@ function EnrolledStudents() {
         if (selectedStrand) filters.push(`Strand: ${selectedStrand}`);
         return filters.length > 0 ? `Filtered by: ${filters.join(', ')}` : 'Showing all enrolled students';
     };
-
-    if (loading) return (
-        <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p>Loading enrolled students data...</p>
-        </div>
-    );
 
     if (error) return (
         <div className="error-state">
