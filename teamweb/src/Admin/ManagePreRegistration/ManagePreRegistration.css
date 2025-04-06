@@ -385,6 +385,47 @@
     100% { transform: translateX(100%); }
 }
 
+/* Enrollment button styles */
+.btn-enrollment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-enrollment.enrolled {
+    color: #057a55;
+    background-color: #def7ec;
+}
+
+.btn-enrollment.enrolled:hover {
+    background-color: #bcf0da;
+}
+
+.btn-enrollment.notenrolled {
+    color: #dc2626;
+    background-color: #fee2e2;
+}
+
+.btn-enrollment.notenrolled:hover {
+    background-color: #fecaca;
+}
+
+.btn-enrollment.processing {
+    background-color: #e2e8f0;
+    color: #64748b;
+    cursor: wait;
+    position: relative;
+    overflow: hidden;
+}
+
 /* Expanded details row */
 .details-row td {
     padding: 0;
@@ -943,3 +984,94 @@
     opacity: 0.65;
     cursor: not-allowed;
   }
+
+/* Add these to your existing confirmation button styles */
+.btn-confirm.enrolled {
+    color: #ffffff;
+    background-color: #059669;
+}
+
+.btn-confirm.enrolled:hover {
+    background-color: #047857;
+}
+
+.btn-confirm.notenrolled {
+    color: #ffffff;
+    background-color: #dc2626;
+}
+
+.btn-confirm.notenrolled:hover {
+    background-color: #b91c1c;
+}
+
+/* Enrollment Status Tab Styles */
+.enrollment-status-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.enrollment-section {
+    background-color: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.section-header.enrolled h2 {
+    color: #059669;
+}
+
+.section-header.not-enrolled h2 {
+    color: #dc2626;
+}
+
+.student-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+}
+
+.section-header.enrolled .student-count {
+    color: #059669;
+    background-color: #def7ec;
+}
+
+.section-header.not-enrolled .student-count {
+    color: #dc2626;
+    background-color: #fee2e2;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.enrolled {
+    color: #059669;
+    background-color: #def7ec;
+}
+
+.status-badge.not-enrolled {
+    color: #dc2626;
+    background-color: #fee2e2;
+}
