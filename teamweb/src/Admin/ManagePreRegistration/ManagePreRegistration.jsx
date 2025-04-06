@@ -4,6 +4,7 @@ import UpdateAppointment from './UpdateAppointment';
 import ViewReports from './ViewReports';
 import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 } from 'lucide-react';
 import ExpectedStudents from './ExpectedStudents';
+import EnrolledStudents from './EnrolledStudents';
 
 import './ManagePreRegistration.css';
 import { toast, ToastContainer } from 'react-toastify';
@@ -16,6 +17,9 @@ function ManagePreRegistration() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [processingStatus, setProcessingStatus] = useState(null);
+    const [processingEnrollment, setProcessingEnrollment] = useState(null);
+    const [showEnrollmentConfirmation, setShowEnrollmentConfirmation] = useState(false);
+    const [studentToEnroll, setStudentToEnroll] = useState(null);
     
     // Confirmation dialog states
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -526,6 +530,85 @@ const DeleteStudentDialog = () => {
         }
     };
     
+    // Add these functions near your other handler functions
+const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
+    const student = students.find(s => s._id === studentId);
+    setStudentToEnroll({
+        id: studentId,
+        currentStatus: currentEnrollmentStatus,
+        name: student?.name || "this student"
+    });
+    setShowEnrollmentConfirmation(true);
+};
+
+const handleEnrollmentChange = async () => {
+    try {
+        if (!studentToEnroll) return;
+        
+        setShowEnrollmentConfirmation(false);
+        setProcessingEnrollment(studentToEnroll.id);
+        
+        const newStatus = studentToEnroll.currentStatus === "enrolled" ? "not-enrolled" : "enrolled";
+        
+        const response = await fetch(`http://localhost:3000/preregistration/enrollment/${studentToEnroll.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ enrollment_status: newStatus }),
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        setStudents(prevStudents => 
+            prevStudents.map(student => 
+                student._id === studentToEnroll.id 
+                    ? { ...student, enrollment_status: newStatus } 
+                    : student
+            )
+        );
+        
+        // Log the activity
+        try {
+            const username = localStorage.getItem('username') || 'Admin';
+            await fetch("http://localhost:3000/report/add-report", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: username,
+                    activityLog: `[Manage Pre-Registration] Updated enrollment status for ${studentToEnroll.name} to ${newStatus}`,
+                }),
+            });
+        } catch (logError) {
+            console.error('Failed to log activity:', logError);
+        }
+        
+        toast.success(
+            <div>
+                <p><strong>Enrollment Status Updated</strong></p>
+                <p>Student is now {newStatus === "enrolled" ? "Enrolled" : "Not Enrolled"}</p>
+            </div>,
+            {
+                position: "top-center",
+                autoClose: 3000,
+            }
+        );
+        
+    } catch (err) {
+        console.error('Failed to update enrollment status:', err);
+        toast.error('Failed to update enrollment status. Please try again.', {
+            position: "top-center",
+            autoClose: 5000,
+        });
+    } finally {
+        setProcessingEnrollment(null);
+        setStudentToEnroll(null);
+    }
+};
 
     // Toggle row expansion
     const toggleRow = (index) => {
@@ -616,6 +699,45 @@ const DeleteStudentDialog = () => {
         );
     };
     
+    // Add this component near your other dialog components
+const EnrollmentConfirmationDialog = () => {
+    if (!showEnrollmentConfirmation) return null;
+    
+    const newStatus = studentToEnroll?.currentStatus === "enrolled" ? "Not Enrolled" : "Enrolled";
+    const actionText = studentToEnroll?.currentStatus === "enrolled" ? "mark as not enrolled" : "enroll";
+    
+    return (
+        <div className="confirmation-overlay">
+            <div className="confirmation-dialog">
+                <div className="confirmation-header">
+                    <h3>Confirm Enrollment Change</h3>
+                </div>
+                <div className="confirmation-content">
+                    <p>Are you sure you want to {actionText} <strong>{studentToEnroll?.name}</strong>?</p>
+                </div>
+                <div className="confirmation-actions">
+                    <button 
+                        className="btn-cancel"
+                        onClick={() => {
+                            setShowEnrollmentConfirmation(false);
+                            setStudentToEnroll(null);
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        className={`btn-confirm ${studentToEnroll?.currentStatus === "enrolled" ? "notenrolled" : "enrolled"}`}
+                        onClick={handleEnrollmentChange}
+                    >
+                        {studentToEnroll?.currentStatus === "enrolled" ? 
+                            "Mark as Not Enrolled" : 
+                            "Mark as Enrolled"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
     // Table renderer
     const renderTable = () => {
         if (loading) return (
@@ -675,6 +797,7 @@ const DeleteStudentDialog = () => {
                                 <th>Phone Number</th>
                                 <th>Details</th>
                                 <th>Status</th>
+                                <th>Enrollment</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -742,6 +865,28 @@ const DeleteStudentDialog = () => {
                                                     <><CheckCircle size={14} /> Approved</>
                                                 ) : (
                                                     <><AlertCircle size={14} /> Pending</>
+                                                )}
+                                            </button>
+                                        </td>
+                                        <td className="cell-status">
+                                            <button
+                                                className={`btn-enrollment ${
+                                                    processingEnrollment === student._id 
+                                                        ? 'processing' 
+                                                        : student.enrollment_status === "enrolled" ? 'enrolled' : 'notenrolled'
+                                                }`}
+                                                onClick={() => confirmEnrollmentChange(student._id, student.enrollment_status)}
+                                                disabled={processingEnrollment === student._id}
+                                            >
+                                                {processingEnrollment === student._id ? (
+                                                    <>
+                                                        <span className="status-loading"></span>
+                                                        Processing...
+                                                    </>
+                                                ) : student.enrollment_status === "enrolled" ? (
+                                                    <><CheckCircle size={14} /> Enrolled</>
+                                                ) : (
+                                                    <><AlertCircle size={14} /> Not Enrolled</>
                                                 )}
                                             </button>
                                         </td>
@@ -860,6 +1005,14 @@ const DeleteStudentDialog = () => {
                         Expected Students
                     </button>
 
+                    <button 
+                        className={`tab ${activeTab === "enrolled" ? "active" : ""}`}
+                        onClick={() => setActiveTab("enrolled")}
+                    >
+                        <User size={16} />
+                        Enrolled Students
+                    </button>
+
                 </div>
                 
                 
@@ -946,11 +1099,14 @@ const DeleteStudentDialog = () => {
                         totalRecords={totalRecords}
                     />
                 )}
+
+                {activeTab === "enrolled" && <EnrolledStudents studentData={students} />}
             </div>
             <DeleteConfirmationDialog />
             {/* Confirmation Dialog */}
             <ConfirmationDialog />
             <DeleteStudentDialog /> {/* Add this line */}
+            <EnrollmentConfirmationDialog /> {/* Add this line */}
             
             {/* Toast notifications container */}
             <ToastContainer />
