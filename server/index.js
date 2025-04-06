@@ -21,11 +21,12 @@ const router = express.Router();
 app.use(express.json())
 // app.use(cors())
 app.use(cors({
-    origin: ["http://localhost:5174", "https://teamweb-production.up.railway.app"],  // Allowed origins
-    methods: ["GET", "POST", "PUT", "DELETE"],  // Allowed methods
-    allowedHeaders: ["Content-Type", "Authorization"],  // Allow both Content-Type and Authorization headers
-    credentials: true  // Allow credentials (cookies, session, etc.)
+    origin: ["http://localhost:5173", "http://localhost:5174", "https://teamweb-production.up.railway.app"],  // Add localhost:5173 here
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
 }));
+
 
 
 connectDB()
