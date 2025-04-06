@@ -157,6 +157,8 @@ const updatePreregistrationEnrollmentStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { enrollment } = req.body;
+        console.log("Incoming enrollment update:", { id, enrollment });
+
         const updatedRecord = await preRegistrationModel.findByIdAndUpdate(
             id,
             { enrollment },
