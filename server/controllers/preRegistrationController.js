@@ -180,6 +180,7 @@ const updatePreregistrationEnrollmentStatus = async (req, res) => {
 };
 
 // GET - Get all Pre-Registrations with enrollment status as true
+// GET - Get all Pre-Registrations with enrollment status as true
 const getEnrolledPreRegistrations = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -187,7 +188,12 @@ const getEnrolledPreRegistrations = async (req, res) => {
         const skip = limit ? (page - 1) * limit : 0;
 
         // Filter to get only enrolled students
-        const filterQuery = { enrollment: true };
+        let filterQuery = { enrollment: true };
+
+        // Apply search filter if provided
+        if (req.query.search) {
+            filterQuery.name = { $regex: req.query.search, $options: 'i' };
+        }
 
         let query = preRegistrationModel.find(filterQuery).skip(skip);
         if (limit) query = query.limit(limit); // Apply limit only if specified
@@ -207,6 +213,7 @@ const getEnrolledPreRegistrations = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+
 
 
 // DELETE - Delete all Pre-Registrations
