@@ -3,9 +3,8 @@ import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertC
 import { toast } from 'react-toastify';
 import './EnrolledStudents.css';
 
-// Add processingEnrollment prop
-function EnrolledStudents({ studentData, onEnrollmentChange }) {
-    // Add new state for enrollment processing
+function EnrolledStudents() {
+    // State for enrollment processing
     const [processingEnrollment, setProcessingEnrollment] = useState(null);
     const [showEnrollmentConfirmation, setShowEnrollmentConfirmation] = useState(false);
     const [studentToEnroll, setStudentToEnroll] = useState(null);
@@ -26,26 +25,47 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
     const [totalRecords, setTotalRecords] = useState(0);
     const [limit] = useState(10);
 
-    useEffect(() => {
-        // Filter enrolled students from studentData
-        const filtered = studentData.filter(student => 
-            student.enrollment === true &&
-            (searchTerm === "" || 
-                student.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
-            (selectedGrade === "" || student.grade_level === selectedGrade) &&
-            (selectedStrand === "" || student.strand === selectedStrand)
-        );
+    // Fetch data from API
+    const fetchStudentData = async () => {
+        try {
+            setLoading(true);
+            
+            // Construct query parameters based on active filters
+            let queryParams = new URLSearchParams({
+                page: currentPage,
+                limit: limit,
+                enrollment: true // Only fetch enrolled students
+            });
+            
+            // Add filters to query parameters if they exist
+            if (searchTerm) queryParams.append('search', searchTerm);
+            if (selectedGrade) queryParams.append('grade', selectedGrade);
+            if (selectedStrand) queryParams.append('strand', selectedStrand);
+            
+            const response = await fetch(
+                `https://teamweb-kera.onrender.com/preregistration/enrolled?${queryParams.toString()}`
+            );
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            setEnrolledStudents(data.preregistration);
+            setTotalPages(data.totalPages);
+            setTotalRecords(data.totalRecords);
+        } catch (err) {
+            setError('Failed to fetch enrolled students data: ' + err.message);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        setTotalRecords(filtered.length);
-        setTotalPages(Math.ceil(filtered.length / limit));
-        
-        // Paginate the results
-        const start = (currentPage - 1) * limit;
-        const paginatedData = filtered.slice(start, start + limit);
-        
-        setEnrolledStudents(paginatedData);
-        setLoading(false);
-    }, [studentData, searchTerm, selectedGrade, selectedStrand, currentPage, limit]);
+    // Fetch data on initial load and when filters or pagination changes
+    useEffect(() => {
+        fetchStudentData();
+    }, [searchTerm, selectedGrade, selectedStrand, currentPage, limit]);
 
     // Event handlers
     const handlePageChange = (newPage) => {
@@ -82,7 +102,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
 
     // Add enrollment handling functions
     const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
-        const student = studentData.find(s => s._id === studentId);
+        const student = enrolledStudents.find(s => s._id === studentId);
         setStudentToEnroll({
             id: studentId,
             currentStatus: currentEnrollmentStatus,
@@ -112,14 +132,8 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             
-            // Update the local state
-            setEnrolledStudents(prevStudents => 
-                prevStudents.map(student => 
-                    student._id === studentToEnroll.id 
-                        ? { ...student, enrollment: newStatus } 
-                        : student
-                )
-            );
+            // Refresh the data after updating enrollment status
+            fetchStudentData();
             
             // Log the activity
             try {
@@ -261,26 +275,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
     };
     
     const handleRefresh = () => {
-        setLoading(true);
-        // Re-filter the student data
-        const filtered = studentData.filter(student => 
-            student.enrollment === true &&
-            (searchTerm === "" || 
-                student.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
-            (selectedGrade === "" || student.grade_level === selectedGrade) &&
-            (selectedStrand === "" || student.strand === selectedStrand)
-        );
-    
-        setTotalRecords(filtered.length);
-        setTotalPages(Math.ceil(filtered.length / limit));
-        
-        // Paginate the results
-        const start = (currentPage - 1) * limit;
-        const paginatedData = filtered.slice(start, start + limit);
-        
-        setEnrolledStudents(paginatedData);
-        setLoading(false);
-    
+        fetchStudentData();
         toast.success('Data refreshed successfully', {
             position: "top-center",
             autoClose: 2000,
