@@ -16,7 +16,7 @@ function Announcement() {
 
     const fetchAnnouncements = async () => {
         try {
-            const response = await fetch("http://localhost:3000/announcement");
+            const response = await fetch("https://teamweb-kera.onrender.com/announcement");
             if (!response.ok) throw new Error("Failed to fetch announcements");
     
             const data = await response.json();
