@@ -28,7 +28,7 @@ function Appointment() {
     const loadAvailabilityData = async () => {
         try {
             setIsLoading(true);
-            const response = await fetch('http://localhost:3000/booking/bookingAvailability');
+            const response = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
             const data = await response.json();
             
             console.log("API Response:", data);
@@ -178,7 +178,7 @@ function Appointment() {
                     purpose_of_visit: appointmentReason
                 });
                 
-                const response = await fetch('http://localhost:3000/preregistration/addBooking', {
+                const response = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

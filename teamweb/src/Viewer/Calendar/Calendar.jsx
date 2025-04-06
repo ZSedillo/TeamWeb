@@ -57,7 +57,7 @@ const Calendar = () => {
     setToday(new Date().toISOString().split("T")[0]);
 
     // Only fetch events from the API, not holidays
-    fetch("http://localhost:3000/calendar")
+    fetch("https://teamweb-kera.onrender.com/calendar")
       .then((response) => response.json())
       .then((data) => {
         // Filter only events from the API data
