@@ -57,7 +57,7 @@ function ResetPassword() {
     setError("");
     
     try {
-      const response = await fetch('http://localhost:3000/user/reset-password', {
+      const response = await fetch('https://teamweb-kera.onrender.com/user/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

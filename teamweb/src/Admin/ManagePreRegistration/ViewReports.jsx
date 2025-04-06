@@ -42,7 +42,7 @@ const fetchRegistrations = async () => {
   setError(null);
   
   try {
-    const response = await fetch('http://localhost:3000/preregistration');
+    const response = await fetch('https://teamweb-kera.onrender.com/preregistration');
     
     if (!response.ok) {
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
@@ -122,7 +122,7 @@ const fetchRegistrations = async () => {
     document.body.removeChild(link);
 
     // ✅ Call `/add-report` API
-    fetch("http://localhost:3000/report/add-report", {
+    fetch("https://teamweb-kera.onrender.com/report/add-report", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

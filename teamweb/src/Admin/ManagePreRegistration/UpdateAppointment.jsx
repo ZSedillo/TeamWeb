@@ -66,7 +66,7 @@ const UpdateAppointment = (props) => {
 const fetchAvailabilityData = async () => {
   try {
     setIsLoading(true);
-    const response = await fetch('http://localhost:3000/booking/bookingAvailability');
+    const response = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
     
     if (!response.ok) {
       throw new Error('Failed to fetch availability data');
@@ -159,7 +159,7 @@ const createDefaultAvailability = async () => {
     const todayFormatted = today.toISOString().split('T')[0];
 
     // Fetch existing availability
-    const fetchResponse = await fetch('http://localhost:3000/booking/getBookingAvailability');
+    const fetchResponse = await fetch('https://teamweb-kera.onrender.com/booking/getBookingAvailability');
     if (!fetchResponse.ok) throw new Error('Failed to fetch existing availability');
 
     const existingAvailability = await fetchResponse.json();
@@ -185,7 +185,7 @@ const createDefaultAvailability = async () => {
     if (!existingDates.includes(todayFormatted)) {
       const defaultAvailability = { [todayFormatted]: generateTimeSlots() };
 
-      const response = await fetch('http://localhost:3000/booking/addBookingAvailability', {
+      const response = await fetch('https://teamweb-kera.onrender.com/booking/addBookingAvailability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ availability: defaultAvailability }),
@@ -321,7 +321,7 @@ const createDefaultAvailability = async () => {
         // For editing an existing availability entry
         
         // First, get the current availability to preserve other days
-        const currentResponse = await fetch(`http://localhost:3000/booking/bookingAvailability`);
+        const currentResponse = await fetch(`https://teamweb-kera.onrender.com/booking/bookingAvailability`);
         if (!currentResponse.ok) {
           throw new Error('Failed to fetch current availability data');
         }
@@ -340,7 +340,7 @@ const createDefaultAvailability = async () => {
         };
         
         // Update with the merged data
-        response = await fetch(`http://localhost:3000/booking/editBookingAvailability/${editingAppointmentId}`, {
+        response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${editingAppointmentId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -351,7 +351,7 @@ const createDefaultAvailability = async () => {
         // For adding a new day to an existing availability
         
         // Check if we already have any availability entries
-        const availabilityResponse = await fetch('http://localhost:3000/booking/bookingAvailability');
+        const availabilityResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
         if (!availabilityResponse.ok) {
           throw new Error('Failed to fetch availability data');
         }
@@ -369,7 +369,7 @@ const createDefaultAvailability = async () => {
           };
           
           // Update with the merged data
-          response = await fetch(`http://localhost:3000/booking/editBookingAvailability/${existingEntry._id}`, {
+          response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${existingEntry._id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -378,7 +378,7 @@ const createDefaultAvailability = async () => {
           });
         } else {
           // If no entries exist, create a new one with just this day's availability
-          response = await fetch('http://localhost:3000/booking/addBookingAvailability', {
+          response = await fetch('https://teamweb-kera.onrender.com/booking/addBookingAvailability', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -391,7 +391,7 @@ const createDefaultAvailability = async () => {
       if (!response.ok) {
         throw new Error('Failed to save appointment');
       }
-      await fetch("http://localhost:3000/report/add-report", {
+      await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -435,7 +435,7 @@ const createDefaultAvailability = async () => {
       const dateStr = formatDate(selectedDate);
       
       // First, fetch the current availability data to preserve other days
-      const currentResponse = await fetch('http://localhost:3000/booking/bookingAvailability');
+      const currentResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
       if (!currentResponse.ok) {
         throw new Error('Failed to fetch current availability data');
       }
@@ -454,7 +454,7 @@ const createDefaultAvailability = async () => {
       delete updatedAvailability[dayOfWeek];
       
       // Update with the modified availability (where the selected day is removed)
-      const response = await fetch(`http://localhost:3000/booking/editBookingAvailability/${appointmentId}`, {
+      const response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${appointmentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -473,7 +473,7 @@ const createDefaultAvailability = async () => {
         localStorage.setItem('deletedAvailabilityDates', JSON.stringify(recentlyDeletedDates));
       }
       
-      await fetch("http://localhost:3000/report/add-report", {
+      await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

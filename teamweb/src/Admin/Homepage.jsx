@@ -20,7 +20,7 @@ function Homepage() {
 
   const fetchImages = async () => {
     try {
-      const response = await fetch("http://localhost:3000/homepage/images");
+      const response = await fetch("https://teamweb-kera.onrender.com/homepage/images");
       if (!response.ok) throw new Error("Failed to fetch images");
       const data = await response.json();
       setImages(data);
@@ -62,7 +62,7 @@ function Homepage() {
       }, 200);
 
       const response = await fetch(
-        "http://localhost:3000/homepage/upload-image",
+        "https://teamweb-kera.onrender.com/homepage/upload-image",
         {
           method: "POST",
           body: formData,
@@ -75,7 +75,7 @@ function Homepage() {
       if (response.ok) {
         fetchImages(); // Refresh images after upload
 
-        await fetch("http://localhost:3000/report/add-report", {
+        await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -119,7 +119,7 @@ const handleDelete = async () => {
   const imageKey = selectedImage.image_url.replace("https://teamweb-image.s3.ap-southeast-1.amazonaws.com/", "");
 
   try {
-    const response = await fetch(`http://localhost:3000/homepage/delete-image/${encodeURIComponent(imageKey)}`, {
+    const response = await fetch(`https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(imageKey)}`, {
       method: "DELETE",
     });
 
@@ -130,7 +130,7 @@ const handleDelete = async () => {
       setShowDeleteConfirm(false);
       setSelectedImage(null);
 
-      await fetch("http://localhost:3000/report/add-report", {
+      await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

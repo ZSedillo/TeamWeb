@@ -16,7 +16,7 @@ function ViewReport() {
 
     const fetchReports = () => {
         setLoading(true);
-        fetch("http://localhost:3000/report/view-report")
+        fetch("https://teamweb-kera.onrender.com/report/view-report")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to fetch reports");
@@ -41,7 +41,7 @@ function ViewReport() {
         }
 
         setDeleting(true);
-        fetch("http://localhost:3000/report/delete-reports", { method: "DELETE" })
+        fetch("https://teamweb-kera.onrender.com/report/delete-reports", { method: "DELETE" })
             .then((response) => response.json())
             .then((data) => {
                 alert(data.message);

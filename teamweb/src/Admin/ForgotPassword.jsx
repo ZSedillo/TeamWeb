@@ -21,7 +21,7 @@ function ForgotPassword() {
     setError("");
 
     try {
-      const response = await fetch('http://localhost:3000/user/forgot-password', {
+      const response = await fetch('https://teamweb-kera.onrender.com/user/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

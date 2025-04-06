@@ -19,7 +19,7 @@ function ManageAnnouncement() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const announcementsPerPage = 6;
-    const baseUrl = "http://localhost:3000";
+    const baseUrl = "https://teamweb-kera.onrender.com"; //http://localhost:3000
     const [username, setUsername] = useState("");
 
     useEffect(() => {
@@ -145,7 +145,7 @@ function ManageAnnouncement() {
             }
     
             // ✅ Call `/add-report` API
-            await fetch("http://localhost:3000/report/add-report", {
+            await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
