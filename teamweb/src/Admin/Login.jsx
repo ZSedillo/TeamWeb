@@ -21,7 +21,6 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(""); 
-        console.log(formData); // Debugging
         try {
             const response = await fetch("https://teamweb-kera.onrender.com/user/login", {
                 method: "POST",

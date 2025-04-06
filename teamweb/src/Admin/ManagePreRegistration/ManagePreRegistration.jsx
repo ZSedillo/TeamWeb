@@ -348,6 +348,10 @@ const DeleteStudentDialog = () => {
         fetchStudentData();
     }, [currentPage, limit, searchTerm, selectedGrade, selectedStrand, selectedType]);
 
+    useEffect(() => {
+        //console.log("Updated student to enroll:", studentToEnroll);
+    }, [studentToEnroll]);
+
     const fetchStudentData = async () => {
         try {
             setLoading(true);
@@ -534,12 +538,14 @@ const DeleteStudentDialog = () => {
     const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
         const student = students.find(s => s._id === studentId);
         console.log("Check enrollment status: " + currentEnrollmentStatus);
+    
+        // Set the state properly
         setStudentToEnroll({
             id: studentId,
-            currentStatus: currentEnrollmentStatus,
+            enrollment: currentEnrollmentStatus, // Make sure this is set correctly
             name: student?.name || "this student"
         });
-        console.log("student to enroll : " + studentToEnroll)
+    
         setShowEnrollmentConfirmation(true);
     };
 
@@ -693,54 +699,48 @@ const handleEnrollmentChange = async () => {
     
     //FIX
     // Add this component near your other dialog components
-const EnrollmentConfirmationDialog = () => {
-    if (!showEnrollmentConfirmation) return null;
-
-    const isEnrolled = studentToEnroll?.enrollment;  // true if enrolled, false if not enrolled
-
-    // Set the enrollmentStatus based on the current value of the student's enrollment status
-    const enrollmentStatus = isEnrolled ? false : true;
+    const EnrollmentConfirmationDialog = () => {
+        if (!showEnrollmentConfirmation) return null;
     
-    // Set the actionText based on whether the student is enrolled or not
-    const actionText = isEnrolled ? "Mark as not enrolled" : "Enroll";
+        console.log("Check status: " + studentToEnroll?.enrollment);
+        const isEnrolled = studentToEnroll?.enrollment === true;
     
-    // Log the action text to check if it's correctly set
-    console.log(actionText); // Should log either "Mark as not enrolled" or "Enroll"
-
+        const actionText = isEnrolled ? "Mark as not Enrolled" : "Enroll";
     
-    return (
-        <div className="confirmation-overlay">
-            <div className="confirmation-dialog">
-                <div className="confirmation-header">
-                    <h3>Confirm Enrollment Change</h3>
-                </div>
-                <div className="confirmation-content">
-                    <p>Are you sure you want to {actionText} <strong>{studentToEnroll?.name}</strong>?</p>
-                </div>
-                <div className="confirmation-actions">
-                    <button 
-                        className="btn-cancel"
-                        onClick={() => {
-                            setShowEnrollmentConfirmation(false);
-                            setStudentToEnroll(null);
-                        }}
-                    >
-                        Cancel
-                    </button>
-                    {/* FIX */}
-                    <button 
-                        className={`btn-confirm ${studentToEnroll?.enrollment ? false : true}`}
-                        onClick={handleEnrollmentChange}
-                    >
-                        {studentToEnroll?.enrollment ? 
-                            "Mark as Not Enrolled" : 
-                            "Mark as Enrolled"}
-                    </button>
+        return (
+            <div className="confirmation-overlay">
+                <div className="confirmation-dialog">
+                    <div className="confirmation-header">
+                        <h3>Confirm Enrollment Change</h3>
+                    </div>
+                    <div className="confirmation-content">
+                        <p>
+                            Are you sure you want to {actionText}{" "}
+                            <strong>{studentToEnroll?.name}</strong>?
+                        </p>
+                    </div>
+                    <div className="confirmation-actions">
+                        <button
+                            className="btn-cancel"
+                            onClick={() => {
+                                setShowEnrollmentConfirmation(false);
+                                setStudentToEnroll(null);
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="btn-confirm"
+                            onClick={handleEnrollmentChange}
+                        >
+                            {isEnrolled ? "Mark as Not Enrolled" : "Mark as Enrolled"}
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
-};
+        );
+    };
+    
     // Table renderer
     const renderTable = () => {
         if (loading) return (
