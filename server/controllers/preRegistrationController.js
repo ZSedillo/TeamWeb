@@ -152,15 +152,15 @@ const updatePreRegistrationStatus = async (req, res) => {
     }
 };
 
-// PUT - Update Pre-Registration Enrollment Status
+// Update Enrollment Status for Pre-Registration Record
 const updatePreregistrationEnrollmentStatus = async (req, res) => {
     try {
         const { id } = req.params;
+        const { enrollment_status } = req.body; // Assume this is being sent in the request body
 
-        // Find the pre-registration record by ID
         const updatedRecord = await preRegistrationModel.findByIdAndUpdate(
             id,
-            { enrollment: true }, // Set enrollment status to true (or false as required)
+            { enrollment: enrollment_status }, // Set enrollment status to true/false
             { new: true } // Return the updated document
         );
 
@@ -177,8 +177,6 @@ const updatePreregistrationEnrollmentStatus = async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 };
-
-
 
 // DELETE - Delete all Pre-Registrations
 const deletePreRegistration = async (req, res) => {
