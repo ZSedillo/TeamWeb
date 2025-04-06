@@ -156,12 +156,11 @@ const updatePreRegistrationStatus = async (req, res) => {
 const updatePreregistrationEnrollmentStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { enrollment_status } = req.body; // Assume this is being sent in the request body
-
+        const { enrollment } = req.body;
         const updatedRecord = await preRegistrationModel.findByIdAndUpdate(
             id,
-            { enrollment: enrollment_status }, // Set enrollment status to true/false
-            { new: true } // Return the updated document
+            { enrollment },
+            { new: true }
         );
 
         if (!updatedRecord) {
