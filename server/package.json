@@ -5,10 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "deploy": "vite build && node index.js"
-  },
-  "engines":{
-    "node":">=14.20.1"
+    "deploy": "node index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.782.0",
