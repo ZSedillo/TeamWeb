@@ -9,7 +9,7 @@ const ExpectedStudents = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:3000/preregistration');
+                const response = await fetch('https://teamweb-kera.onrender.com/preregistration');
                 if (!response.ok) {
                     throw new Error('Failed to fetch data');
                 }

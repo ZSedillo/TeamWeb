@@ -62,7 +62,7 @@ function ManagePreRegistration() {
         try {
             setIsDeleting(true);
             
-            const response = await fetch('http://localhost:3000/preregistration/deleteAll', {
+            const response = await fetch('https://teamweb-kera.onrender.com/preregistration/deleteAll', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ function ManagePreRegistration() {
             // Log the activity for deletion
             try {
                 const username = localStorage.getItem('username') || 'Admin';
-                await fetch("http://localhost:3000/report/add-report", {
+                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -123,7 +123,7 @@ function ManagePreRegistration() {
     
                 // Log the export activity
                 const username = localStorage.getItem('username') || 'Admin';
-                await fetch("http://localhost:3000/report/add-report", {
+                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -251,7 +251,7 @@ const DeleteStudentDialog = () => {
     const confirmDelete = async () => {
         try {
             // Add loading state if needed
-            const response = await fetch(`http://localhost:3000/preregistration/delete/${studentToDelete.id}`, {
+            const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/delete/${studentToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -265,7 +265,7 @@ const DeleteStudentDialog = () => {
             // Log the activity
             try {
                 const username = localStorage.getItem('username') || 'Admin';
-                await fetch("http://localhost:3000/report/add-report", {
+                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -366,7 +366,7 @@ const DeleteStudentDialog = () => {
             if (selectedType) queryParams.append('type', selectedType);
             
             const response = await fetch(
-                `http://localhost:3000/preregistration?${queryParams.toString()}`
+                `https://teamweb-kera.onrender.com/preregistration?${queryParams.toString()}`
             );
             
             if (!response.ok) {
@@ -444,7 +444,7 @@ const DeleteStudentDialog = () => {
             const newStatus = studentToUpdate.currentStatus === "approved" ? "pending" : "approved";
             
             // Update API endpoint to match server code
-            const response = await fetch(`http://localhost:3000/preregistration/status/${studentToUpdate.id}`, {
+            const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/status/${studentToUpdate.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -472,7 +472,7 @@ const DeleteStudentDialog = () => {
                 // Get the current user's username from localStorage or a global state
                 const username = localStorage.getItem('username') || 'Admin'; // Fallback to 'Admin' if not found
                 
-                await fetch("http://localhost:3000/report/add-report", {
+                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -550,7 +550,7 @@ const handleEnrollmentChange = async () => {
         
         const newStatus = studentToEnroll.currentStatus === "enrolled" ? "not-enrolled" : "enrolled";
         
-        const response = await fetch(`http://localhost:3000/preregistration/enrollment/${studentToEnroll.id}`, {
+        const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -573,7 +573,7 @@ const handleEnrollmentChange = async () => {
         // Log the activity
         try {
             const username = localStorage.getItem('username') || 'Admin';
-            await fetch("http://localhost:3000/report/add-report", {
+            await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

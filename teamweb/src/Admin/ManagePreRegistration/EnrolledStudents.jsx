@@ -100,7 +100,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
             
             const newStatus = studentToEnroll.currentStatus === "enrolled" ? "not-enrolled" : "enrolled";
             
-            const response = await fetch(`http://localhost:3000/preregistration/enrollment/${studentToEnroll.id}`, {
+            const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
