@@ -534,7 +534,6 @@ const DeleteStudentDialog = () => {
     };
     
     // Add these functions near your other handler functions
-    // FIX
     const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
         const student = students.find(s => s._id === studentId);
         console.log("Check enrollment status: " + currentEnrollmentStatus);
@@ -549,7 +548,6 @@ const DeleteStudentDialog = () => {
         setShowEnrollmentConfirmation(true);
     };
 
-//FIX
 const handleEnrollmentChange = async () => {
     try {
         if (!studentToEnroll) return;
@@ -697,7 +695,6 @@ const handleEnrollmentChange = async () => {
         );
     };
     
-    //FIX
     // Add this component near your other dialog components
     const EnrollmentConfirmationDialog = () => {
         if (!showEnrollmentConfirmation) return null;
@@ -730,7 +727,7 @@ const handleEnrollmentChange = async () => {
                             Cancel
                         </button>
                         <button
-                            className="btn-confirm"
+                            className={`btn-enrollment-confirm ${isEnrolled ? 'false' : 'true'}`}
                             onClick={handleEnrollmentChange}
                         >
                             {isEnrolled ? "Mark as Not Enrolled" : "Mark as Enrolled"}
