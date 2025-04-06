@@ -3,6 +3,7 @@ const connectDB = require('./db.js')
 
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 
 const homepageRoutes = require("./routes/homepageRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
@@ -32,6 +33,11 @@ connectDB()
 
 // Set the correct path for static frontend files
 const frontendPath = path.join(__dirname, "..", "teamweb", "dist");
+fs.readdir(frontendPath, (err, files) => {
+    if (err) console.error("Error reading dist directory:", err);
+    else console.log("Dist directory contents:", files);
+  });
+
 app.use(express.static(frontendPath));
 
 app.use("/homepage", express.static(path.join(__dirname, "homepage")));
