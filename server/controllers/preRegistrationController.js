@@ -156,23 +156,28 @@ const updatePreRegistrationStatus = async (req, res) => {
 const updatePreregistrationEnrollmentStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
+        // Find the pre-registration record by ID
         const updatedRecord = await preRegistrationModel.findByIdAndUpdate(
             id,
-            { enrollment: true },
-            { new: true }
+            { enrollment: true }, // Set enrollment status to true (or false as required)
+            { new: true } // Return the updated document
         );
 
         if (!updatedRecord) {
             return res.status(404).json({ error: "Pre-registration record not found" });
         }
 
-        res.json({ message: "Enrollment status updated successfully", preregistration: updatedRecord });
+        res.json({
+            message: "Enrollment status updated successfully",
+            preregistration: updatedRecord
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
     }
 };
+
 
 
 // DELETE - Delete all Pre-Registrations
