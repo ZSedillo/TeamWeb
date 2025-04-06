@@ -545,54 +545,44 @@ const handleEnrollmentChange = async () => {
     try {
         if (!studentToEnroll) return;
         
-        setShowEnrollmentConfirmation(false);
-        setProcessingEnrollment(studentToEnroll.id);
+        setShowEnrollmentConfirmation(false); // Close confirmation dialog
+        setProcessingEnrollment(studentToEnroll.id); // Set student ID being processed
         
-        const newStatus = studentToEnroll.currentStatus === "enrolled" ? "not-enrolled" : "enrolled";
+        // Toggle enrollment status: if already enrolled, set to not enrolled, otherwise enroll
+        const newEnrollmentStatus = studentToEnroll.enrollment ? false : true;
         
+        // Call the backend to update the enrollment status
         const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ enrollment_status: newStatus }),
+            body: JSON.stringify({ enrollment_status: newEnrollmentStatus }),
         });
         
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         
+        const data = await response.json();
+        
+        // Update the local state with the new enrollment status
         setStudents(prevStudents => 
             prevStudents.map(student => 
                 student._id === studentToEnroll.id 
-                    ? { ...student, enrollment_status: newStatus } 
+                    ? { ...student, enrollment: newEnrollmentStatus } 
                     : student
             )
         );
         
-        // Log the activity
-        try {
-            const username = localStorage.getItem('username') || 'Admin';
-            await fetch("https://teamweb-kera.onrender.com/report/add-report", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    username: username,
-                    activityLog: `[Manage Pre-Registration] Updated enrollment status for ${studentToEnroll.name} to ${newStatus}`,
-                }),
-            });
-        } catch (logError) {
-            console.error('Failed to log activity:', logError);
-        }
-        
+        // Show success toast with updated enrollment status
         toast.success(
             <div>
                 <p><strong>Enrollment Status Updated</strong></p>
-                <p>Student is now {newStatus === "enrolled" ? "Enrolled" : "Not Enrolled"}</p>
+                <p>Student enrollment status is now {newEnrollmentStatus ? "Enrolled" : "Not Enrolled"}</p>
             </div>,
             {
+                icon: <CheckCircle size={16} />,
                 position: "top-center",
                 autoClose: 3000,
             }
@@ -609,6 +599,7 @@ const handleEnrollmentChange = async () => {
         setStudentToEnroll(null);
     }
 };
+
 
     // Toggle row expansion
     const toggleRow = (index) => {
