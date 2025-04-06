@@ -4,6 +4,7 @@ const {
     addPreRegistration,
     updatePreRegistrationStatus,
     updatePreregistrationEnrollmentStatus,
+    getEnrolledPreRegistrations,
     addBooking,
     deletePreRegistration,
     deletePreRegistrationById
@@ -15,6 +16,7 @@ router.get('/', getPreRegistrations);
 router.post('/add', addPreRegistration);
 router.put('/status/:id', updatePreRegistrationStatus);
 router.put('/enrollment/:id', updatePreregistrationEnrollmentStatus); 
+router.get('/enrolled', getEnrolledPreRegistrations);
 router.post('/addBooking', addBooking);
 router.delete('/deleteAll', deletePreRegistration); 
 router.delete('/delete/:id', deletePreRegistrationById);

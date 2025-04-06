@@ -179,6 +179,36 @@ const updatePreregistrationEnrollmentStatus = async (req, res) => {
     }
 };
 
+// GET - Get all Pre-Registrations with enrollment status as true
+const getEnrolledPreRegistrations = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = req.query.limit ? parseInt(req.query.limit) : null;
+        const skip = limit ? (page - 1) * limit : 0;
+
+        // Filter to get only enrolled students
+        const filterQuery = { enrollment: true };
+
+        let query = preRegistrationModel.find(filterQuery).skip(skip);
+        if (limit) query = query.limit(limit); // Apply limit only if specified
+
+        const records = await query;
+        const totalRecords = await preRegistrationModel.countDocuments(filterQuery);
+
+        res.json({
+            totalRecords,
+            totalPages: limit ? Math.ceil(totalRecords / limit) : 1,
+            currentPage: page,
+            preregistration: records,
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+
 // DELETE - Delete all Pre-Registrations
 const deletePreRegistration = async (req, res) => {
     try {
@@ -235,4 +265,4 @@ const addBooking = async (req, res) => {
     }
 };
 
-module.exports = { getPreRegistrations, addPreRegistration, updatePreRegistrationStatus, updatePreregistrationEnrollmentStatus, addBooking, deletePreRegistration, deletePreRegistrationById };
+module.exports = { getPreRegistrations, addPreRegistration, updatePreRegistrationStatus, updatePreregistrationEnrollmentStatus, getEnrolledPreRegistrations, addBooking, deletePreRegistration, deletePreRegistrationById };
