@@ -29,7 +29,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
     useEffect(() => {
         // Filter enrolled students from studentData
         const filtered = studentData.filter(student => 
-            student.enrollment_status === "enrolled" &&
+            student.enrollment === true &&
             (searchTerm === "" || 
                 student.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
             (selectedGrade === "" || student.grade_level === selectedGrade) &&
@@ -98,14 +98,14 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
             setShowEnrollmentConfirmation(false);
             setProcessingEnrollment(studentToEnroll.id);
             
-            const newStatus = studentToEnroll.currentStatus === "enrolled" ? "not-enrolled" : "enrolled";
+            const newStatus = !studentToEnroll.currentStatus;
             
             const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ enrollment_status: newStatus }),
+                body: JSON.stringify({ enrollment: newStatus }),
             });
             
             if (!response.ok) {
@@ -116,7 +116,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
             setEnrolledStudents(prevStudents => 
                 prevStudents.map(student => 
                     student._id === studentToEnroll.id 
-                        ? { ...student, enrollment_status: newStatus } 
+                        ? { ...student, enrollment: newStatus } 
                         : student
                 )
             );
@@ -124,14 +124,14 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
             // Log the activity
             try {
                 const username = localStorage.getItem('username') || 'Admin';
-                await fetch("http://localhost:3000/report/add-report", {
+                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
                         username: username,
-                        activityLog: `[Manage Pre-Registration] Updated enrollment status for ${studentToEnroll.name} to ${newStatus}`,
+                        activityLog: `[Manage Pre-Registration] Updated enrollment status for ${studentToEnroll.name} to ${newStatus ? "Enrolled" : "Not Enrolled"}`,
                     }),
                 });
             } catch (logError) {
@@ -141,7 +141,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
             toast.success(
                 <div>
                     <p><strong>Enrollment Status Updated</strong></p>
-                    <p>Student is now {newStatus === "enrolled" ? "Enrolled" : "Not Enrolled"}</p>
+                    <p>Student is now {newStatus ? "Enrolled" : "Not Enrolled"}</p>
                 </div>,
                 {
                     position: "top-center",
@@ -165,8 +165,8 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
     const EnrollmentConfirmationDialog = () => {
         if (!showEnrollmentConfirmation) return null;
         
-        const newStatus = studentToEnroll?.currentStatus === "enrolled" ? "Not Enrolled" : "Enrolled";
-        const actionText = studentToEnroll?.currentStatus === "enrolled" ? "mark as not enrolled" : "enroll";
+        const newStatus = !studentToEnroll?.currentStatus;
+        const actionText = studentToEnroll?.currentStatus ? "mark as not enrolled" : "enroll";
         
         return (
             <div className="confirmation-overlay">
@@ -188,10 +188,10 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
                             Cancel
                         </button>
                         <button 
-                            className={`btn-confirm ${studentToEnroll?.currentStatus === "enrolled" ? "notenrolled" : "enrolled"}`}
+                            className={`btn-confirm ${studentToEnroll?.currentStatus ? "notenrolled" : "enrolled"}`}
                             onClick={handleEnrollmentChange}
                         >
-                            {studentToEnroll?.currentStatus === "enrolled" ? 
+                            {studentToEnroll?.currentStatus ? 
                                 "Mark as Not Enrolled" : 
                                 "Mark as Enrolled"}
                         </button>
@@ -225,7 +225,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
                 student.phone_number || '',
                 student.isNewStudent === 'new' ? 'New Student' : 'Returning Student',
                 student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '',
-                student.enrollment_status === "enrolled" ? "Enrolled" : "Not Enrolled" // Add enrollment status
+                student.enrollment ? "Enrolled" : "Not Enrolled" // Fixed to use boolean value
             ]);
         });
     
@@ -243,7 +243,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
     
         // Log the export activity
         const username = localStorage.getItem('username') || 'Admin';
-        fetch("http://localhost:3000/report/add-report", {
+        fetch("https://teamweb-kera.onrender.com/report/add-report", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -264,7 +264,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
         setLoading(true);
         // Re-filter the student data
         const filtered = studentData.filter(student => 
-            student.enrollment_status === "enrolled" &&
+            student.enrollment === true &&
             (searchTerm === "" || 
                 student.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
             (selectedGrade === "" || student.grade_level === selectedGrade) &&
@@ -437,9 +437,9 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
                                                     className={`btn-enrollment ${
                                                         processingEnrollment === student._id 
                                                             ? 'processing' 
-                                                            : student.enrollment_status === "enrolled" ? 'enrolled' : 'notenrolled'
+                                                            : student.enrollment ? 'enrolled' : 'notenrolled'
                                                     }`}
-                                                    onClick={() => confirmEnrollmentChange(student._id, student.enrollment_status)}
+                                                    onClick={() => confirmEnrollmentChange(student._id, student.enrollment)}
                                                     disabled={processingEnrollment === student._id}
                                                 >
                                                     {processingEnrollment === student._id ? (
@@ -447,7 +447,7 @@ function EnrolledStudents({ studentData, onEnrollmentChange }) {
                                                             <span className="status-loading"></span>
                                                             Processing...
                                                         </>
-                                                    ) : student.enrollment_status === "enrolled" ? (
+                                                    ) : student.enrollment ? (
                                                         <><CheckCircle size={14} /> Enrolled</>
                                                     ) : (
                                                         <><AlertCircle size={14} /> Not Enrolled</>

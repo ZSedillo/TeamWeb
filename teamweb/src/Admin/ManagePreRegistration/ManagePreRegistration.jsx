@@ -40,7 +40,6 @@ function ManagePreRegistration() {
     
     // UI state
     const [activeTab, setActiveTab] = useState('table');
-    const [selectedStudentId, setSelectedStudentId] = useState(null);
 
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -374,8 +373,6 @@ const DeleteStudentDialog = () => {
             }
             
             const data = await response.json();
-            console.log(data);
-
             setStudents(data.preregistration);
             setTotalPages(data.totalPages);
             setTotalRecords(data.totalRecords);
@@ -536,11 +533,13 @@ const DeleteStudentDialog = () => {
     // FIX
     const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
         const student = students.find(s => s._id === studentId);
+        console.log("Check enrollment status: " + currentEnrollmentStatus);
         setStudentToEnroll({
             id: studentId,
             currentStatus: currentEnrollmentStatus,
             name: student?.name || "this student"
         });
+        console.log("student to enroll : " + studentToEnroll)
         setShowEnrollmentConfirmation(true);
     };
 
@@ -551,6 +550,7 @@ const handleEnrollmentChange = async () => {
         
         setShowEnrollmentConfirmation(false);
         setProcessingEnrollment(studentToEnroll.id);
+        console.log("changing: " + studentToEnroll);
         
         // Toggle based on the actual enrollment field
         const newEnrollmentStatus = !studentToEnroll.enrollment;
@@ -691,12 +691,22 @@ const handleEnrollmentChange = async () => {
         );
     };
     
+    //FIX
     // Add this component near your other dialog components
 const EnrollmentConfirmationDialog = () => {
     if (!showEnrollmentConfirmation) return null;
+
+    const isEnrolled = studentToEnroll?.enrollment;  // true if enrolled, false if not enrolled
+
+    // Set the enrollmentStatus based on the current value of the student's enrollment status
+    const enrollmentStatus = isEnrolled ? false : true;
     
-    const newStatus = studentToEnroll?.currentStatus === "enrolled" ? "Not Enrolled" : "Enrolled";
-    const actionText = studentToEnroll?.currentStatus === "enrolled" ? "mark as not enrolled" : "enroll";
+    // Set the actionText based on whether the student is enrolled or not
+    const actionText = isEnrolled ? "Mark as not enrolled" : "Enroll";
+    
+    // Log the action text to check if it's correctly set
+    console.log(actionText); // Should log either "Mark as not enrolled" or "Enroll"
+
     
     return (
         <div className="confirmation-overlay">
@@ -718,14 +728,6 @@ const EnrollmentConfirmationDialog = () => {
                         Cancel
                     </button>
                     {/* FIX */}
-                    {/* <button 
-                        className={`btn-confirm ${studentToEnroll?.currentStatus === "enrolled" ? "notenrolled" : "enrolled"}`}
-                        onClick={handleEnrollmentChange}
-                    >
-                        {studentToEnroll?.currentStatus === "enrolled" ? 
-                            "Mark as Not Enrolled" : 
-                            "Mark as Enrolled"}
-                    </button> */}
                     <button 
                         className={`btn-confirm ${studentToEnroll?.enrollment ? false : true}`}
                         onClick={handleEnrollmentChange}
