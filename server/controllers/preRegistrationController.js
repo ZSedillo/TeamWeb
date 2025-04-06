@@ -180,22 +180,88 @@ const updatePreregistrationEnrollmentStatus = async (req, res) => {
 };
 
 // GET - Get all Pre-Registrations with enrollment status as true
-// GET - Get all Pre-Registrations with enrollment status as true
 const getEnrolledPreRegistrations = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = req.query.limit ? parseInt(req.query.limit) : null;
         const skip = limit ? (page - 1) * limit : 0;
 
-        // Filter to get only enrolled students
-        let filterQuery = { enrollment: true };
+        // Filter to get only enrolled students (or specified by query param)
+        let filterQuery = {};
+        
+        // Handle the enrollment filter explicitly
+        if (req.query.enrollment === 'true') {
+            filterQuery.enrollment = true;
+        } else if (req.query.enrollment === 'false') {
+            filterQuery.enrollment = false;
+        } else {
+            // Default behavior - show all enrolled students
+            filterQuery.enrollment = true;
+        }
 
         // Apply search filter if provided
         if (req.query.search) {
             filterQuery.name = { $regex: req.query.search, $options: 'i' };
         }
+        
+        // Apply grade filter if provided
+        if (req.query.grade) {
+            filterQuery.grade_level = req.query.grade;
+        }
+        
+        // Apply strand filter if provided
+        if (req.query.strand) {
+            filterQuery.strand = req.query.strand;
+        }
 
-        let query = preRegistrationModel.find(filterQuery).skip(skip);
+        let sortObject = { createdAt: -1 }; // Default sort by most recent
+        
+        // If grade was applied as a filter, sort appropriately
+        if (req.query.grade) {
+            const aggregationPipeline = [
+                { $match: filterQuery },
+                {
+                    $addFields: {
+                        gradeOrder: {
+                            $switch: {
+                                branches: [
+                                    { case: { $eq: ["$grade_level", "Kinder"] }, then: 0 },
+                                    { case: { $eq: ["$grade_level", "1"] }, then: 1 },
+                                    { case: { $eq: ["$grade_level", "2"] }, then: 2 },
+                                    { case: { $eq: ["$grade_level", "3"] }, then: 3 },
+                                    { case: { $eq: ["$grade_level", "4"] }, then: 4 },
+                                    { case: { $eq: ["$grade_level", "5"] }, then: 5 },
+                                    { case: { $eq: ["$grade_level", "6"] }, then: 6 },
+                                    { case: { $eq: ["$grade_level", "7"] }, then: 7 },
+                                    { case: { $eq: ["$grade_level", "8"] }, then: 8 },
+                                    { case: { $eq: ["$grade_level", "9"] }, then: 9 },
+                                    { case: { $eq: ["$grade_level", "10"] }, then: 10 },
+                                    { case: { $eq: ["$grade_level", "11"] }, then: 11 },
+                                    { case: { $eq: ["$grade_level", "12"] }, then: 12 }
+                                ],
+                                default: 100
+                            }
+                        }
+                    }
+                },
+                { $sort: { gradeOrder: 1, name: 1 } },
+                { $skip: skip },
+                ...(limit ? [{ $limit: limit }] : []) // Apply limit only if specified
+            ];
+
+            const records = await preRegistrationModel.aggregate(aggregationPipeline);
+            const totalRecords = await preRegistrationModel.countDocuments(filterQuery);
+
+            return res.json({
+                totalRecords,
+                totalPages: limit ? Math.ceil(totalRecords / limit) : 1,
+                currentPage: page,
+                preregistration: records,
+            });
+        }
+
+        // For other queries, use the standard find operation
+        let query = preRegistrationModel.find(filterQuery).sort(sortObject).skip(skip);
         if (limit) query = query.limit(limit); // Apply limit only if specified
 
         const records = await query;
@@ -213,7 +279,6 @@ const getEnrolledPreRegistrations = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
-
 
 
 // DELETE - Delete all Pre-Registrations
