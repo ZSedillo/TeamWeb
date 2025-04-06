@@ -374,6 +374,8 @@ const DeleteStudentDialog = () => {
             }
             
             const data = await response.json();
+            console.log(data);
+
             setStudents(data.preregistration);
             setTotalPages(data.totalPages);
             setTotalRecords(data.totalRecords);
@@ -531,33 +533,34 @@ const DeleteStudentDialog = () => {
     };
     
     // Add these functions near your other handler functions
-const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
-    const student = students.find(s => s._id === studentId);
-    setStudentToEnroll({
-        id: studentId,
-        currentStatus: currentEnrollmentStatus,
-        name: student?.name || "this student"
-    });
-    setShowEnrollmentConfirmation(true);
-};
+    // FIX
+    const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
+        const student = students.find(s => s._id === studentId);
+        setStudentToEnroll({
+            id: studentId,
+            currentStatus: currentEnrollmentStatus,
+            name: student?.name || "this student"
+        });
+        setShowEnrollmentConfirmation(true);
+    };
 
+//FIX
 const handleEnrollmentChange = async () => {
     try {
         if (!studentToEnroll) return;
         
-        setShowEnrollmentConfirmation(false); // Close confirmation dialog
-        setProcessingEnrollment(studentToEnroll.id); // Set student ID being processed
+        setShowEnrollmentConfirmation(false);
+        setProcessingEnrollment(studentToEnroll.id);
         
-        // Toggle enrollment status: if already enrolled, set to not enrolled, otherwise enroll
-        const newEnrollmentStatus = studentToEnroll.enrollment ? false : true;
+        // Toggle based on the actual enrollment field
+        const newEnrollmentStatus = !studentToEnroll.enrollment;
         
-        // Call the backend to update the enrollment status
         const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ enrollment_status: newEnrollmentStatus }),
+            body: JSON.stringify({ enrollment: newEnrollmentStatus }),
         });
         
         if (!response.ok) {
@@ -566,7 +569,6 @@ const handleEnrollmentChange = async () => {
         
         const data = await response.json();
         
-        // Update the local state with the new enrollment status
         setStudents(prevStudents => 
             prevStudents.map(student => 
                 student._id === studentToEnroll.id 
@@ -575,7 +577,6 @@ const handleEnrollmentChange = async () => {
             )
         );
         
-        // Show success toast with updated enrollment status
         toast.success(
             <div>
                 <p><strong>Enrollment Status Updated</strong></p>
@@ -716,11 +717,20 @@ const EnrollmentConfirmationDialog = () => {
                     >
                         Cancel
                     </button>
-                    <button 
+                    {/* FIX */}
+                    {/* <button 
                         className={`btn-confirm ${studentToEnroll?.currentStatus === "enrolled" ? "notenrolled" : "enrolled"}`}
                         onClick={handleEnrollmentChange}
                     >
                         {studentToEnroll?.currentStatus === "enrolled" ? 
+                            "Mark as Not Enrolled" : 
+                            "Mark as Enrolled"}
+                    </button> */}
+                    <button 
+                        className={`btn-confirm ${studentToEnroll?.enrollment ? false : true}`}
+                        onClick={handleEnrollmentChange}
+                    >
+                        {studentToEnroll?.enrollment ? 
                             "Mark as Not Enrolled" : 
                             "Mark as Enrolled"}
                     </button>
@@ -864,9 +874,9 @@ const EnrollmentConfirmationDialog = () => {
                                                 className={`btn-enrollment ${
                                                     processingEnrollment === student._id 
                                                         ? 'processing' 
-                                                        : student.enrollment_status === "enrolled" ? 'enrolled' : 'notenrolled'
+                                                        : student.enrollment === true ? true : false
                                                 }`}
-                                                onClick={() => confirmEnrollmentChange(student._id, student.enrollment_status)}
+                                                onClick={() => confirmEnrollmentChange(student._id, student.enrollment)}
                                                 disabled={processingEnrollment === student._id}
                                             >
                                                 {processingEnrollment === student._id ? (
@@ -874,7 +884,7 @@ const EnrollmentConfirmationDialog = () => {
                                                         <span className="status-loading"></span>
                                                         Processing...
                                                     </>
-                                                ) : student.enrollment_status === "enrolled" ? (
+                                                ) : student.enrollment === true ? (
                                                     <><CheckCircle size={14} /> Enrolled</>
                                                 ) : (
                                                     <><AlertCircle size={14} /> Not Enrolled</>
@@ -959,7 +969,7 @@ const EnrollmentConfirmationDialog = () => {
         <div className="manage-preregistration">
             <AdminHeader />
             
-            <div className="content-container">
+            <div className="content-container-manage-preregistration">
                 <div className="page-header">
                     <h1>Student Pre-Registration Management</h1>
                     <p>View and manage student pre-registration records</p>

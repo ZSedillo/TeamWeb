@@ -8,8 +8,8 @@
     min-height: 100vh;
 }
 
-.content-container {
-    max-width: 1480px;
+.content-container-manage-preregistration {
+    max-width: 1780px;
     margin: 2rem auto;
     padding: 0 1.5rem;
 }
@@ -400,21 +400,21 @@
     transition: all 0.2s ease;
 }
 
-.btn-enrollment.enrolled {
+.btn-enrollment.true {
     color: #057a55;
     background-color: #def7ec;
 }
 
-.btn-enrollment.enrolled:hover {
+.btn-enrollment.true:hover {
     background-color: #bcf0da;
 }
 
-.btn-enrollment.notenrolled {
+.btn-enrollment.false {
     color: #dc2626;
     background-color: #fee2e2;
 }
 
-.btn-enrollment.notenrolled:hover {
+.btn-enrollment.false:hover {
     background-color: #fecaca;
 }
 
