@@ -8,6 +8,7 @@ function Announcement() {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Add loading state
     const announcementsPerPage = 5; // Show 5 announcements per page
 
     useEffect(() => {
@@ -15,6 +16,7 @@ function Announcement() {
     }, []);
 
     const fetchAnnouncements = async () => {
+        setIsLoading(true); // Set loading to true when fetch begins
         try {
             const response = await fetch("https://teamweb-kera.onrender.com/announcement");
             if (!response.ok) throw new Error("Failed to fetch announcements");
@@ -30,6 +32,8 @@ function Announcement() {
             }
         } catch (error) {
             console.error("Error fetching announcements:", error);
+        } finally {
+            setIsLoading(false); // Set loading to false when fetch completes (success or error)
         }
     };
 
@@ -85,7 +89,12 @@ function Announcement() {
                 <br />
                 <br />
                 <div className="announcements-list">
-                    {currentAnnouncements.length > 0 ? (
+                    {isLoading ? (
+                        <div className="loading-state">
+                            <div className="loading-spinner"></div>
+                            <p>Loading announcements...</p>
+                        </div>
+                    ) : currentAnnouncements.length > 0 ? (
                         currentAnnouncements.map((announcement, index) => {
                             const imagePath = announcement.image_url 
                                 ? `${announcement.image_url}` 
@@ -171,8 +180,8 @@ function Announcement() {
                     </div>
                 )}
 
-                {/* Pagination */}
-                {totalPages > 1 && (
+                {/* Pagination - only show when not loading and we have pages */}
+                {!isLoading && totalPages > 1 && (
                     <div className="pagination-container-announcement">
                         <div className="pagination-announcement">
                             {Array.from({ length: totalPages }, (_, i) => (
