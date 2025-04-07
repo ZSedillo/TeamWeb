@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AdminHeader from '../Component/AdminHeader.jsx';
 import UpdateAppointment from './UpdateAppointment';
 import ViewReports from './ViewReports';
-import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 } from 'lucide-react';
+import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 ,ChevronDown } from 'lucide-react';
 import ExpectedStudents from './ExpectedStudents';
 import EnrolledStudents from './EnrolledStudents';
 
@@ -40,6 +40,8 @@ function ManagePreRegistration() {
     
     // UI state
     const [activeTab, setActiveTab] = useState('table');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -48,6 +50,15 @@ function ManagePreRegistration() {
     const [showDeleteConfirmationDialog, setShowDeleteConfirmationDialog] = useState(false);
     const [studentToDelete, setStudentToDelete] = useState(null);
 
+    const handleTabChange = (tabId) => {
+        setActiveTab(tabId);
+        setIsDropdownOpen(false);
+      };
+
+      const getActiveTabData = () => {
+        return tabs.find(tab => tab.id === activeTab);
+      };
+    
 
     const handleDeleteAllPreRegistrations = async () => {
         if (deleteConfirmText !== 'Confirm') {
@@ -346,11 +357,31 @@ const DeleteStudentDialog = () => {
     // Fetch data on component mount or when pagination/filters change
     useEffect(() => {
         fetchStudentData();
+        const checkIsMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+          };
+          
+          // Initial check
+          checkIsMobile();
+          
+          // Add event listener
+          window.addEventListener('resize', checkIsMobile);
+          
+          // Cleanup
+          return () => window.removeEventListener('resize', checkIsMobile);
     }, [currentPage, limit, searchTerm, selectedGrade, selectedStrand, selectedType]);
 
     useEffect(() => {
         //console.log("Updated student to enroll:", studentToEnroll);
     }, [studentToEnroll]);
+
+    const tabs = [
+        { id: "table", label: "Student Records", icon: <User size={16} /> },
+        { id: "appointment", label: "Appointment Availability", icon: <Calendar size={16} /> },
+        { id: "reports", label: "Reports", icon: <ChartBar size={16} /> },
+        { id: "expected", label: "Expected Students", icon: <CheckCircle size={16} /> },
+        { id: "enrolled", label: "Enrolled Students", icon: <User size={16} /> }
+      ];
 
     const fetchStudentData = async () => {
         try {
@@ -974,48 +1005,51 @@ const handleEnrollmentChange = async () => {
                     <p>View and manage student pre-registration records</p>
                 </div>
                 
-                <div className="tabs">
-                    <button 
-                        className={`tab ${activeTab === "table" ? "active" : ""}`}
-                        onClick={() => setActiveTab("table")}
-                    >
-                        <User size={16} />
-                        Student Records
-                    </button>
-                    <button 
-                        className={`tab ${activeTab === "appointment" ? "active" : ""}`}
-                        onClick={() => setActiveTab("appointment")}
-                    >
-                        <Calendar size={16} />
-                        Appointment Availability
-                    </button>
-                    <button 
-                        className={`tab ${activeTab === "reports" ? "active" : ""}`}
-                        onClick={() => setActiveTab("reports")}
-                    >
-                        <ChartBar size={16} />
-                        Reports
-                    </button>
-
-                    <button 
-                        className={`tab ${activeTab === "expected" ? "active" : ""}`}
-                        onClick={() => setActiveTab("expected")}
-                    >
-                        <CheckCircle size={16} />
-                        Expected Students
-                    </button>
-
-                    <button 
-                        className={`tab ${activeTab === "enrolled" ? "active" : ""}`}
-                        onClick={() => setActiveTab("enrolled")}
-                    >
-                        <User size={16} />
-                        Enrolled Students
-                    </button>
-
-                </div>
-                
-                
+      {/* Mobile Dropdown */}
+      {isMobile ? (
+        <div className="mobile-tabs-dropdown">
+          <button 
+            className="dropdown-toggle" 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            <span className="dropdown-current">
+              {getActiveTabData().icon}
+              <span>{getActiveTabData().label}</span>
+            </span>
+            <ChevronDown size={16} className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="dropdown-menu">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`dropdown-item ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Desktop Tabs */
+        <div className="tabs">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              data-tab={tab.id}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
                 {activeTab === "table" && (
                     <>
                         <div className="filters-container">
