@@ -68,7 +68,7 @@ function ViewReport() {
     return (
         <>
             <AdminHeader />
-            <div className="content-container">
+            <div className="content-container-admin-logs">
                 <div className="page-header">
                     <h1>View Admin Logs</h1>
                     <p>Audit admin activities and maintain security.</p>
