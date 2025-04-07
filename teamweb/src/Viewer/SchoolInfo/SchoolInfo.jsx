@@ -58,8 +58,7 @@ const facultyData = {
 
 // Data for subjects per grade
 const subjectsData = {
-    "KINDERGARTEN 1": ["Alphabet Recognition", "Basic Counting", "Arts & Crafts"],
-    "KINDERGARTEN 2": ["Reading Readiness", "Numbers & Shapes", "Music & Movement"],
+    "KINDER": ["Alphabet Recognition", "Basic Counting", "Arts & Crafts"],
     "GRADE 1": ["Math", "English", "Science", "Filipino", "PE"],
     "GRADE 2": ["Math", "English", "Science", "Filipino", "Araling Panlipunan"],
     "GRADE 3": ["Math", "English", "Science", "Filipino", "Computer"],
