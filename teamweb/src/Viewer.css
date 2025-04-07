@@ -310,93 +310,103 @@ body {
 }
 
 /* Responsive Adjustments - Updated for wider carousel */
+/* Large screens */
 @media (max-width: 1200px) {
   .main-container {
     padding: 40px;
   }
-  
+
   .school-image {
-    max-width: 600px;
+    max-width: 90%;
   }
-  
+
   .news-item {
-    width: 800px; /* Adjusted for wider screens */
+    width: 290%;
     height: 400px;
   }
 }
 
+/* Medium screens */
 @media (max-width: 992px) {
   .main-container {
     flex-direction: column-reverse;
     padding: 30px;
   }
-  
+
   .welcome-section {
     text-align: center;
     margin-top: 30px;
   }
-  
+
   .school-image-container {
     max-width: 100%;
   }
-  
+
   .news-item {
-    width: 650px; /* Adjusted for medium screens */
+    width: 190%;
+    max-width: 650px;
     height: 350px;
   }
-  
+
   .news-container {
     height: 400px;
   }
 }
 
+/* Tablets and small laptops */
 @media (max-width: 768px) {
-  .teamian-text, .web-text {
-    font-size: 50px;
+  .teamian-text,
+  .web-text {
+    font-size: 48px;
   }
-  
+
   .welcome-text {
-    font-size: 40px;
+    font-size: 36px;
   }
-  
+
   .news-item {
-    width: 500px; /* Adjusted for smaller screens but still wider than before */
+    width: 130%;
+    max-width: 500px;
     height: 300px;
   }
-  
+
   .news-container {
     height: 350px;
   }
-  
-  .prev-btn, .next-btn {
+
+  .prev-btn,
+  .next-btn {
     width: 40px;
     height: 40px;
-    font-size: 20px;
+    font-size: 18px;
   }
 }
 
+/* Phones */
 @media (max-width: 576px) {
   .main-container {
     padding: 20px;
   }
-  
-  .teamian-text, .web-text {
+
+  .teamian-text,
+  .web-text {
     font-size: 40px;
   }
-  
+
   .welcome-text {
     font-size: 30px;
   }
-  
+
   .welcome-small {
     font-size: 16px;
   }
-  
+
   .news-item {
-    width: 400px; /* Wider than before, even on mobile */
+    width: 100%;
+    max-width: 400px;
     height: 250px;
   }
-  
+
   .news-container {
     height: 300px;
   }
@@ -405,10 +415,11 @@ body {
 /* Extra small devices */
 @media (max-width: 400px) {
   .news-item {
-    width: 320px;
+    width: 100%;
+    max-width: 320px;
     height: 220px;
   }
-  
+
   .news-container {
     height: 250px;
   }
