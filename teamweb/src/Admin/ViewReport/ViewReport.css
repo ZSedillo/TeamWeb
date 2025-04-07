@@ -1,4 +1,11 @@
 /* Base Styles */
+.content-container-admin-logs {
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+
+
 .report-container {
     margin: 20px;
     padding: 20px;
