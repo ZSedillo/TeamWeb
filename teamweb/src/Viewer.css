@@ -321,8 +321,7 @@ body {
   }
 
   .news-item {
-    width: 90%;
-    max-width: 800px;
+    width: 290%;
     height: 400px;
   }
 }
@@ -344,7 +343,7 @@ body {
   }
 
   .news-item {
-    width: 90%;
+    width: 190%;
     max-width: 650px;
     height: 350px;
   }
@@ -366,7 +365,7 @@ body {
   }
 
   .news-item {
-    width: 100%;
+    width: 130%;
     max-width: 500px;
     height: 300px;
   }
