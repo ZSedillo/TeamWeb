@@ -8,8 +8,8 @@
     min-height: 100vh;
 }
 
-.content-container {
-    max-width: 1480px;
+.content-container-manage-preregistration {
+    max-width: 1780px;
     margin: 2rem auto;
     padding: 0 1.5rem;
 }
@@ -30,7 +30,7 @@
     font-size: 0.95rem;
 }
 
-/* ======= Tabs Navigation ======= */
+/* ======= Desktop Tabs Navigation ======= */
 .tabs {
     display: flex;
     gap: 0.5rem;
@@ -66,20 +66,98 @@
     border-bottom: 3px solid #1a3a7e;
 }
 
-/* Add these styles to your existing CSS */
-.tab[data-tab="reports"] {
+/* ======= Mobile Dropdown Navigation ======= */
+.mobile-tabs-dropdown {
+    position: relative;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.25rem;
+}
+
+.dropdown-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1a3a7e;
+    background-color: #f5f7fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.tab[data-tab="reports"] svg {
-    stroke-width: 2px;
+.dropdown-current {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.tab[data-tab="reports"].active {
+.dropdown-arrow {
+    transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.open {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 10;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    color: #6b7280;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:not(:last-child) {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f7fa;
+    color: #1a3a7e;
+}
+
+.dropdown-item.active {
+    font-weight: 600;
+    color: #1a3a7e;
+    background-color: #f0f5ff;
+}
+
+/* Tab-specific styles */
+.tab[data-tab="reports"].active, 
+.dropdown-item.active[data-tab="reports"] {
     color: #007bff;
-    border-bottom-color: #007bff;
+}
+
+.tab[data-tab="reports"] svg, 
+.dropdown-item[data-tab="reports"] svg {
+    stroke-width: 2px;
 }
 
 /* ======= Search & Filters ======= */
@@ -321,6 +399,135 @@
 
 .btn-status.pending:hover {
     background-color: #fde68a;
+}
+
+/* Delete button styling */
+.btn-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #dc2626;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background-color: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.btn-delete:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.btn-delete svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.5;
+}
+
+.btn-delete:disabled {
+    background-color: #f87171;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Add animation for delete action */
+.btn-delete.deleting {
+    position: relative;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.btn-delete.deleting::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    animation: deleteProgress 1s infinite;
+}
+
+@keyframes deleteProgress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Enrollment button styles */
+.btn-enrollment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-enrollment-confirm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-enrollment.true {
+    color: #057a55;
+    background-color: #def7ec;
+}
+
+.btn-enrollment.true:hover {
+    background-color: #bcf0da;
+}
+
+.btn-enrollment-confirm.true{
+    color: #def7ec;
+    background-color: #057a55;
+}
+
+
+.btn-enrollment.false {
+    color: #dc2626;
+    background-color: #fee2e2;
+}
+
+.btn-enrollment.false:hover {
+    background-color: #fecaca;
+}
+
+.btn-enrollment-confirm.false{
+    color: #ffffff;
+    background-color: #dc2626;
+}
+
+
+.btn-enrollment.processing {
+    background-color: #e2e8f0;
+    color: #64748b;
+    cursor: wait;
+    position: relative;
+    overflow: hidden;
 }
 
 /* Expanded details row */
@@ -721,3 +928,254 @@
   .Toastify__toast-body p:first-child {
     font-weight: 600;
   }
+
+/* Confirmation input field */
+.confirm-input {
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    transition: border-color 0.2s ease;
+}
+
+.confirm-input:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+/* Delete confirmation button */
+.btn-confirm.delete {
+    color: #ffffff;
+    background-color: #dc2626;
+}
+
+.btn-confirm.delete:hover {
+    background-color: #b91c1c;
+}
+
+.btn-confirm.delete:disabled {
+    background-color: #f87171;
+    cursor: not-allowed;
+}
+
+.danger-zone-section {
+    margin-top: 40px;
+    padding: 10px 0;
+    border-top: 1px solid #e0e0e0;
+  }
+  
+  .danger-zone-section h3 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  .danger-zone-container {
+    background-color: rgba(255, 235, 235, 0.7);
+    border: 1px solid #ffcccc;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .danger-zone-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    max-width: 75%;
+  }
+  
+  .danger-zone-warning svg {
+    color: #d32f2f;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+  
+  .danger-zone-text h4 {
+    color: #d32f2f;
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+  }
+  
+  .danger-zone-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #555;
+  }
+  
+  .btn-danger-zone {
+    background-color: white;
+    color: #d32f2f;
+    border: 2px solid #d32f2f;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-danger-zone:hover {
+    background-color: #d32f2f;
+    color: white;
+  }
+
+  .confirm-input-container {
+    position: relative;
+    margin: 1rem 0;
+  }
+  
+  .confirm-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+  
+  .confirm-input.valid {
+    border-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.05);
+  }
+  
+  .confirm-input.in-progress {
+    border-color: #ffc107;
+  }
+  
+  .confirmation-progress {
+    height: 4px;
+    background-color: #f0f0f0;
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background-color: #ffc107;
+    transition: width 0.3s ease;
+  }
+  
+  .input-feedback {
+    display: block;
+    margin-top: 5px;
+    font-size: 14px;
+  }
+  
+  .valid-text {
+    color: #28a745;
+  }
+  
+  .invalid-text {
+    color: #dc3545;
+  }
+  
+  .btn-confirm.delete.ready {
+    background-color: #dc3545;
+    color: white;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-confirm.delete.disabled {
+    background-color: #6c757d;
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+/* Add these to your existing confirmation button styles */
+.btn-confirm.enrolled {
+    color: #ffffff;
+    background-color: #059669;
+}
+
+.btn-confirm.enrolled:hover {
+    background-color: #047857;
+}
+
+.btn-confirm.notenrolled {
+    color: #ffffff;
+    background-color: #dc2626;
+}
+
+.btn-confirm.notenrolled:hover {
+    background-color: #b91c1c;
+}
+
+/* Enrollment Status Tab Styles */
+.enrollment-status-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.enrollment-section {
+    background-color: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.section-header.enrolled h2 {
+    color: #059669;
+}
+
+.section-header.not-enrolled h2 {
+    color: #dc2626;
+}
+
+.student-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+}
+
+.section-header.enrolled .student-count {
+    color: #059669;
+    background-color: #def7ec;
+}
+
+.section-header.not-enrolled .student-count {
+    color: #dc2626;
+    background-color: #fee2e2;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.enrolled {
+    color: #059669;
+    background-color: #def7ec;
+}
+
+.status-badge.not-enrolled {
+    color: #dc2626;
+    background-color: #fee2e2;
+}

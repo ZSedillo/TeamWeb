@@ -248,9 +248,7 @@ function PreRegistration() {
                             className="pre-reg-select"
                         >
                             <option value="">Select Grade Level</option>
-                            <option value="Nursery">Nursery</option>
-                            <option value="Kinder1">Kinder 1</option>
-                            <option value="Kinder2">Kinder 2</option>
+                            <option value="Kinder">Kinder</option>
                             <option value="1">Grade 1</option>
                             <option value="2">Grade 2</option>
                             <option value="3">Grade 3</option>

@@ -1,185 +1,234 @@
 /* Reset and Base Styles */
 :root {
-    --color-background: #f5f5f5;
-    --color-white: #ffffff;
-    --color-text-primary: #1a1a1a;
-    --color-text-secondary: #666666;
-    
-    /* Grade Level Colors */
-    --color-early-childhood: #fffbea;
-    --color-elementary: #f0fdf4;
-    --color-junior-high: #eff6ff;
-    --color-senior-high: #f5f3ff;
-  }
+  --color-background: #f5f5f5;
+  --color-white: #ffffff;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #666666;
   
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: var(--color-background);
-    color: var(--color-text-primary);
-    line-height: 1.6;
-  }
-  
+  /* Grade Level Colors */
+  --color-early-childhood: #fffbea;
+  --color-elementary: #f0fdf4;
+  --color-junior-high: #eff6ff;
+  --color-senior-high: #f5f3ff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+.registration-reports-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background-color: var(--color-white);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+/* Reports Header */
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.reports-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.reports-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.btn-export {
+  background-color: #4287f5;
+  color: white;
+}
+
+.btn-refresh {
+  background-color: #6b7280;
+  color: white;
+}
+
+/* Total Students Overview */
+.total-students-card {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.total-students-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.total-students-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+/* Report Tabs */
+.report-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.report-tab {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.report-tab.active {
+  color: #4287f5;
+  border-bottom-color: #4287f5;
+  font-weight: 600;
+}
+
+/* Grade Level Sections */
+.grade-level-section {
+  background-color: #fffbea;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.grade-level-section-header {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #92400e;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.grade-level-section-content {
+  padding: 1rem;
+}
+
+.grade-level-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.grade-level-item:last-child {
+  border-bottom: none;
+}
+
+.grade-level-item-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.grade-level-item-count {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Calendar header - modified to center the date range */
+.calendar-header {
+display: flex;
+justify-content: center;
+align-items: center;
+margin-bottom: 20px;
+}
+
+.calendar-header h2 {
+color: #2c3e50;
+margin: 0;
+font-size: 1.2rem;
+text-align: center;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
   .registration-reports-container {
-    max-width: 800px;
-    margin: 2rem auto;
-    background-color: var(--color-white);
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 1.5rem;
+    margin: 1rem;
+    padding: 1rem;
   }
   
-  /* Reports Header */
   .reports-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  .reports-header h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-text-primary);
+    flex-direction: column;
+    align-items: flex-start;
   }
   
   .reports-header-actions {
-    display: flex;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .btn {
+    min-width: 120px;
+    justify-content: center;
+  }
+  
+  .report-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 5px;
+  }
+  
+  .grade-level-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 375px) {
+  .reports-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .reports-header-actions {
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
   
   .btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
+    padding: 0.5rem;
+    min-width: auto;
+    flex: 1;
   }
-  
-  .btn-export {
-    background-color: #4287f5;
-    color: white;
-  }
-  
-  .btn-refresh {
-    background-color: #6b7280;
-    color: white;
-  }
-  
-  /* Total Students Overview */
-  .total-students-card {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  .total-students-count {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #111827;
-  }
-  
-  .total-students-label {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-top: 0.25rem;
-  }
-  
-  /* Report Tabs */
-  .report-tabs {
-    display: flex;
-    border-bottom: 1px solid #e5e7eb;
-    margin-bottom: 1.5rem;
-  }
-  
-  .report-tab {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    color: #6b7280;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-  }
-  
-  .report-tab.active {
-    color: #4287f5;
-    border-bottom-color: #4287f5;
-    font-weight: 600;
-  }
-  
-  /* Grade Level Sections */
-  .grade-level-section {
-    background-color: #fffbea;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-  }
-  
-  .grade-level-section-header {
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #92400e;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  
-  .grade-level-section-content {
-    padding: 1rem;
-  }
-  
-  .grade-level-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  
-  .grade-level-item:last-child {
-    border-bottom: none;
-  }
-  
-  .grade-level-item-label {
-    font-size: 0.875rem;
-    color: #6b7280;
-  }
-  
-  .grade-level-item-count {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #111827;
-  }
-
-  /* Calendar header - modified to center the date range */
-.calendar-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20px;
 }
-
-.calendar-header h2 {
-  color: #2c3e50;
-  margin: 0;
-  font-size: 1.2rem;
-  text-align: center;
-}
-  
-  /* Responsive Adjustments */
-  @media (max-width: 600px) {
-    .registration-reports-container {
-      margin: 1rem;
-      padding: 1rem;
-    }
-  }

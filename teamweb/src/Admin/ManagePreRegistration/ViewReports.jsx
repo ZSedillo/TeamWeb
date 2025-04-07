@@ -42,7 +42,7 @@ const fetchRegistrations = async () => {
   setError(null);
   
   try {
-    const response = await fetch('http://localhost:3000/preregistration');
+    const response = await fetch('https://teamweb-kera.onrender.com/preregistration');
     
     if (!response.ok) {
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
@@ -120,7 +120,20 @@ const fetchRegistrations = async () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    // ✅ Call `/add-report` API
+    fetch("https://teamweb-kera.onrender.com/report/add-report", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: username, // Replace with actual username
+        activityLog: `[Manage Pre-Registration: Reports] Registration data exported as CSV on ${new Date().toLocaleString()}`
+      }),
+    });
   };
+
 
   // Refresh functionality
   const handleRefresh = () => {

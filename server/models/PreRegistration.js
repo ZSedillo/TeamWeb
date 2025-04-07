@@ -28,7 +28,8 @@ const preRegistrationSchema = new mongoose.Schema({
     },
     appointment_date: { type: Date, default: null },
     preferred_time: { type: String, default: null },
-    purpose_of_visit: { type: String, default: null }
+    purpose_of_visit: { type: String, default: null },
+    enrollment: { type: Boolean, default: false } // Added enrollment with default "false"
 }, { timestamps: true });
 
 const preRegistrationModel = mongoose.model('preRegistration', preRegistrationSchema);

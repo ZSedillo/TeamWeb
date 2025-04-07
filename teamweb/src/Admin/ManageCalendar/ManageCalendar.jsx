@@ -77,7 +77,7 @@ const ManageCalendar = () => {
 
     const fetchCalendarData = async () => {
         try {
-            const response = await fetch('http://localhost:3000/calendar'); // Adjust API URL if needed
+            const response = await fetch('https://teamweb-kera.onrender.com/calendar'); // Adjust API URL if needed
             if (!response.ok) throw new Error('Failed to fetch data');
 
             const data = await response.json();
@@ -102,7 +102,7 @@ const ManageCalendar = () => {
     // Function to delete previous year's entries
     const deletePreviousYearEntries = async () => {
       try {
-          const response = await fetch('http://localhost:3000/calendar/delete-previous-year', {
+          const response = await fetch('https://teamweb-kera.onrender.com/calendar/delete-previous-year', {
               method: 'DELETE',
           });
   
@@ -198,7 +198,7 @@ const ManageCalendar = () => {
       const newEvent = { date: newEventDate, title: newEventName.trim(), type: "event" };
 
       try {
-          const response = await fetch('http://localhost:3000/calendar/add', {
+          const response = await fetch('https://teamweb-kera.onrender.com/calendar/add', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(newEvent),
@@ -218,7 +218,7 @@ const ManageCalendar = () => {
           }]);
 
           // ✅ Call `/add-report` API
-          await fetch("http://localhost:3000/report/add-report", {
+          await fetch("https://teamweb-kera.onrender.com/report/add-report", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
@@ -242,7 +242,7 @@ const ManageCalendar = () => {
       if (newEventName.trim() === '' || !currentEvent) return;
 
       try {
-          const response = await fetch(`http://localhost:3000/calendar/edit/${currentEvent.id}`, {
+          const response = await fetch(`https://teamweb-kera.onrender.com/calendar/edit/${currentEvent.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
@@ -271,7 +271,7 @@ const ManageCalendar = () => {
           }
 
           if (activityLog) {
-              await fetch("http://localhost:3000/report/add-report", {
+              await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                   method: "POST",
                   headers: {
                       "Content-Type": "application/json",
@@ -309,7 +309,7 @@ const ManageCalendar = () => {
       if (!eventToDelete?.id) return;
 
       try {
-          const response = await fetch(`http://localhost:3000/calendar/delete/${eventToDelete.id}`, {
+          const response = await fetch(`https://teamweb-kera.onrender.com/calendar/delete/${eventToDelete.id}`, {
               method: 'DELETE',
           });
 
@@ -327,7 +327,7 @@ const ManageCalendar = () => {
           showNotification('Event deleted successfully!');
 
           // ✅ Call `/add-report` API
-          await fetch("http://localhost:3000/report/add-report", {
+          await fetch("https://teamweb-kera.onrender.com/report/add-report", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",

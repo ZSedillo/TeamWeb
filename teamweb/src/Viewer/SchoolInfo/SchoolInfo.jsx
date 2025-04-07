@@ -58,8 +58,7 @@ const facultyData = {
 
 // Data for subjects per grade
 const subjectsData = {
-    "KINDERGARTEN 1": ["Alphabet Recognition", "Basic Counting", "Arts & Crafts"],
-    "KINDERGARTEN 2": ["Reading Readiness", "Numbers & Shapes", "Music & Movement"],
+    "KINDER": ["Alphabet Recognition", "Basic Counting", "Arts & Crafts"],
     "GRADE 1": ["Math", "English", "Science", "Filipino", "PE"],
     "GRADE 2": ["Math", "English", "Science", "Filipino", "Araling Panlipunan"],
     "GRADE 3": ["Math", "English", "Science", "Filipino", "Computer"],
@@ -165,7 +164,7 @@ function SchoolInfo() {
             {/* Vision, Mission and Philosophy section */}
                 <div className="about-columns">
                 <div className="about-subsection">
-                    <h3 className="subsection-title">Vision</h3>
+                    <h3 className="subsection-title" id="vision">Vision</h3>
                     <p>
                     TMCS envisions to produce graduates instilled with Godly character and values, intellectual competence and proficient skills who will become leaders of the nations.
                     </p>
@@ -180,14 +179,14 @@ function SchoolInfo() {
                     </p>
                 </div>
                 <div className="about-subsection">
-                    <h3 className="subsection-title">Mission</h3>
+                    <h3 className="subsection-title" id="mission">Mission</h3>
                     <p>
                     To provide quality education by nurturing and empowering the child's intelligence for the glory of God.
                     </p>
                 </div>
                 </div>
                         {/* Core Values Section - Redesigned */}
-                        <div className="about-subsection core-values-section">
+                        <div className="about-subsection core-values-section" id="core-values">
                             <h3 className="subsection-title">Core Values</h3>
                             <div className="core-values-container">
                                 {coreValues.map((item, index) => (
@@ -224,7 +223,7 @@ function SchoolInfo() {
                         <h3>GRADE LEVELS</h3>
                         <div className="course-list">
                             {Object.keys(subjectsData).map((grade) => (
-                                <button key={grade} className="course-button" onClick={() => openModal(grade)}>
+                                <button key={grade} className="course-button" >
                                     {grade}
                                 </button>
                             ))}
@@ -251,7 +250,7 @@ function SchoolInfo() {
                 </div>
                 <div className="facilities-container">
                     {Object.keys(facilitiesData).map((facility) => (
-                        <button key={facility} className="facility-button" onClick={() => openFacilityModal(facility)}>
+                        <button key={facility} className="facility-button">
                             {facility}
                         </button>
                     ))}

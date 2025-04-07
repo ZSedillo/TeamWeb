@@ -62,7 +62,7 @@ body {
 
 /* Section Styles - Enhanced */
 .section {
-  padding: 65px 25px;
+  padding: 35px 25px;
   max-width: 1200px;
   margin: 0 auto 45px;
   background-color: var(--white);
@@ -72,8 +72,12 @@ body {
 }
 
 .section-header {
-  text-align: center;
-  margin-bottom: 45px;
+  display: block !important;
+  text-align: center !important;
+  justify-content: unset !important;
+  align-items: unset !important;
+  padding: 30px 0 20px; /* top, right/left, bottom */
+  margin-bottom: 30px;
 }
 
 .section-header h2 {
@@ -273,7 +277,7 @@ body {
 .courses-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 45px;
+  gap: 35px;
   justify-content: center;
 }
 

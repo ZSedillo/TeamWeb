@@ -24,28 +24,28 @@ const Footer = () => {
             <div className="footer-links-column">
               <h3>About Us</h3>
               <div className="footer-links">
-                <a href="#">Mission</a>
-                <a href="#">Vision</a>
-                <a href="#">Core Values</a>
+                <a href="/schoolinfo#mission">Mission</a>
+                <a href="/schoolinfo#vision">Vision</a>
+                <a href="/schoolinfo#core-values">Core Values</a>
               </div>
             </div>
             
             <div className="footer-links-column">
               <h3>School Programs</h3>
               <div className="footer-links">
-                <a href="#">School Clinic</a>
-                <a href="#">Academic Programs</a>
-                <a href="#">School Calendar</a>
+                <a>School Clinic</a>
+                <a>Academic Programs</a>
+                <a href="/calendar">School Calendar</a>
               </div>
             </div>
             
             <div className="footer-links-column">
               <h3>Policies</h3>
               <div className="footer-links">
-                <a href="#">Accessibility Statement</a>
-                <a href="#">Non-Discrimination Policy</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Code of Conduct</a>
+                <a>Accessibility Statement</a>
+                <a>Non-Discrimination Policy</a>
+                <a>Privacy Policy</a>
+                <a>Code of Conduct</a>
               </div>
             </div>
           </div>

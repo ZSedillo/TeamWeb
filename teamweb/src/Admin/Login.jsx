@@ -21,9 +21,8 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(""); 
-        console.log(formData); // Debugging
         try {
-            const response = await fetch("http://localhost:3000/user/login", {
+            const response = await fetch("https://teamweb-kera.onrender.com/user/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
@@ -45,7 +44,7 @@ function Login() {
     return (
         <div className="page-container">
             <img src={TeamLogo} alt="Team Logo" className="team-logo" /> {/* Logo at the top left */}
-            <div className="container">
+            <div className="login-container">
                 <div className="form-box">
                     <div className="form-content">
                         <FaUser className="admin-icon" />

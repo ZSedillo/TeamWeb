@@ -50,7 +50,7 @@ function ManageAccount() {
           return;
         }
         
-        const response = await fetch('http://localhost:3000/user/current-user', {
+        const response = await fetch('https://teamweb-kera.onrender.com/user/current-user', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -182,7 +182,7 @@ function ManageAccount() {
 
       try {
           const token = getToken();
-          const response = await fetch('http://localhost:3000/user/update-user-info', {
+          const response = await fetch('https://teamweb-kera.onrender.com/user/update-user-info', {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
@@ -214,7 +214,7 @@ function ManageAccount() {
           }
 
           // ✅ Call `/add-report` API
-          await fetch("http://localhost:3000/report/add-report", {
+          await fetch("https://teamweb-kera.onrender.com/report/add-report", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
@@ -266,7 +266,7 @@ function ManageAccount() {
               return;
           }
 
-          const response = await fetch('http://localhost:3000/user/delete-account', {
+          const response = await fetch('https://teamweb-kera.onrender.com/user/delete-account', {
               method: 'DELETE',
               headers: {
                   'Content-Type': 'application/json',
@@ -295,7 +295,7 @@ function ManageAccount() {
           }
 
           // ✅ Call `/add-report` API
-          await fetch("http://localhost:3000/report/add-report", {
+          await fetch("https://teamweb-kera.onrender.com/report/add-report", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
@@ -386,7 +386,7 @@ function ManageAccount() {
 
       try {
           const token = getToken();
-          const response = await fetch('http://localhost:3000/user/register', {
+          const response = await fetch('https://teamweb-kera.onrender.com/user/register', {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
@@ -418,7 +418,7 @@ function ManageAccount() {
           }
 
           // ✅ Call `/add-report` API
-          await fetch("http://localhost:3000/report/add-report", {
+          await fetch("https://teamweb-kera.onrender.com/report/add-report", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",

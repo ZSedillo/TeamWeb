@@ -9,7 +9,7 @@ const ExpectedStudents = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:3000/preregistration');
+                const response = await fetch('https://teamweb-kera.onrender.com/preregistration');
                 if (!response.ok) {
                     throw new Error('Failed to fetch data');
                 }
@@ -28,41 +28,87 @@ const ExpectedStudents = () => {
         fetchData();
     }, []);
 
+    const predefinedGrades = [
+        "Kinder",
+        "Grade 1", "Grade 2", "Grade 3", "Grade 4",
+        "Grade 5", "Grade 6", "Grade 7", "Grade 8",
+        "Grade 9", "Grade 10", "Grade 11", "Grade 12"
+    ];
+    
+    const gradeNameMap = {
+        "Kinder": "Kinder",
+        "1": "Grade 1",
+        "2": "Grade 2",
+        "3": "Grade 3",
+        "4": "Grade 4",
+        "5": "Grade 5",
+        "6": "Grade 6",
+        "7": "Grade 7",
+        "8": "Grade 8",
+        "9": "Grade 9",
+        "10": "Grade 10",
+        "11": "Grade 11",
+        "12": "Grade 12"
+    };
+    
     const processPreRegistrationData = (data) => {
-        const gradeMap = {};
-
+        const actualDataMap = {};
+    
+        // Process actual data from the database
         data.forEach(student => {
             const { grade_level, strand, status } = student;
             const isApproved = status === 'approved';
-
-            if (!gradeMap[grade_level]) {
-                gradeMap[grade_level] = { grade: grade_level, approvedCount: 0, pendingCount: 0, strands: {} };
+    
+            // Convert database format to correct format
+            const formattedGrade = gradeNameMap[grade_level] || grade_level;
+    
+            if (!actualDataMap[formattedGrade]) {
+                actualDataMap[formattedGrade] = { 
+                    grade: formattedGrade, 
+                    approvedCount: 0, 
+                    pendingCount: 0, 
+                    strands: {} 
+                };
             }
-
+    
             if (strand) {
-                if (!gradeMap[grade_level].strands[strand]) {
-                    gradeMap[grade_level].strands[strand] = { name: strand, approvedCount: 0, pendingCount: 0 };
+                if (!actualDataMap[formattedGrade].strands[strand]) {
+                    actualDataMap[formattedGrade].strands[strand] = { 
+                        name: strand, 
+                        approvedCount: 0, 
+                        pendingCount: 0 
+                    };
                 }
-                if (isApproved) {
-                    gradeMap[grade_level].strands[strand].approvedCount++;
-                } else {
-                    gradeMap[grade_level].strands[strand].pendingCount++;
-                }
+                isApproved ? actualDataMap[formattedGrade].strands[strand].approvedCount++ 
+                           : actualDataMap[formattedGrade].strands[strand].pendingCount++;
             } else {
-                if (isApproved) {
-                    gradeMap[grade_level].approvedCount++;
-                } else {
-                    gradeMap[grade_level].pendingCount++;
-                }
+                isApproved ? actualDataMap[formattedGrade].approvedCount++ 
+                           : actualDataMap[formattedGrade].pendingCount++;
             }
         });
-
-        return Object.values(gradeMap).map(grade => ({
-            ...grade,
-            strands: Object.values(grade.strands),
-        }));
+    
+        // Ensure all predefined grades exist, but don't override actual data
+        const result = predefinedGrades.map(gradeName => {
+            if (actualDataMap[gradeName]) {
+                return {
+                    ...actualDataMap[gradeName],
+                    strands: Object.values(actualDataMap[gradeName].strands)
+                };
+            }
+            // If grade doesn't exist in the database, add it with 0 values
+            return {
+                grade: gradeName,
+                approvedCount: 0,
+                pendingCount: 0,
+                strands: []
+            };
+        });
+    
+        return result;
     };
-
+    
+    
+    
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error: {error}</p>;
 
@@ -87,46 +133,51 @@ const ExpectedStudents = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {gradeData.map((grade) => {
-                                if (grade.strands.length > 0) {
-                                    return grade.strands.map((strand, index) => {
-                                        const total = strand.approvedCount + strand.pendingCount;
-                                        return (
-                                            <tr key={`${grade.grade}-${strand.name}`}>
-                                                {index === 0 && (
-                                                    <td rowSpan={grade.strands.length}>{grade.grade}</td>
-                                                )}
-                                                <td>{strand.name}</td>
-                                                <td>{strand.approvedCount}</td>
-                                                <td>{strand.pendingCount}</td>
-                                                <td>{total}</td>
-                                                <td>
-                                                    <button className={`btn-status ${strand.pendingCount > 0 ? 'pending' : 'approved'}`}>
-                                                        {strand.pendingCount > 0 ? 'Processing' : 'Complete'}
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    });
-                                } else {
-                                    const total = grade.approvedCount + grade.pendingCount;
+                        {gradeData.map((grade) => {
+                            if (grade.strands.length > 0) {
+                                return grade.strands.map((strand, index) => {
+                                    const total = strand.approvedCount + strand.pendingCount;
+                                    // Check if both counts are 0
+                                    const status = total === 0 ? 'Processing' : (strand.pendingCount > 0 ? 'Processing' : 'Complete');
                                     return (
-                                        <tr key={grade.grade}>
-                                            <td>{grade.grade}</td>
-                                            <td>-</td>
-                                            <td>{grade.approvedCount}</td>
-                                            <td>{grade.pendingCount}</td>
+                                        <tr key={`${grade.grade}-${strand.name}`}>
+                                            {index === 0 && (
+                                                <td rowSpan={grade.strands.length}>{grade.grade}</td>
+                                            )}
+                                            <td>{strand.name}</td>
+                                            <td>{strand.approvedCount}</td>
+                                            <td>{strand.pendingCount}</td>
                                             <td>{total}</td>
                                             <td>
-                                                <button className={`btn-status ${grade.pendingCount > 0 ? 'pending' : 'approved'}`}>
-                                                    {grade.pendingCount > 0 ? 'Processing' : 'Complete'}
+                                                <button className={`btn-status ${status === 'Processing' ? 'pending' : 'approved'}`}>
+                                                    {status}
                                                 </button>
                                             </td>
                                         </tr>
                                     );
-                                }
-                            })}
-                        </tbody>
+                                });
+                            } else {
+                                const total = grade.approvedCount + grade.pendingCount;
+                                // Check if both counts are 0
+                                const status = total === 0 ? 'Processing' : (grade.pendingCount > 0 ? 'Processing' : 'Complete');
+                                return (
+                                    <tr key={grade.grade}>
+                                        <td>{grade.grade}</td>
+                                        <td>-</td>
+                                        <td>{grade.approvedCount}</td>
+                                        <td>{grade.pendingCount}</td>
+                                        <td>{total}</td>
+                                        <td>
+                                            <button className={`btn-status ${status === 'Processing' ? 'pending' : 'approved'}`}>
+                                                {status}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+                        })}
+                    </tbody>
+
                     </table>
                 </div>
             </div>

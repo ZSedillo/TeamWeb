@@ -13,18 +13,14 @@ function Homepage() {
   const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const loggedInUser = localStorage.getItem('username');
-    if (loggedInUser) {
-      setUsername(loggedInUser);
-    } else {
-      setUsername("Admin");
-    }
+    const loggedInUser = localStorage.getItem("username");
+    setUsername(loggedInUser || "Admin");
     fetchImages();
   }, []);
 
   const fetchImages = async () => {
     try {
-      const response = await fetch("http://localhost:3000/homepage/images");
+      const response = await fetch("https://teamweb-kera.onrender.com/homepage/images");
       if (!response.ok) throw new Error("Failed to fetch images");
       const data = await response.json();
       setImages(data);
@@ -36,27 +32,27 @@ function Homepage() {
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     setSelectedFile(file);
-    
+
     // Create preview URL
     const previewURL = URL.createObjectURL(file);
     setPreviewImage(previewURL);
   };
-  
+
   const handleUpload = async () => {
     if (!selectedFile) return;
 
     setIsUploading(true);
     setUploadProgress(0);
-    
+
     const formData = new FormData();
     formData.append("image", selectedFile);
 
     try {
       // Simulate upload progress
       const uploadTimer = setInterval(() => {
-        setUploadProgress(prev => {
+        setUploadProgress((prev) => {
           if (prev >= 90) {
             clearInterval(uploadTimer);
             return 90;
@@ -65,10 +61,13 @@ function Homepage() {
         });
       }, 200);
 
-      const response = await fetch("http://localhost:3000/homepage/upload-image", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        "https://teamweb-kera.onrender.com/homepage/upload-image",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       clearInterval(uploadTimer);
       setUploadProgress(100);
@@ -76,15 +75,14 @@ function Homepage() {
       if (response.ok) {
         fetchImages(); // Refresh images after upload
 
-        // ✅ Call the `/add-report` API
-        await fetch("http://localhost:3000/report/add-report", {
+        await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: username, // Replace with actual username
-            activityLog: `[Manage Homepage] Uploaded an Image: ${selectedFile.name}` // Activity log message
+            username: username,
+            activityLog: `[Manage Homepage] Uploaded an Image: ${selectedFile.name}`,
           }),
         });
       }
@@ -95,14 +93,12 @@ function Homepage() {
         setPreviewImage(null);
         setSelectedFile(null);
       }, 500);
-      
     } catch (error) {
       setIsUploading(false);
       console.error("Error uploading image:", error);
     }
   };
 
-  
   const cancelUpload = () => {
     setPreviewImage(null);
     setSelectedFile(null);
@@ -113,44 +109,54 @@ function Homepage() {
     setShowDeleteConfirm(true);
   };
 
-  const handleDelete = async () => {
-    if (!selectedImage) return;
-    
-    try {
-      const response = await fetch(`http://localhost:3000/homepage/delete-image/${selectedImage.image_url}`, {
-        method: "DELETE",
+const handleDelete = async () => {
+  if (!selectedImage) return;
+
+  // Log what you're deleting
+  console.log("Trying to delete:", selectedImage.image_url);
+  console.log("Trying to delete:", selectedImage._id);
+
+  const imageKey = selectedImage.image_url.replace("https://teamweb-image.s3.ap-southeast-1.amazonaws.com/", "");
+
+  try {
+    const response = await fetch(`https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(imageKey)}`, {
+      method: "DELETE",
+    });
+
+    console.log("Delete response:", response.status);
+
+    if (response.ok) {
+      fetchImages();
+      setShowDeleteConfirm(false);
+      setSelectedImage(null);
+
+      await fetch("https://teamweb-kera.onrender.com/report/add-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+          activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
+        }),
       });
-
-      if (response.ok) {
-        fetchImages();
-        setShowDeleteConfirm(false);
-        setSelectedImage(null);
-
-        // ✅ Call the `/add-report` API
-        await fetch("http://localhost:3000/report/add-report", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: username, // Replace with actual username
-            activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}` // Log message
-          }),
-        });
-      }
-    } catch (error) {
-      console.error("Error deleting image:", error);
+    } else {
+      console.error("Failed to delete image:", await response.text());
     }
-  };
+  } catch (error) {
+    console.error("Error deleting image:", error);
+  }
+};
+
 
   return (
     <>
       <AdminHeader />
       <div className="content-container">
         <div className="page-header">
-            <h1>Manage Latest News</h1>
-            <p>Manage the images that appear in the news section</p>
-            </div>
+          <h1>Manage Latest News</h1>
+          <p>Manage the images that appear in the news section</p>
+        </div>
       </div>
       <div className="admin-container">
         {/* Upload Section */}
@@ -159,10 +165,13 @@ function Homepage() {
             <h3>Upload New Image</h3>
             <p>Accepted formats: JPG, PNG, GIF (Max: 5MB)</p>
           </div>
-          
+
           {isUploading ? (
             <div className="upload-progress-container">
-              <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
+              <div
+                className="upload-progress-bar"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
               <span className="upload-progress-text">{uploadProgress}%</span>
             </div>
           ) : previewImage ? (
@@ -186,23 +195,24 @@ function Homepage() {
             </label>
           )}
         </div>
-
         {/* Image List Grid */}
         <div className="images-container">
           <h3 className="section-title">Current Images ({images.length})</h3>
-          
+
           {images.length === 0 ? (
             <div className="no-images">
               <p>No images uploaded yet. Add your first image to get started.</p>
             </div>
           ) : (
             <div className="image-list">
+
+
+              {/* Currently fixing */}
               {images.map((img) => {
-                const imagePath = `http://localhost:3000/homepage/${img.image_url}`;
                 return (
                   <div key={img._id} className="image-box">
                     <div className="image-container">
-                      <img src={imagePath} alt="News" className="preview-image" />
+                      <img src={img.image_url} alt="News" className="preview-image" />
                     </div>
                     <div className="image-info">
                       <span className="image-filename">{img.image_url}</span>
@@ -224,15 +234,17 @@ function Homepage() {
           <div className="delete-modal">
             <div className="modal-header">
               <h3>Confirm Deletion</h3>
-              <button className="close-modal" onClick={() => setShowDeleteConfirm(false)}>×</button>
+              <button className="close-modal" onClick={() => setShowDeleteConfirm(false)}>
+                ×
+              </button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to delete this image?</p>
               {selectedImage && (
                 <div className="confirm-image-preview">
-                  <img 
-                    src={`http://localhost:3000/homepage/${selectedImage.image_url}`} 
-                    alt="To be deleted" 
+                  <img
+                    src={selectedImage.image_url}
+                    alt="To be deleted"
                     className="confirm-preview"
                   />
                 </div>
@@ -240,8 +252,12 @@ function Homepage() {
               <p className="warning-text">This action cannot be undone.</p>
             </div>
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button className="confirm-delete-btn" onClick={handleDelete}>Delete</button>
+              <button className="cancel-btn" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </button>
+              <button className="confirm-delete-btn" onClick={handleDelete}>
+                Delete
+              </button>
             </div>
           </div>
         </div>

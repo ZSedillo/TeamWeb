@@ -8,7 +8,7 @@ function ViewReport() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    const reportsPerPage = 5;
+    const reportsPerPage = 20;
 
     useEffect(() => {
         fetchReports();
@@ -16,7 +16,7 @@ function ViewReport() {
 
     const fetchReports = () => {
         setLoading(true);
-        fetch("http://localhost:3000/report/view-report")
+        fetch("https://teamweb-kera.onrender.com/report/view-report")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to fetch reports");
@@ -41,7 +41,7 @@ function ViewReport() {
         }
 
         setDeleting(true);
-        fetch("http://localhost:3000/report/delete-reports", { method: "DELETE" })
+        fetch("https://teamweb-kera.onrender.com/report/delete-reports", { method: "DELETE" })
             .then((response) => response.json())
             .then((data) => {
                 alert(data.message);
@@ -68,7 +68,7 @@ function ViewReport() {
     return (
         <>
             <AdminHeader />
-            <div className="content-container">
+            <div className="content-container-admin-logs">
                 <div className="page-header">
                     <h1>View Admin Logs</h1>
                     <p>Audit admin activities and maintain security.</p>

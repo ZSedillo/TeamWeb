@@ -12,7 +12,7 @@ function Viewer() {
   const fetchImages = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3000/homepage/images");
+      const response = await fetch("https://teamweb-kera.onrender.com/homepage/images");
       if (!response.ok) throw new Error(`Failed to fetch images: ${response.status}`);
       const data = await response.json();
       setImages(data);
@@ -85,7 +85,7 @@ function Viewer() {
                     className={`news-item ${position}`}
                   >
                     <img
-                      src={`http://localhost:3000/homepage/${image.image_url}`}
+                      src={image.image_url}
                       alt={`News ${index + 1}`}
                       className="news-image"
                     />
