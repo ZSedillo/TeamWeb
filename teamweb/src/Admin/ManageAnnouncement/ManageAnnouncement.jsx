@@ -61,10 +61,14 @@ function ManageAnnouncement() {
         const formData = new FormData();
         formData.append("title", newAnnouncement.title.trim());
         formData.append("description", newAnnouncement.description.trim());
-        if (newAnnouncement.image_url) {
+        // Handle image based on whether it's a File object or string URL
+        if (newAnnouncement.image_url instanceof File) {
+            // It's a new file upload
             formData.append("image", newAnnouncement.image_url);
+        } else if (typeof newAnnouncement.image_url === 'string' && newAnnouncement.image_url) {
+            // It's an existing image - just send the existing URL or path
+            formData.append("existing_image", newAnnouncement.image_url);
         }
-    
         try {
             const url = editingId
                 ? `${baseUrl}/announcement/edit/${editingId}`
@@ -90,7 +94,7 @@ function ManageAnnouncement() {
             }
     
             // ✅ Call the `/add-report` API
-            await fetch("http://localhost:3000/report/add-report", {
+            await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -187,12 +191,13 @@ function ManageAnnouncement() {
         setNewAnnouncement({ 
             title: announcement.title, 
             description: announcement.description, 
-            image_url: null, 
-            preview: announcement.image_url ? `${baseUrl}/announcement/${announcement.image_url}` : null 
+            // Keep the original image URL string when editing
+            image_url: announcement.image_url, 
+            // Use the same URL that's working in your cards
+            preview: announcement.image_url 
         });
         setShowFormModal(true);
     };
-
     const openAddModal = () => {
         resetForm();
         setShowFormModal(true);
@@ -495,6 +500,7 @@ function ManageAnnouncement() {
                                                 onChange={(e) => {
                                                     if (e.target.files && e.target.files[0]) {
                                                         const file = e.target.files[0];
+                                                        console.log("File selected:", file);
                                                         // Validate file type
                                                         if (!file.type.match('image.*')) {
                                                             alert('Please select an image file (JPEG, PNG, etc.)');
@@ -505,11 +511,15 @@ function ManageAnnouncement() {
                                                             alert('File size exceeds 5MB limit.');
                                                             return;
                                                         }
-                                                        setNewAnnouncement(prev => ({ 
-                                                            ...prev, 
-                                                            image_url: file, 
-                                                            preview: URL.createObjectURL(file) 
-                                                        }));
+                                                        setNewAnnouncement(prev => {
+                                                            const updatedState = { 
+                                                                ...prev, 
+                                                                image_url: file, 
+                                                                preview: URL.createObjectURL(file) 
+                                                            };
+                                                            console.log("Updated state:", updatedState);
+                                                            return updatedState;
+                                                        });
                                                     }
                                                 }} 
                                                 accept="image/*" 
@@ -522,24 +532,13 @@ function ManageAnnouncement() {
                                     </div>
 
                                     {newAnnouncement.preview && (
-                                        <div className="preview-container">
+                                        <div>
+                                            <p>Image preview should appear below:</p>
                                             <img 
                                                 src={newAnnouncement.preview} 
                                                 alt="Preview" 
-                                                className="preview-image" 
+                                                style={{maxWidth: '300px', border: '2px solid green'}} 
                                             />
-                                            <button 
-                                                type="button"
-                                                className="remove-image-btn"
-                                                onClick={() => setNewAnnouncement(prev => ({ 
-                                                    ...prev, 
-                                                    image_url: null, 
-                                                    preview: null 
-                                                }))}
-                                                aria-label="Remove image"
-                                            >
-                                                <i className="fa fa-times"></i> Remove
-                                            </button>
                                         </div>
                                     )}
                                 </div>
