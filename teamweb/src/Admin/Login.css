@@ -15,6 +15,7 @@ body {
     width: 100px; /* Adjust size as needed */
     height: auto;
     z-index: 1000; /* Ensures it's always on top */
+    filter: brightness(0) invert(1);
 }
 
 .login-container {

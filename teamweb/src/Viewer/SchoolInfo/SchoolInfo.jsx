@@ -224,7 +224,7 @@ function SchoolInfo() {
                         <h3>GRADE LEVELS</h3>
                         <div className="course-list">
                             {Object.keys(subjectsData).map((grade) => (
-                                <button key={grade} className="course-button" onClick={() => openModal(grade)}>
+                                <button key={grade} className="course-button" >
                                     {grade}
                                 </button>
                             ))}
@@ -251,7 +251,7 @@ function SchoolInfo() {
                 </div>
                 <div className="facilities-container">
                     {Object.keys(facilitiesData).map((facility) => (
-                        <button key={facility} className="facility-button" onClick={() => openFacilityModal(facility)}>
+                        <button key={facility} className="facility-button">
                             {facility}
                         </button>
                     ))}
