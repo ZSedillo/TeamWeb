@@ -237,6 +237,7 @@ function Appointment() {
     }
 
     return (
+        <div classname="form-wrapper">
         <div className="appointment-main-container">
             <div className="appointment-section">
                 <div className="appointment-title">Book an Appointment</div>
@@ -333,6 +334,7 @@ function Appointment() {
                     </form>
                 )}
             </div>
+        </div>
         </div>
     );
 }
