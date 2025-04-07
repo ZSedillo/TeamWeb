@@ -360,6 +360,7 @@ function PreRegistration() {
                 </div>
 
                 {activeTab === 'pre-reg' ? (
+                    <div className="form-wrapper">
                     <div className="pre-reg-container">
                         <div className="pre-reg-progress-bar">
                             <div
@@ -375,6 +376,7 @@ function PreRegistration() {
                         </div>
 
                         {renderForm()}
+                    </div>
                     </div>
                 ) : (
                     <Appointment />

@@ -347,7 +347,7 @@
 }
 
 .pre-reg-radio-input {
-    cursor: pointer;
+    cursor: pointer; 
     width: 16px;
     height: 16px;
 }
@@ -432,4 +432,32 @@
     .pre-reg-confirm-buttons {
         flex-direction: column;
     }
+    .form-wrapper {
+        transform-origin: top center;
+        transition: transform 0.3s ease;
+      }
+      
+      @media (max-width: 992px) {
+        .form-wrapper {
+          transform: scale(0.95);
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .form-wrapper {
+          transform: scale(0.85);
+        }
+      }
+      
+      @media (max-width: 576px) {
+        .form-wrapper {
+          transform: scale(0.75);
+        }
+      }
+      
+      @media (max-width: 400px) {
+        .form-wrapper {
+          transform: scale(0.65);
+        }
+      }   
 }
