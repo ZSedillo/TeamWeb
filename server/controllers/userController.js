@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const userModel = require('../models/User');
 const dotenv = require('dotenv');
-const { sendResetCode } = require('../service/emailService');
 
 dotenv.config();
 
@@ -60,44 +59,14 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-// exports.resetPassword = async (req, res) => {
-//     const { password, token } = req.body;
-//     try {
-//         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//         const userId = decoded.id;
-
-//         const hashedPassword = await bcrypt.hash(password, 10);
-//         await userModel.findByIdAndUpdate(userId, { password: hashedPassword });
-
-//         res.status(200).json({ message: "Password updated successfully" });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ error: "Server error" });
-//     }
-// };
-
 exports.resetPassword = async (req, res) => {
-    const { resetCode, password, email } = req.body; // Get reset code and new password from request body
+    const { password, token } = req.body;
     try {
-        const user = await userModel.findOne({ email });
-        if (!user) return res.status(404).json({ error: "No account found with that email" });
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded.id;
 
-        // Check if the reset code matches and if it has expired
-        if (user.resetCode !== resetCode) {
-            return res.status(400).json({ error: "Invalid reset code" });
-        }
-
-        const now = new Date();
-        if (now > user.resetCodeExpiration) {
-            return res.status(400).json({ error: "Reset code has expired" });
-        }
-
-        // Hash the new password and update the user's password
         const hashedPassword = await bcrypt.hash(password, 10);
-        user.password = hashedPassword;
-        user.resetCode = undefined; // Clear the reset code after successful reset
-        user.resetCodeExpiration = undefined; // Clear the expiration time
-        await user.save();
+        await userModel.findByIdAndUpdate(userId, { password: hashedPassword });
 
         res.status(200).json({ message: "Password updated successfully" });
     } catch (error) {
@@ -105,7 +74,6 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 };
-
 
 exports.editPassword = async (req, res) => {
     const { password, targetUserId } = req.body;
@@ -173,33 +141,6 @@ exports.getCurrentUser = async (req, res) => {
         }
 
         res.status(200).json({ user });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Server error" });
-    }
-};
-
-exports.sendResetCode = async (req, res) => {
-    const { email } = req.body; // Assuming you send the email as part of the request
-    try {
-        const user = await userModel.findOne({ email });
-        if (!user) return res.status(404).json({ error: "No account found with that email" });
-
-        // Generate a reset code (for simplicity, using a random number, but you can use any format)
-        const resetCode = Math.floor(10000 + Math.random() * 90000); // 5-digit reset code
-
-        // Set the expiration time to 5 minutes from now
-        const expirationTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-
-        // Save the reset code and expiration time in the user's document
-        user.resetCode = resetCode;
-        user.resetCodeExpiration = expirationTime;
-        await user.save();
-
-        // Send the reset code via email (using a hypothetical email service)
-        await sendResetCode(email, resetCode);
-
-        res.status(200).json({ message: "Reset code sent successfully" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
