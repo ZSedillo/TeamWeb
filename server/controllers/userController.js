@@ -60,14 +60,44 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-exports.resetPassword = async (req, res) => {
-    const { password, token } = req.body;
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded.id;
+// exports.resetPassword = async (req, res) => {
+//     const { password, token } = req.body;
+//     try {
+//         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//         const userId = decoded.id;
 
+//         const hashedPassword = await bcrypt.hash(password, 10);
+//         await userModel.findByIdAndUpdate(userId, { password: hashedPassword });
+
+//         res.status(200).json({ message: "Password updated successfully" });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ error: "Server error" });
+//     }
+// };
+
+exports.resetPassword = async (req, res) => {
+    const { resetCode, password, email } = req.body; // Get reset code and new password from request body
+    try {
+        const user = await userModel.findOne({ email });
+        if (!user) return res.status(404).json({ error: "No account found with that email" });
+
+        // Check if the reset code matches and if it has expired
+        if (user.resetCode !== resetCode) {
+            return res.status(400).json({ error: "Invalid reset code" });
+        }
+
+        const now = new Date();
+        if (now > user.resetCodeExpiration) {
+            return res.status(400).json({ error: "Reset code has expired" });
+        }
+
+        // Hash the new password and update the user's password
         const hashedPassword = await bcrypt.hash(password, 10);
-        await userModel.findByIdAndUpdate(userId, { password: hashedPassword });
+        user.password = hashedPassword;
+        user.resetCode = undefined; // Clear the reset code after successful reset
+        user.resetCodeExpiration = undefined; // Clear the expiration time
+        await user.save();
 
         res.status(200).json({ message: "Password updated successfully" });
     } catch (error) {
@@ -75,6 +105,7 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 };
+
 
 exports.editPassword = async (req, res) => {
     const { password, targetUserId } = req.body;
