@@ -16,6 +16,31 @@ const transporter = nodemailer.createTransport({
  * @param {Object} user - User data with appointment details
  * @returns {Promise} - Email sending result
  */
+const sendResetCode = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await userModel.findOne({ email });
+    if (!user) return res.status(404).json({ error: "No account found with that email" });
+
+    const code = Math.floor(10000 + Math.random() * 90000); // 5-digit code
+    const resetToken = jwt.sign({ id: user._id, code }, process.env.JWT_SECRET, { expiresIn: '10m' });
+
+    const mailOptions = {
+      from: `"Support Team" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Your Password Reset Code",
+      html: `<p>Hello ${user.username},</p><p>Your password reset code is: <strong>${code}</strong></p><p>This code will expire in 10 minutes.</p>`
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "Reset code sent successfully", token: resetToken });
+  } catch (error) {
+    console.error("Error sending reset code:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+
 const sendApprovalEmail = async (user) => {
   if (!user || !user.email) {
     throw new Error('Invalid user data: email is required');
@@ -114,5 +139,6 @@ const sendApprovalEmail = async (user) => {
 };
 
 module.exports = {
+  sendResetCode,
   sendApprovalEmail
 };
