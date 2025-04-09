@@ -225,6 +225,8 @@ function ManageAccount() {
               }),
           });
 
+          localStorage.setItem("username", editUserInfo.username); // Save username
+
           // Success
           alert('User information updated successfully');
           closeModals();
