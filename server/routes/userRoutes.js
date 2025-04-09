@@ -14,5 +14,6 @@ router.post('/edit-password', authenticate, userController.editPassword);
 router.post('/update-user-info', authenticate, userController.updateUserInfo);
 router.delete('/delete-account', authenticate, userController.deleteAccount);
 router.get('/current-user', authenticate, userController.getCurrentUser);
+router.post('/send-reset-code', userController.sendResetCode);
 
 module.exports = router;

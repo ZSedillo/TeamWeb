@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const userModel = require('../models/User');
 const dotenv = require('dotenv');
+const { sendResetCode } = require('../service/emailService');
 
 dotenv.config();
 
@@ -141,6 +142,33 @@ exports.getCurrentUser = async (req, res) => {
         }
 
         res.status(200).json({ user });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+exports.sendResetCode = async (req, res) => {
+    const { email } = req.body; // Assuming you send the email as part of the request
+    try {
+        const user = await userModel.findOne({ email });
+        if (!user) return res.status(404).json({ error: "No account found with that email" });
+
+        // Generate a reset code (for simplicity, using a random number, but you can use any format)
+        const resetCode = Math.floor(10000 + Math.random() * 90000); // 5-digit reset code
+
+        // Set the expiration time to 5 minutes from now
+        const expirationTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+
+        // Save the reset code and expiration time in the user's document
+        user.resetCode = resetCode;
+        user.resetCodeExpiration = expirationTime;
+        await user.save();
+
+        // Send the reset code via email (using a hypothetical email service)
+        await sendResetCode(email, resetCode);
+
+        res.status(200).json({ message: "Reset code sent successfully" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
