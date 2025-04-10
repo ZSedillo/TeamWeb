@@ -61,7 +61,7 @@ function Viewer() {
         </div>
 
         <div className="school-image-container">
-          <img src="/assets/images/school.jpg" alt="School" className="school-image" />
+          <img src="/dist/assets/images/school.jpg" alt="School" className="school-image" />
         </div>
       </div>
 
