@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react"; 
 import Header from "./Viewer/Component/Header.jsx";
 import Footer from "./Viewer/Component/Footer.jsx";
+import School from "./assets/images/School.jpg";
 import "./Viewer.css";
 
 function Viewer() {
@@ -61,7 +62,7 @@ function Viewer() {
         </div>
 
         <div className="school-image-container">
-          <img src="/dist/assets/images/school.jpg" alt="School" className="school-image" />
+          <img src={School} alt="School" className="school-image" />
         </div>
       </div>
 
