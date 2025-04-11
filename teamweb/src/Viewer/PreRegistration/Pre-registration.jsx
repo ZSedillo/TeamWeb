@@ -345,18 +345,9 @@ function PreRegistration() {
             <Header />
             <div className="pre-reg-main-container">
                 <div className="pre-reg-tabs">
-                    <button 
-                        className={`pre-reg-tab ${activeTab === 'pre-reg' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('pre-reg')}
-                    >
-                        Pre-Registration
-                    </button>
-                    <button 
-                        className={`pre-reg-tab ${activeTab === 'appointment' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('appointment')}
-                    >
-                        Book Appointment
-                    </button>
+                <div className="pre-reg-header">
+                    <h2>PRE-REGISTRATION</h2>
+                </div>
                 </div>
 
                 {activeTab === 'pre-reg' ? (

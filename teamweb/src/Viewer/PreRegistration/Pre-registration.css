@@ -206,6 +206,7 @@
     transition: background-color 0.3s ease;
     font-weight: 500;
     max-width: 300px;
+    justify-content: space-between;
 }
 
 .pre-reg-success-home-btn:hover {
@@ -259,26 +260,6 @@
     transition: color 0.3s ease;
 }
 
-.pre-reg-tab.active {
-    color: #1a3a7e;
-    font-weight: 600;
-}
-
-.pre-reg-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1rem;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background-color: #325aa8;
-    border-radius: 3px;
-}
-
-.pre-reg-tab:hover {
-    color: #325aa8;
-}
-
 /* Add these styles for required fields and form controls */
 .pre-reg-required {
     color: #ff0000;
@@ -317,6 +298,15 @@
     background-position: right 0.75rem center;
     background-size: 1em;
     padding-right: 2.5rem;
+}
+
+.pre-reg-header h2 {
+  font-size: 1.9rem;
+  color: var(--primary-color);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 700;
 }
 
 .pre-reg-form-group label {

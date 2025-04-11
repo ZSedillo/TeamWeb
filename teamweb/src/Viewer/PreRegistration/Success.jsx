@@ -14,17 +14,16 @@ function Success() {
                     <div className="pre-reg-success-details">
                         <p>Thank you for pre-registering with us.</p>
                         <div className="pre-reg-success-info">
-                            <p>What happens next?</p>
-                            <ul>
-                                <li>You will receive a confirmation email shortly</li>
-                                <li>Our admissions team will review your application</li>
-                                <li>We will contact you within 2-3 business days</li>
-                            </ul>
+                        <p>Would you like to book an appointment now?</p>
+                            
                         </div>
                     </div>
                     <div className="pre-reg-success-buttons">
                         <a href="/" className="pre-reg-success-home-btn">
-                            Return to Homepage
+                            No
+                        </a>
+                        <a href="/" className="pre-reg-success-home-btn">
+                            Yes
                         </a>
                     </div>
                 </div>
