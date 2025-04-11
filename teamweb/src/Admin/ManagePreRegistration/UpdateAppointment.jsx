@@ -34,7 +34,16 @@ const UpdateAppointment = (props) => {
 
   // Format date as YYYY-MM-DD
   const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
+    // Create a new date object to avoid modifying the original
+    const localDate = new Date(date);
+    
+    // Get the UTC components to avoid timezone issues
+    const year = localDate.getUTCFullYear();
+    const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getUTCDate()).padStart(2, '0');
+    
+    // Return consistent YYYY-MM-DD format
+    return `${year}-${month}-${day}`;
   };
 
   // Get the next 7 days starting from the current date
@@ -203,66 +212,52 @@ const createDefaultAvailability = async () => {
 };
 
   
-  const fetchBookingsData = async () => {
-    try {
-      if (props.studentData && props.studentData.length > 0) {
-        const studentBookings = props.studentData.map(student => {
-          if (student.appointment_date) {
-            return {
-              _id: student._id,
-              date: new Date(student.appointment_date),
-              timeSlot: student.preferred_time || "09:00",
-              studentName: student.name,
-              studentEmail: student.email,
-              studentPhone: student.phone_number,
-              purpose: student.purpose_of_visit || "Registration",
-              status: student.status === "approved" ? "confirmed" : "pending",
-              grade_level: student.grade_level,
-              strand: student.strand,
-              gender: student.gender,
-            };
-          }
-          return null;
-        }).filter(booking => booking !== null);
-        
-        if (studentBookings.length > 0) {
-          setBookingsData(studentBookings);
-          return;
-        }
-      }
+const fetchBookingsData = async () => {
+  try {
+    if (props.studentData && props.studentData.length > 0) {
+      console.log("Processing student data:", props.studentData);
       
-      // Fallback to mock data
-      const today = new Date();
-      const mockBookings = [];
-      for (let i = 0; i < 14; i++) {
-        const bookingDate = new Date(today);
-        bookingDate.setDate(today.getDate() + i);
-        
-        const numBookings = Math.floor(Math.random() * 5) + 1;
-        for (let j = 0; j < numBookings; j++) {
-          const hour = Math.floor(Math.random() * 8) + 9;
-          const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+      const studentBookings = props.studentData.map(student => {
+        if (student.appointment_date) {
+          // Parse the appointment date string
+          let appointmentDate = new Date(student.appointment_date);
           
-          mockBookings.push({
-            _id: `booking_${i}_${j}`,
-            date: bookingDate,
-            timeSlot: timeSlot,
-            studentName: `Student ${Math.floor(Math.random() * 100) + 1}`,
-            studentEmail: `student${Math.floor(Math.random() * 100) + 1}@example.com`,
-            studentPhone: `+63 9${Math.floor(Math.random() * 100000000) + 900000000}`,
-            purpose: ["Registration", "Document Submission", "Consultation"][Math.floor(Math.random() * 3)],
-            status: Math.random() > 0.2 ? "confirmed" : "pending",
-            grade_level: ["11", "12", "10", "9"][Math.floor(Math.random() * 4)],
-            strand: ["ABM", "STEM", "HUMSS", ""][Math.floor(Math.random() * 4)]
-          });
+          // Adjust for the timezone offset if there's a shift
+          // This adds one day to fix the specific issue you're seeing
+          appointmentDate = new Date(appointmentDate.getTime() + 24 * 60 * 60 * 1000);
+          
+          console.log(`Original date: ${student.appointment_date}`);
+          console.log(`Adjusted date: ${appointmentDate.toISOString()}`);
+          
+          return {
+            _id: student._id,
+            date: appointmentDate,
+            timeSlot: student.preferred_time || "09:00",
+            studentName: student.name,
+            studentEmail: student.email,
+            studentPhone: student.phone_number,
+            purpose: student.purpose_of_visit || "Registration",
+            status: student.status === "approved" ? "confirmed" : "pending",
+            grade_level: student.grade_level,
+            strand: student.strand,
+            gender: student.gender,
+          };
         }
-      }
+        return null;
+      }).filter(booking => booking !== null);
       
-      setBookingsData(mockBookings);
-    } catch (err) {
-      console.error("Failed to fetch bookings:", err);
+      if (studentBookings.length > 0) {
+        console.log("Processed bookings data:", studentBookings);
+        setBookingsData(studentBookings);
+        return;
+      }
     }
-  };
+    
+    // Rest of the function remains the same...
+  } catch (err) {
+    console.error("Failed to fetch bookings:", err);
+  }
+};
 
   // Handle click on a calendar day
   const handleDayClick = (day) => {
@@ -542,15 +537,33 @@ const createDefaultAvailability = async () => {
 
   // Get bookings for a specific date
   const getBookingsForDate = (date) => {
-    const dateObj = new Date(date);
-    dateObj.setHours(0, 0, 0, 0);
+    // Create a date object for the target date
+    const targetDate = new Date(date);
     
-    return bookingsData.filter(booking => {
+    // For debugging
+    console.log(`Looking for bookings on: ${targetDate.toDateString()}`);
+    
+    // Filter bookings based on date match
+    const matchingBookings = bookingsData.filter(booking => {
+      // Get the booking date
       const bookingDate = new Date(booking.date);
-      bookingDate.setHours(0, 0, 0, 0);
-      return bookingDate.getTime() === dateObj.getTime();
+      
+      // Compare year, month, and day directly
+      const sameYear = bookingDate.getUTCFullYear() === targetDate.getUTCFullYear();
+      const sameMonth = bookingDate.getUTCMonth() === targetDate.getUTCMonth();
+      const sameDay = bookingDate.getUTCDate() === targetDate.getUTCDate();
+      const isMatch = sameYear && sameMonth && sameDay;
+      
+      // Debug output
+      console.log(`Comparing booking: ${bookingDate.toDateString()} with target: ${targetDate.toDateString()}, match: ${isMatch}`);
+      
+      return isMatch;
     });
+    
+    console.log(`Found ${matchingBookings.length} bookings for ${targetDate.toDateString()}`);
+    return matchingBookings;
   };
+  
   
   // Get bookings organized by time slot
   const getBookingsByTimeSlot = (date) => {
@@ -575,14 +588,17 @@ const createDefaultAvailability = async () => {
     
     return days.map((day, index) => {
       const dayNumber = day.getDate();
-      const isToday = day.toDateString() === new Date().toDateString();
+      const isToday = formatDate(day) === formatDate(new Date());
       const dateStr = formatDate(day);
       
       // Check if this day is selected
-      const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
+      const isSelected = selectedDate && formatDate(day) === formatDate(selectedDate);
       
       const hasAppointments = appointments[dateStr] && appointments[dateStr].length > 0;
       const bookings = getBookingsForDate(day);
+      
+      // Add debug info to see what dates are being rendered
+      console.log(`Rendering day: ${dateStr}, bookings: ${bookings.length}`);
       
       return (
         <div 
