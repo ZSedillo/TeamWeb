@@ -24,6 +24,8 @@ const getPreRegistrations = async (req, res) => {
         else if (req.query.strand) sortObject = { strand: 1, name: 1 };
         else if (req.query.type) sortObject = { isNewStudent: 1, name: 1 };
 
+        console.log('Received year:', req.query.year);
+
         if (req.query.grade) {
             const aggregationPipeline = [
                 { $match: filterQuery },
