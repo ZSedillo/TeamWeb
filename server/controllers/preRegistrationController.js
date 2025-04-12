@@ -13,6 +13,7 @@ const getPreRegistrations = async (req, res) => {
         if (req.query.search) {
             filterQuery.name = { $regex: req.query.search, $options: 'i' };
         }
+        if (req.query.year) filterQuery.registration_year = req.query.year;
         if (req.query.grade) filterQuery.grade_level = req.query.grade;
         if (req.query.strand) filterQuery.strand = req.query.strand;
         if (req.query.type) filterQuery.isNewStudent = req.query.type;
