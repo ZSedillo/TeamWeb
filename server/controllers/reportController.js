@@ -14,7 +14,7 @@ const viewReports = async (req, res) => {
 // Search reports with filters
 const searchReports = async (req, res) => {
     try {
-        const { username, month, time } = req.query;
+        const { username, year, month, time } = req.query;
         
         // Build query object
         const query = {};
@@ -24,16 +24,37 @@ const searchReports = async (req, res) => {
             query.username = { $regex: username, $options: 'i' }; // Case-insensitive search
         }
         
+        // Add year filter if provided
+        if (year) {
+            const yearNum = parseInt(year, 10);
+            if (!isNaN(yearNum)) {
+                query.time = {
+                    $expr: {
+                        $eq: [{ $year: "$time" }, yearNum]
+                    }
+                };
+            }
+        }
+        
         // Add month filter if provided
         if (month) {
             const monthNum = parseInt(month, 10);
             if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
-                // Create date range for the specified month (for any year)
-                query.time = {
-                    $expr: {
-                        $eq: [{ $month: "$time" }, monthNum]
-                    }
-                };
+                // If we already have a time query for year, we need to add month to it
+                if (query.time) {
+                    query.time.$expr = {
+                        $and: [
+                            query.time.$expr,
+                            { $eq: [{ $month: "$time" }, monthNum] }
+                        ]
+                    };
+                } else {
+                    query.time = {
+                        $expr: {
+                            $eq: [{ $month: "$time" }, monthNum]
+                        }
+                    };
+                }
             }
         }
         
@@ -41,12 +62,20 @@ const searchReports = async (req, res) => {
         if (time) {
             const hourNum = parseInt(time, 10);
             if (!isNaN(hourNum) && hourNum >= 0 && hourNum <= 23) {
-                // If we already have a time query, we need to combine it
+                // If we already have a time query, we need to add hour to it
                 if (query.time) {
-                    query.time.$expr.$and = [
-                        query.time.$expr,
-                        { $eq: [{ $hour: "$time" }, hourNum] }
-                    ];
+                    const existingExpr = query.time.$expr;
+                    // Check if we already have an $and operator
+                    if (existingExpr.$and) {
+                        existingExpr.$and.push({ $eq: [{ $hour: "$time" }, hourNum] });
+                    } else {
+                        query.time.$expr = {
+                            $and: [
+                                existingExpr,
+                                { $eq: [{ $hour: "$time" }, hourNum] }
+                            ]
+                        };
+                    }
                 } else {
                     query.time = {
                         $expr: {
