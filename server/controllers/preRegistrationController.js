@@ -13,7 +13,13 @@ const getPreRegistrations = async (req, res) => {
         if (req.query.search) {
             filterQuery.name = { $regex: req.query.search, $options: 'i' };
         }
-        if (req.query.registration_year) filterQuery.registration_year = req.query.registration_year;
+        // Check if the user has provided a registration year, otherwise set it to the current year
+        const currentYear = new Date().getFullYear().toString();
+        if (req.query.registration_year) {
+             filterQuery.registration_year = req.query.registration_year;
+        } else {
+            filterQuery.registration_year = currentYear; // Default to current year
+        }
         if (req.query.grade) filterQuery.grade_level = req.query.grade;
         if (req.query.strand) filterQuery.strand = req.query.strand;
         if (req.query.type) filterQuery.isNewStudent = req.query.type;
