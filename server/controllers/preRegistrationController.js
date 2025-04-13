@@ -223,6 +223,11 @@ const getEnrolledPreRegistrations = async (req, res) => {
         if (req.query.strand) {
             filterQuery.strand = req.query.strand;
         }
+        
+        // Apply year filter if provided
+        if (req.query.year) {
+            filterQuery.registration_year = req.query.year;
+        }
 
         let sortObject = { createdAt: -1 }; // Default sort by most recent
         
@@ -289,7 +294,6 @@ const getEnrolledPreRegistrations = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
-
 
 // DELETE - Delete all Pre-Registrations
 const deletePreRegistration = async (req, res) => {
