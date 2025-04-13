@@ -4,8 +4,6 @@
     padding: 0 1.5rem;
 }
 
-
-
 .report-container {
     margin: 20px;
     padding: 20px;
@@ -13,6 +11,78 @@
     border-radius: 8px;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     overflow-x: auto;
+}
+
+/* Search Controls */
+.search-controls-container {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.search-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    align-items: flex-end;
+}
+
+.search-field {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 150px;
+}
+
+.search-field label {
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: 500;
+}
+
+.search-input, .search-select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.search-input:focus, .search-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+.search-results-info {
+    font-size: 14px;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* Button Row */
+.button-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    justify-content: flex-end; /* This will align buttons to the right */
+}
+
+.clear-filters-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-size: 14px;
+    height: 40px;
+}
+
+.clear-filters-button:hover {
+    background-color: #5a6268;
 }
 
 /* Responsive Table */
@@ -52,6 +122,25 @@
     .report-table th, .report-table td {
         padding: 8px;
     }
+    
+    .search-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .search-field {
+        width: 100%;
+    }
+    
+    .button-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .clear-filters-button,
+    .delete-logs-button {
+        width: 100%;
+    }
 }
 
 /* No Reports Message */
@@ -69,6 +158,7 @@
     flex-wrap: wrap;
     margin-top: 20px;
     gap: 5px;
+    align-items: center;
 }
 
 .pagination-button {
@@ -95,6 +185,11 @@
 .pagination-button.active {
     background-color: #113bd4;
     font-weight: bold;
+}
+
+.pagination-ellipsis {
+    margin: 0 5px;
+    color: #555;
 }
 
 /* Loading, Error, and Empty States */
@@ -130,13 +225,13 @@
     background-color: #d9534f;
     color: white;
     border: none;
-    padding: 12px 20px;
-    margin-bottom: 15px;
+    padding: 10px 20px;
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.3s ease;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
+    height: 40px;
 }
 
 .delete-logs-button:hover {
@@ -165,9 +260,9 @@
 
 /* Mobile Adjustments */
 @media screen and (max-width: 480px) {
-    .delete-logs-button {
+    .delete-logs-button, .clear-filters-button {
         width: 100%;
-        padding: 14px;
+        padding: 12px;
     }
 
     .pagination-button {
@@ -181,5 +276,9 @@
 
     .page-header p {
         font-size: 0.9rem;
+    }
+    
+    .search-controls-container {
+        padding: 10px;
     }
 }
