@@ -115,7 +115,8 @@ const addPreRegistration = async (req, res) => {
                 nationality, parent_guardian_name, parent_guardian_number, isNewStudent,
                 status: status ? status.toLowerCase() : 'pending', 
                 appointment_date, preferred_time, purpose_of_visit,
-                enrollment: false // Ensure enrollment is explicitly set to false
+                enrollment: false, // Ensure enrollment is explicitly set to false
+                registration_year: registration_year || new Date().getFullYear().toString() // Set the registration year explicitly
             });
 
             await preRegistrationData.save();
