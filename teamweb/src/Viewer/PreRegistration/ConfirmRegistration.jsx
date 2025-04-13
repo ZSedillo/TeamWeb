@@ -29,7 +29,7 @@ function ConfirmRegistration() {
         const isSeniorHigh = gradeLevel === "11" || gradeLevel === "12";
     
         const preRegistrationData = {
-            name: `${formData.firstName} ${formData.lastName}`,
+            name: `${formData.lastName} ${formData.firstName}`,
             phone_number: formData.mobileNumber,
             age: new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear(),
             birthdate: new Date(formData.dateOfBirth).toISOString(),
