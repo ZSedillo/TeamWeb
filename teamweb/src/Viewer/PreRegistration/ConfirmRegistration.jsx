@@ -41,8 +41,7 @@ function ConfirmRegistration() {
             parent_guardian_name: `${formData.parentFirstName} ${formData.parentLastName}`,
             parent_guardian_number: formData.parentMobileNumber,
             isNewStudent: formData.isNewStudent?.toLowerCase() === "new" ? "new" : "old",
-            status: "pending",
-            address: formData.address,
+            status: "pending"
         };
         console.log("Pre-registration data to be sent:", preRegistrationData);
         try {
@@ -92,7 +91,6 @@ function ConfirmRegistration() {
                         <p><strong>Nationality:</strong> {formData.nationality}</p>
                         <p><strong>Email:</strong> {formData.email}</p>
                         <p><strong>Mobile Number:</strong> {formData.mobileNumber}</p>
-                        <p><strong>Address:</strong> {formData.address}</p>
                     </div>
                 </div>
 
