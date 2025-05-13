@@ -12,6 +12,9 @@ function Homepage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [username, setUsername] = useState("");
 
+  // NEW STATE FOR DESCRIPTION
+  const [imageDescription, setImageDescription] = useState("");
+
   useEffect(() => {
     const loggedInUser = localStorage.getItem("username");
     setUsername(loggedInUser || "Admin");
@@ -38,6 +41,8 @@ function Homepage() {
     // Create preview URL
     const previewURL = URL.createObjectURL(file);
     setPreviewImage(previewURL);
+    // Reset description when a new image is selected
+    setImageDescription("");
   };
 
   const handleUpload = async () => {
@@ -48,6 +53,9 @@ function Homepage() {
 
     const formData = new FormData();
     formData.append("image", selectedFile);
+    
+    // NEW: Add description to form data
+    formData.append("description", imageDescription || "");
 
     try {
       // Simulate upload progress
@@ -92,6 +100,7 @@ function Homepage() {
         setUploadProgress(0);
         setPreviewImage(null);
         setSelectedFile(null);
+        setImageDescription("");
       }, 500);
     } catch (error) {
       setIsUploading(false);
@@ -149,7 +158,7 @@ const handleDelete = async () => {
 };
 
 
-  return (
+ return (
     <>
       <AdminHeader />
       <div className="content-container">
@@ -179,6 +188,26 @@ const handleDelete = async () => {
               <div className="preview-wrapper">
                 <img src={previewImage} alt="Preview" className="image-preview" />
               </div>
+              
+              {/* NEW: Description Input */}
+              <div className="form-group" style={{ margin: '15px 0' }}>
+                <label htmlFor="image-description">Image Description (Optional)</label>
+                <textarea
+                  id="image-description"
+                  value={imageDescription}
+                  onChange={(e) => setImageDescription(e.target.value)}
+                  placeholder="Enter a description for this image"
+                  style={{
+                    width: '100%', 
+                    padding: '10px', 
+                    minHeight: '100px', 
+                    marginTop: '10px'
+                  }}
+                  maxLength={300}
+                />
+                <small>{imageDescription.length}/300 characters</small>
+              </div>
+              
               <div className="preview-actions">
                 <button onClick={handleUpload} className="post-btn">
                   <span className="post-icon">✓</span> Post Image
@@ -195,6 +224,7 @@ const handleDelete = async () => {
             </label>
           )}
         </div>
+
         {/* Image List Grid */}
         <div className="images-container">
           <h3 className="section-title">Current Images ({images.length})</h3>
@@ -205,9 +235,6 @@ const handleDelete = async () => {
             </div>
           ) : (
             <div className="image-list">
-
-
-              {/* Currently fixing */}
               {images.map((img) => {
                 return (
                   <div key={img._id} className="image-box">
@@ -216,6 +243,19 @@ const handleDelete = async () => {
                     </div>
                     <div className="image-info">
                       <span className="image-filename">{img.image_url}</span>
+                      {/* NEW: Display description if available */}
+                      {img.description && (
+                        <div className="image-description" style={{
+                          marginTop: '10px', 
+                          fontSize: '0.9em', 
+                          color: '#666',
+                          maxHeight: '100px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {img.description}
+                        </div>
+                      )}
                       <button onClick={() => confirmDelete(img)} className="delete-btn">
                         <span className="delete-icon">🗑</span> Delete
                       </button>
