@@ -36,8 +36,7 @@ const preRegistrationSchema = new mongoose.Schema({
         default: function() {
             return new Date().getFullYear().toString();
         }
-    },
-    address : String
+    }
 }, { timestamps: true });
 
 const preRegistrationModel = mongoose.model('preRegistration', preRegistrationSchema);
