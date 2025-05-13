@@ -428,3 +428,23 @@ input[type="file"] {
     width: 100%;
   }
 }
+
+.title-input-container {
+  width: 100%;
+  margin: 15px 0;
+}
+
+.title-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.title-input:focus {
+  outline: none;
+  border-color: #5a67d8;
+  box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+}

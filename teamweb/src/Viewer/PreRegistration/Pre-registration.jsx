@@ -13,21 +13,28 @@ function PreRegistration() {
         nationality: "",
         email: "",
         mobileNumber: "",
+        address: "", // Added address field
         isNewStudent: "",
         parentFirstName: "",
         parentLastName: "",
         parentMobileNumber: "",
         yearLevel: "",
         strand: "",
+        needsAppointment: ""
     });
     const [formErrors, setFormErrors] = useState({});
     const [progress, setProgress] = useState(0);
     const [activeTab, setActiveTab] = useState('pre-reg');
+    const [showAppointmentForm, setShowAppointmentForm] = useState(false);
 
     useEffect(() => {
         const storedData = sessionStorage.getItem('preRegFormData');
         if (storedData) {
-            setFormData(JSON.parse(storedData));
+            const parsedData = JSON.parse(storedData);
+            setFormData(parsedData);
+            if (parsedData.needsAppointment === "yes") {
+                setShowAppointmentForm(true);
+            }
         }
     }, []);
 
@@ -40,14 +47,18 @@ function PreRegistration() {
                 : value
         }));
         setFormErrors(prev => ({ ...prev, [name]: "" }));
+
+        if (name === 'needsAppointment') {
+            setShowAppointmentForm(value === "yes");
+        }
     };
 
     const validateForm = (data) => {
         const errors = {};
         const requiredFields = [
             'firstName', 'lastName', 'dateOfBirth', 'gender', 'nationality', 
-            'email', 'mobileNumber', 'isNewStudent', 'parentFirstName', 
-            'parentLastName', 'parentMobileNumber', 'yearLevel'
+            'email', 'mobileNumber', 'address', 'isNewStudent', 'parentFirstName', 
+            'parentLastName', 'parentMobileNumber', 'yearLevel', 'needsAppointment'
         ];
 
         requiredFields.forEach(field => {
@@ -80,7 +91,7 @@ function PreRegistration() {
     };
 
     useEffect(() => {
-        const totalFields = formData.yearLevel === '11' || formData.yearLevel === '12' ? 13 : 12;
+        const totalFields = formData.yearLevel === '11' || formData.yearLevel === '12' ? 15 : 14;
         const filledFields = Object.entries(formData).filter(([key, value]) => 
             value !== "" && 
             (key !== 'strand' || ['11', '12'].includes(formData.yearLevel))
@@ -203,6 +214,22 @@ function PreRegistration() {
                             className="pre-reg-input" 
                         />
                         {formErrors.mobileNumber && <div className="error">{formErrors.mobileNumber}</div>}
+                    </div>
+
+                    <div className="pre-reg-form-group">
+                        <label htmlFor="address">
+                            COMPLETE ADDRESS <span className="pre-reg-required">*</span>
+                        </label>
+                        <textarea 
+                            id="address" 
+                            name="address" 
+                            value={formData.address} 
+                            onChange={handleChange} 
+                            className="pre-reg-input pre-reg-textarea" 
+                            rows="3"
+                            placeholder="House No., Street, Barangay, City, Province"
+                        />
+                        {formErrors.address && <div className="error">{formErrors.address}</div>}
                     </div>
 
                     <div className="pre-reg-form-group">
@@ -332,7 +359,48 @@ function PreRegistration() {
                         />
                         {formErrors.parentMobileNumber && <div className="error">{formErrors.parentMobileNumber}</div>}
                     </div>
+
+                    <div className="pre-reg-form-group">
+                        <label htmlFor="needsAppointment">
+                            WOULD YOU LIKE TO BOOK AN APPOINTMENT? <span className="pre-reg-required">*</span>
+                        </label>
+                        <div className="pre-reg-radio-group">
+                            <label className="pre-reg-radio-label">
+                                <input 
+                                    type="radio" 
+                                    name="needsAppointment" 
+                                    value="yes" 
+                                    checked={formData.needsAppointment === "yes"} 
+                                    onChange={handleChange} 
+                                    className="pre-reg-radio-input"
+                                />
+                                <span className="pre-reg-radio-text">YES</span>
+                            </label>
+                            <label className="pre-reg-radio-label">
+                                <input 
+                                    type="radio" 
+                                    name="needsAppointment" 
+                                    value="no" 
+                                    checked={formData.needsAppointment === "no"} 
+                                    onChange={handleChange} 
+                                    className="pre-reg-radio-input"
+                                />
+                                <span className="pre-reg-radio-text">NO</span>
+                            </label>
+                        </div>
+                        {formErrors.needsAppointment && <div className="error">{formErrors.needsAppointment}</div>}
+                    </div>
                 </div>
+
+                {showAppointmentForm && (
+                    <div className="pre-reg-appointment-section">
+                        <div className="pre-reg-subtitle">Appointment Details</div>
+                        <div className="appointment-form-embedded">
+                            <Appointment embedded={true} preRegEmail={formData.email} />
+                        </div>
+                    </div>
+                )}
+
                 <button className="pre-reg-submit-btn" type="submit">
                     Review Information
                 </button>
@@ -344,23 +412,7 @@ function PreRegistration() {
         <>
             <Header />
             <div className="pre-reg-main-container">
-                <div className="pre-reg-tabs">
-                    <button 
-                        className={`pre-reg-tab ${activeTab === 'pre-reg' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('pre-reg')}
-                    >
-                        Pre-Registration
-                    </button>
-                    <button 
-                        className={`pre-reg-tab ${activeTab === 'appointment' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('appointment')}
-                    >
-                        Book Appointment
-                    </button>
-                </div>
-
-                {activeTab === 'pre-reg' ? (
-                    <div className="form-wrapper">
+                <div className="form-wrapper">
                     <div className="pre-reg-container">
                         <div className="pre-reg-progress-bar">
                             <div
@@ -377,10 +429,7 @@ function PreRegistration() {
 
                         {renderForm()}
                     </div>
-                    </div>
-                ) : (
-                    <Appointment />
-                )}
+                </div>
             </div>
             <Footer />
         </>
