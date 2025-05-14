@@ -156,10 +156,10 @@ const updatePreRegistrationStatus = async (req, res) => {
         if (updateData.status === 'approved') await sendApprovalEmail(updatedRecord);
 
         res.json({ message: "Pre-registration updated successfully", preregistration: updatedRecord });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "Server error", message: error.message });
-        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+    }
 };
 
 // Update Enrollment Status for Pre-Registration Record
