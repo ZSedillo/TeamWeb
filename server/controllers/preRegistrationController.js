@@ -92,7 +92,7 @@ const addPreRegistration = async (req, res) => {
     let {
         name, phone_number, age, gender, birthdate, strand, grade_level, email,
         status, appointment_date, nationality, parent_guardian_name, parent_guardian_number,
-        preferred_time, purpose_of_visit, isNewStudent, address
+        preferred_time, purpose_of_visit, isNewStudent, address, registration_year
     } = req.body;
 
     if (!grade_level) return res.status(400).json({ error: "Grade level is required." });
@@ -103,6 +103,11 @@ const addPreRegistration = async (req, res) => {
     const validStatuses = ['pending', 'approved', 'rejected'];
     if (status && !validStatuses.includes(status.toLowerCase())) return res.status(400).json({ error: `Invalid status value.` });
 
+    // Set default registration year if not provided
+    if (!registration_year) {
+        registration_year = new Date().getFullYear().toString();
+    }
+
     try {
         const existingPreRegistration = await preRegistrationModel.findOne({ email });
         let preRegistrationData;
@@ -110,19 +115,47 @@ const addPreRegistration = async (req, res) => {
         if (existingPreRegistration) {
             preRegistrationData = await preRegistrationModel.findOneAndUpdate(
                 { email },
-                { name, phone_number, age, gender, birthdate: new Date(birthdate), strand, grade_level, nationality,
-                  parent_guardian_name, parent_guardian_number, isNewStudent, status: status ? status.toLowerCase() : 'pending',
-                  appointment_date, preferred_time, purpose_of_visit, address },
+                { 
+                    name, 
+                    phone_number, 
+                    age, 
+                    gender, 
+                    birthdate: new Date(birthdate), 
+                    strand, 
+                    grade_level, 
+                    nationality,
+                    parent_guardian_name, 
+                    parent_guardian_number, 
+                    isNewStudent, 
+                    status: status ? status.toLowerCase() : 'pending',
+                    appointment_date, 
+                    preferred_time, 
+                    purpose_of_visit, 
+                    address,
+                    registration_year
+                },
                 { new: true }
             );
         } else {
             preRegistrationData = new preRegistrationModel({
-                name, phone_number, age, gender, birthdate: new Date(birthdate), strand, grade_level, email,
-                nationality, parent_guardian_name, parent_guardian_number, isNewStudent,
+                name, 
+                phone_number, 
+                age, 
+                gender, 
+                birthdate: new Date(birthdate), 
+                strand, 
+                grade_level, 
+                email,
+                nationality, 
+                parent_guardian_name, 
+                parent_guardian_number, 
+                isNewStudent,
                 status: status ? status.toLowerCase() : 'pending', 
-                appointment_date, preferred_time, purpose_of_visit,
+                appointment_date, 
+                preferred_time, 
+                purpose_of_visit,
                 enrollment: false, // Ensure enrollment is explicitly set to false
-                registration_year: registration_year || new Date().getFullYear().toString(), // Set the registration year explicitly
+                registration_year, // Now defined and initialized above
                 address
             });
 
