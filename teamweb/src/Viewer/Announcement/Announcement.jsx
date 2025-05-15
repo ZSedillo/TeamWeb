@@ -20,13 +20,20 @@ function Announcement() {
         try {
             const response = await fetch("https://teamweb-kera.onrender.com/announcement");
             if (!response.ok) throw new Error("Failed to fetch announcements");
-    
+
             const data = await response.json();
             console.log("Fetched announcements:", data); // Check API response
-    
+
             if (data.announcements && Array.isArray(data.announcements)) {
-                setAnnouncements(data.announcements); // ✅ Correct key
-                console.log("State updated with:", data.announcements); // Check if state updates
+                // Sort announcements by created_at or createdAt in descending order (newest first)
+                const sortedAnnouncements = data.announcements.sort((a, b) => {
+                    const dateA = new Date(a.created_at || a.createdAt);
+                    const dateB = new Date(b.created_at || b.createdAt);
+                    return dateB - dateA;
+                });
+                
+                setAnnouncements(sortedAnnouncements); // Set the sorted announcements
+                console.log("State updated with sorted announcements:", sortedAnnouncements);
             } else {
                 console.error("Invalid data format:", data);
             }

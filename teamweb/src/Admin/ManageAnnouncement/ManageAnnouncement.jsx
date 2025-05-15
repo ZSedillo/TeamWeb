@@ -14,6 +14,7 @@ function ManageAnnouncement() {
     const [pageNumber, setPageNumber] = useState(1);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false); // New state for confirm modal
     const [deleteId, setDeleteId] = useState(null);
     const [announcementTitle, setAnnouncementTitle] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -39,7 +40,11 @@ function ManageAnnouncement() {
             const response = await fetch(`${baseUrl}/announcement`);
             if (!response.ok) throw new Error("Failed to fetch announcements");
             const data = await response.json();
-            setAnnouncements(Array.isArray(data.announcements) ? data.announcements : []);
+            // Sort announcements by created_at in descending order (newest first)
+            const sortedAnnouncements = Array.isArray(data.announcements) 
+                ? data.announcements.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) 
+                : [];
+            setAnnouncements(sortedAnnouncements);
         } catch (error) {
             console.error("Error fetching announcements:", error);
             setError("Failed to load announcements. Please try again later.");
@@ -49,14 +54,23 @@ function ManageAnnouncement() {
         }
     };
     
-    const handleCreateOrUpdateAnnouncement = async (event) => {
+    // Show confirmation modal first instead of direct submission
+    const handleSubmitForm = (event) => {
         event.preventDefault();
-    
+        
         // Validate inputs
         if (!newAnnouncement.title.trim() || !newAnnouncement.description.trim()) {
             alert("Title and description are required.");
             return;
         }
+        
+        // Show confirmation modal
+        setShowConfirmModal(true);
+    };
+    
+    const handleCreateOrUpdateAnnouncement = async () => {
+        // Hide the confirmation modal
+        setShowConfirmModal(false);
     
         const formData = new FormData();
         formData.append("title", newAnnouncement.title.trim());
@@ -125,11 +139,11 @@ function ManageAnnouncement() {
         }
     };
     
-    
     const resetForm = () => {
         setNewAnnouncement({ title: "", description: "", image_url: null, preview: null });
         setEditingId(null);
         setShowFormModal(false);
+        setShowConfirmModal(false);
     };
 
     const handleDelete = async (announcement) => {
@@ -178,7 +192,6 @@ function ManageAnnouncement() {
             }
         }
     };
-    
     
     const openDeleteModal = (id,title) => {
         setDeleteId(id);
@@ -462,7 +475,7 @@ function ManageAnnouncement() {
                             </button>
                         </div>
                         <div className="modal-body">
-                            <form onSubmit={handleCreateOrUpdateAnnouncement}>
+                            <form onSubmit={handleSubmitForm}>
                                 <div className="form-group">
                                     <label htmlFor="announcement-title">Title <span className="required">*</span></label>
                                     <input
@@ -532,12 +545,12 @@ function ManageAnnouncement() {
                                     </div>
 
                                     {newAnnouncement.preview && (
-                                        <div>
-                                            <p>Image preview should appear below:</p>
+                                        <div className="image-preview-container">
+                                            <p>Image preview:</p>
                                             <img 
                                                 src={newAnnouncement.preview} 
                                                 alt="Preview" 
-                                                style={{maxWidth: '300px', border: '2px solid green'}} 
+                                                className="image-preview"
                                             />
                                         </div>
                                     )}
@@ -545,8 +558,8 @@ function ManageAnnouncement() {
 
                                 <div className="modal-footer">
                                     <button type="submit" className="submit-button">
-                                        <i className={editingId ? "fa fa-save" : "fa fa-paper-plane"}></i> 
-                                        {editingId ? "Update Announcement" : "Post Announcement"}
+                                        <i className="fa fa-check-circle"></i> 
+                                        {editingId ? "Review Changes" : "Review Announcement"}
                                     </button>
                                     <button 
                                         type="button"
@@ -557,6 +570,91 @@ function ManageAnnouncement() {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
+                    <div className="modal-container confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header preview-header">
+                            <div className="preview-header-title">
+                                <i className="fa fa-eye"></i>
+                                <h3>Preview {editingId ? "Changes" : "Announcement"}</h3>
+                            </div>
+                            <button 
+                                className="modal-close" 
+                                onClick={() => setShowConfirmModal(false)}
+                                aria-label="Close modal"
+                            >
+                                <i className="fa fa-times"></i>
+                            </button>
+                        </div>
+                        <div className="modal-body preview-body">
+                            <div className="confirm-content">
+                                <div className="preview-card">
+                                    {newAnnouncement.preview && (
+                                        <div className="preview-image-wrapper">
+                                            <img 
+                                                src={newAnnouncement.preview} 
+                                                alt="Announcement" 
+                                                className="preview-hero-image"
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    <div className="preview-main-content">
+                                        <div className="preview-section">
+                                            <div className="preview-label">
+                                                <i className="fa fa-header"></i>
+                                                <span>Title</span>
+                                            </div>
+                                            <h2 className="preview-title">{newAnnouncement.title}</h2>
+                                        </div>
+                                        
+                                        <div className="preview-section">
+                                            <div className="preview-label">
+                                                <i className="fa fa-align-left"></i>
+                                                <span>Description</span>
+                                            </div>
+                                            <div className="preview-description-container">
+                                                <p className="preview-description">{newAnnouncement.description}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="preview-status">
+                                            <div className="preview-status-label">
+                                                <i className="fa fa-clock-o"></i>
+                                                <span>Status</span>
+                                            </div>
+                                            <div className="preview-status-badge">
+                                                Ready to {editingId ? "Update" : "Post"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="preview-note">
+                                    <i className="fa fa-info-circle"></i>
+                                    <p>Please review your announcement carefully before proceeding. Once published, it will be immediately visible to all users.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer preview-footer">
+                            <button 
+                                onClick={() => setShowConfirmModal(false)} 
+                                className="preview-back-btn"
+                            >
+                                <i className="fa fa-pencil"></i> Edit
+                            </button>
+                            <button 
+                                onClick={handleCreateOrUpdateAnnouncement} 
+                                className="preview-confirm-btn"
+                            >
+                                <i className="fa fa-check-circle"></i> {editingId ? "Update" : "Publish"} Announcement
+                            </button>
                         </div>
                     </div>
                 </div>
