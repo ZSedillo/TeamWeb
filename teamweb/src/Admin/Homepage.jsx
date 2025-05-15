@@ -12,8 +12,9 @@ function Homepage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [username, setUsername] = useState("");
 
-  // NEW STATE FOR DESCRIPTION
+  // New states
   const [imageDescription, setImageDescription] = useState("");
+  const [showUploadConfirm, setShowUploadConfirm] = useState(false); // NEW
 
   useEffect(() => {
     const loggedInUser = localStorage.getItem("username");
@@ -37,12 +38,13 @@ function Homepage() {
     if (!file) return;
 
     setSelectedFile(file);
-
-    // Create preview URL
-    const previewURL = URL.createObjectURL(file);
-    setPreviewImage(previewURL);
-    // Reset description when a new image is selected
+    setPreviewImage(URL.createObjectURL(file));
     setImageDescription("");
+  };
+
+  const confirmUpload = () => {
+    if (!selectedFile) return;
+    setShowUploadConfirm(true); // show confirmation modal
   };
 
   const handleUpload = async () => {
@@ -50,15 +52,13 @@ function Homepage() {
 
     setIsUploading(true);
     setUploadProgress(0);
+    setShowUploadConfirm(false); // close confirmation modal
 
     const formData = new FormData();
     formData.append("image", selectedFile);
-    
-    // NEW: Add description to form data
     formData.append("description", imageDescription || "");
 
     try {
-      // Simulate upload progress
       const uploadTimer = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
@@ -81,7 +81,7 @@ function Homepage() {
       setUploadProgress(100);
 
       if (response.ok) {
-        fetchImages(); // Refresh images after upload
+        fetchImages();
 
         await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
@@ -111,6 +111,7 @@ function Homepage() {
   const cancelUpload = () => {
     setPreviewImage(null);
     setSelectedFile(null);
+    setImageDescription("");
   };
 
   const confirmDelete = (image) => {
@@ -118,47 +119,48 @@ function Homepage() {
     setShowDeleteConfirm(true);
   };
 
-const handleDelete = async () => {
-  if (!selectedImage) return;
+  const handleDelete = async () => {
+    if (!selectedImage) return;
 
-  // Log what you're deleting
-  console.log("Trying to delete:", selectedImage.image_url);
-  console.log("Trying to delete:", selectedImage._id);
+    const imageKey = selectedImage.image_url.replace(
+      "https://teamweb-image.s3.ap-southeast-1.amazonaws.com/",
+      ""
+    );
 
-  const imageKey = selectedImage.image_url.replace("https://teamweb-image.s3.ap-southeast-1.amazonaws.com/", "");
+    try {
+      const response = await fetch(
+        `https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(
+          imageKey
+        )}`,
+        {
+          method: "DELETE",
+        }
+      );
 
-  try {
-    const response = await fetch(`https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(imageKey)}`, {
-      method: "DELETE",
-    });
+      if (response.ok) {
+        fetchImages();
+        setShowDeleteConfirm(false);
+        setSelectedImage(null);
 
-    console.log("Delete response:", response.status);
-
-    if (response.ok) {
-      fetchImages();
-      setShowDeleteConfirm(false);
-      setSelectedImage(null);
-
-      await fetch("https://teamweb-kera.onrender.com/report/add-report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
-        }),
-      });
-    } else {
-      console.error("Failed to delete image:", await response.text());
+        await fetch("https://teamweb-kera.onrender.com/report/add-report", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+            activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
+          }),
+        });
+      } else {
+        console.error("Failed to delete image:", await response.text());
+      }
+    } catch (error) {
+      console.error("Error deleting image:", error);
     }
-  } catch (error) {
-    console.error("Error deleting image:", error);
-  }
-};
+  };
 
-
- return (
+  return (
     <>
       <AdminHeader />
       <div className="content-container">
@@ -167,8 +169,8 @@ const handleDelete = async () => {
           <p>Manage the images that appear in the news section</p>
         </div>
       </div>
+
       <div className="admin-container">
-        {/* Upload Section */}
         <div className="upload-card">
           <div className="upload-header">
             <h3>Upload New Image</h3>
@@ -188,9 +190,8 @@ const handleDelete = async () => {
               <div className="preview-wrapper">
                 <img src={previewImage} alt="Preview" className="image-preview" />
               </div>
-              
-              {/* NEW: Description Input */}
-              <div className="form-group" style={{ margin: '15px 0' }}>
+
+              <div className="form-group" style={{ margin: "15px 0" }}>
                 <label htmlFor="image-description">Image Description (Optional)</label>
                 <textarea
                   id="image-description"
@@ -198,18 +199,18 @@ const handleDelete = async () => {
                   onChange={(e) => setImageDescription(e.target.value)}
                   placeholder="Enter a description for this image"
                   style={{
-                    width: '100%', 
-                    padding: '10px', 
-                    minHeight: '100px', 
-                    marginTop: '10px'
+                    width: "100%",
+                    padding: "10px",
+                    minHeight: "100px",
+                    marginTop: "10px",
                   }}
                   maxLength={300}
                 />
                 <small>{imageDescription.length}/300 characters</small>
               </div>
-              
+
               <div className="preview-actions">
-                <button onClick={handleUpload} className="post-btn">
+                <button onClick={confirmUpload} className="post-btn">
                   <span className="post-icon">✓</span> Post Image
                 </button>
                 <button onClick={cancelUpload} className="cancel-upload-btn">
@@ -225,7 +226,6 @@ const handleDelete = async () => {
           )}
         </div>
 
-        {/* Image List Grid */}
         <div className="images-container">
           <h3 className="section-title">Current Images ({images.length})</h3>
 
@@ -235,34 +235,34 @@ const handleDelete = async () => {
             </div>
           ) : (
             <div className="image-list">
-              {images.map((img) => {
-                return (
-                  <div key={img._id} className="image-box">
-                    <div className="image-container">
-                      <img src={img.image_url} alt="News" className="preview-image" />
-                    </div>
-                    <div className="image-info">
-                      <span className="image-filename">{img.image_url}</span>
-                      {/* NEW: Display description if available */}
-                      {img.description && (
-                        <div className="image-description" style={{
-                          marginTop: '10px', 
-                          fontSize: '0.9em', 
-                          color: '#666',
-                          maxHeight: '100px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}>
-                          {img.description}
-                        </div>
-                      )}
-                      <button onClick={() => confirmDelete(img)} className="delete-btn">
-                        <span className="delete-icon">🗑</span> Delete
-                      </button>
-                    </div>
+              {images.map((img) => (
+                <div key={img._id} className="image-box">
+                  <div className="image-container">
+                    <img src={img.image_url} alt="News" className="preview-image" />
                   </div>
-                );
-              })}
+                  <div className="image-info">
+                    <span className="image-filename">{img.image_url}</span>
+                    {img.description && (
+                      <div
+                        className="image-description"
+                        style={{
+                          marginTop: "10px",
+                          fontSize: "0.9em",
+                          color: "#666",
+                          maxHeight: "100px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {img.description}
+                      </div>
+                    )}
+                    <button onClick={() => confirmDelete(img)} className="delete-btn">
+                      <span className="delete-icon">🗑</span> Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -302,6 +302,46 @@ const handleDelete = async () => {
           </div>
         </div>
       )}
+
+      {/* Upload Confirmation Modal */}
+      {showUploadConfirm && (
+        <div className="modal-backdrop">
+          <div className="delete-modal">
+            <div className="modal-header">
+              <h3>Confirm Upload</h3>
+              <button className="close-modal" onClick={() => setShowUploadConfirm(false)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to post this image?</p>
+              {previewImage && (
+                <div className="confirm-image-preview">
+                  <img
+                    src={previewImage}
+                    alt="To be uploaded"
+                    className="confirm-preview"
+                  />
+                </div>
+              )}
+              {imageDescription && (
+                <p style={{ marginTop: "10px", color: "#333" }}>
+                  <strong>Description:</strong> {imageDescription}
+                </p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={() => setShowUploadConfirm(false)}>
+                Cancel
+              </button>
+              <button className="confirm-delete-btn" onClick={handleUpload}>
+                Confirm Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
