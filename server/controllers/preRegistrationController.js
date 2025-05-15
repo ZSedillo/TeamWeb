@@ -92,7 +92,7 @@ const addPreRegistration = async (req, res) => {
     let {
         name, phone_number, age, gender, birthdate, strand, grade_level, email,
         status, appointment_date, nationality, parent_guardian_name, parent_guardian_number,
-        preferred_time, purpose_of_visit, isNewStudent
+        preferred_time, purpose_of_visit, isNewStudent, address
     } = req.body;
 
     if (!grade_level) return res.status(400).json({ error: "Grade level is required." });
@@ -112,7 +112,7 @@ const addPreRegistration = async (req, res) => {
                 { email },
                 { name, phone_number, age, gender, birthdate: new Date(birthdate), strand, grade_level, nationality,
                   parent_guardian_name, parent_guardian_number, isNewStudent, status: status ? status.toLowerCase() : 'pending',
-                  appointment_date, preferred_time, purpose_of_visit },
+                  appointment_date, preferred_time, purpose_of_visit, address },
                 { new: true }
             );
         } else {
@@ -122,7 +122,8 @@ const addPreRegistration = async (req, res) => {
                 status: status ? status.toLowerCase() : 'pending', 
                 appointment_date, preferred_time, purpose_of_visit,
                 enrollment: false, // Ensure enrollment is explicitly set to false
-                registration_year: registration_year || new Date().getFullYear().toString() // Set the registration year explicitly
+                registration_year: registration_year || new Date().getFullYear().toString(), // Set the registration year explicitly
+                address
             });
 
             await preRegistrationData.save();
