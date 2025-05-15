@@ -21,6 +21,8 @@ function ManageAnnouncement() {
     const announcementsPerPage = 6;
     const baseUrl = "https://teamweb-kera.onrender.com"; //http://localhost:3000
     const [username, setUsername] = useState("");
+    const [showPostConfirm, setShowPostConfirm] = useState(false);
+
 
     useEffect(() => {
         const loggedInUser = localStorage.getItem('username');
@@ -544,8 +546,11 @@ function ManageAnnouncement() {
                                 </div>
 
                                 <div className="modal-footer">
-                                    <button type="submit" className="submit-button">
-                                        <i className={editingId ? "fa fa-save" : "fa fa-paper-plane"}></i> 
+                                <button type="button" 
+                                        className="submit-button"
+                                        onClick={() => setShowPostConfirm(true)}
+                                    >
+                                      <i className={editingId ? "fa fa-save" : "fa fa-paper-plane"}></i> 
                                         {editingId ? "Update Announcement" : "Post Announcement"}
                                     </button>
                                     <button 
@@ -562,6 +567,44 @@ function ManageAnnouncement() {
                 </div>
             )}
 
+   {/* Post Confirmation Pop-Up */}
+{/* Post Confirmation Modal */}
+{showPostConfirm && (
+    <div className="modal-overlay" onClick={() => setShowPostConfirm(false)}>
+        <div className="modal-container" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+                <h3>Confirm {editingId ? "Update" : "Post"}</h3>
+                <button
+                    className="modal-close"
+                    onClick={() => setShowPostConfirm(false)}
+                    aria-label="Close modal"
+                >
+                    <i className="fa fa-times"></i>
+                </button>
+            </div>
+            <div className="modal-body">
+                <p>Are you sure you want to {editingId ? "update" : "post"} this announcement?</p>
+            </div>
+            <div className="modal-footer">
+            <button
+                onClick={(e) => {
+                    setShowPostConfirm(false);
+                    handleCreateOrUpdateAnnouncement(e);
+                }}
+                className="delete-confirm-btn"
+            >
+                <i className="fa fa-check"></i> Yes
+            </button>
+            <button
+                onClick={() => setShowPostConfirm(false)}
+                className="delete-cancel-btn"
+            >
+                <i className="fa fa-times"></i> No
+            </button>
+            </div>
+        </div>
+    </div>
+)}
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
                 <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>

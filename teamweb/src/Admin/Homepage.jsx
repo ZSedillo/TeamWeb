@@ -11,6 +11,8 @@ function Homepage() {
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [username, setUsername] = useState("");
+  const [showImageConfirm, setShowImageConfirm] = useState(false);
+
 
   // NEW STATE FOR DESCRIPTION
   const [imageDescription, setImageDescription] = useState("");
@@ -209,9 +211,9 @@ const handleDelete = async () => {
               </div>
               
               <div className="preview-actions">
-                <button onClick={handleUpload} className="post-btn">
-                  <span className="post-icon">✓</span> Post Image
-                </button>
+              <button onClick={() => setShowImageConfirm(true)} className="post-btn">
+                <span className="post-icon">✓</span> Post Image
+               </button> {/* show the modal instead of immediately uploading */}
                 <button onClick={cancelUpload} className="cancel-upload-btn">
                   <span className="cancel-icon">✕</span> Cancel
                 </button>
@@ -267,6 +269,42 @@ const handleDelete = async () => {
           )}
         </div>
       </div>
+      {showImageConfirm && (
+  <div className="modal-overlay" onClick={() => setShowImageConfirm(false)}>
+    <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-header">
+        <h3>Confirm Post</h3>
+        <button
+          className="modal-close"
+          onClick={() => setShowImageConfirm(false)}
+          aria-label="Close modal"
+        >
+          <i className="fa fa-times"></i>
+        </button>
+      </div>
+      <div className="modal-body">
+        <p>Are you sure you want to post this image to the homepage news section?</p>
+      </div>
+      <div className="modal-footer">
+        <button
+          onClick={(e) => {
+            setShowImageConfirm(false);
+            handleUpload(e);
+          }}
+          className="delete-confirm-btn"
+        >
+          <i className="fa fa-check"></i> Yes
+        </button>
+        <button
+          onClick={() => setShowImageConfirm(false)}
+          className="delete-cancel-btn"
+        >
+          <i className="fa fa-times"></i> No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
