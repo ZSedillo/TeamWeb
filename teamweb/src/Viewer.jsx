@@ -92,12 +92,11 @@ function Viewer() {
                       className="news-image"
                     />
                     {/* Enhanced overlay with title and description */}
-                    <div className="news-title-overlay">
-                      <h3 className="news-title">{image.title || `News ${index + 1}`}</h3>
-                      {image.description && (
-                        <p className="news-description">{image.description}</p>
-                      )}
-                    </div>
+                  <div className="news-title-overlay">
+                  <h3 className="news-title">
+                    {image.description || `News ${index + 1}`}
+                  </h3>
+                  </div>
                   </div>
                 );
               })}
