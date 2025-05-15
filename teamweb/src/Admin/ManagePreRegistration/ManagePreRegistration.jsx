@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AdminHeader from '../Component/AdminHeader.jsx';
 import UpdateAppointment from './UpdateAppointment';
 import ViewReports from './ViewReports';
-import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 ,ChevronDown } from 'lucide-react';
+import {MapPin, Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 ,ChevronDown } from 'lucide-react';
 import ExpectedStudents from './ExpectedStudents';
 import EnrolledStudents from './EnrolledStudents';
 
@@ -847,6 +847,7 @@ const handleEnrollmentChange = async () => {
                                 <th>Grade Level</th>
                                 <th>Strand</th>
                                 <th>Email Address</th>
+                                <th>Address</th>
                                 <th>Phone Number</th>
                                 <th>Details</th>
                                 <th>Status</th>
@@ -882,6 +883,12 @@ const handleEnrollmentChange = async () => {
                                                 <div className="email-container">
                                                     <Mail size={14} />
                                                     <span>{student.email}</span>
+                                                </div>
+                                            </td>
+                                            <td className="cell-address" title={student.address}>
+                                                <div className="address-container">
+                                                    <MapPin size={14} />
+                                                    <span>{student.address}</span>
                                                 </div>
                                             </td>
                                             <td className="cell-phone" title={student.phone_number}>

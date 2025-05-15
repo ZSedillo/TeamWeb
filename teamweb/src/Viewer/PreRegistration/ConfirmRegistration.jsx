@@ -39,6 +39,7 @@ function ConfirmRegistration() {
     
         const gradeLevel = formData.yearLevel;
         const isSeniorHigh = gradeLevel === "11" || gradeLevel === "12";
+        const currentYear = new Date().getFullYear().toString();
     
         const preRegistrationData = {
             name: `${formData.lastName} ${formData.firstName}`,
@@ -54,7 +55,8 @@ function ConfirmRegistration() {
             parent_guardian_number: formData.parentMobileNumber,
             isNewStudent: formData.isNewStudent?.toLowerCase() === "new" ? "new" : "old",
             status: "pending",
-            address: formData.address,
+            address: formData.address || "", // Ensure address is included and has a default value
+            registration_year: currentYear, // Add the registration year
         };
         
         console.log("Pre-registration data to be sent:", preRegistrationData);
@@ -153,12 +155,12 @@ function ConfirmRegistration() {
                     <h3>Personal Information</h3>
                     <div className="pre-reg-confirm-grid">
                         <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
-                        <p><strong>Date of Birth:</strong> {formData.dateOfBirth}</p>
+                        <p><strong>Date of Birth:</strong> {formatDate(formData.dateOfBirth)}</p>
                         <p><strong>Gender:</strong> {formData.gender}</p>
                         <p><strong>Nationality:</strong> {formData.nationality}</p>
                         <p><strong>Email:</strong> {formData.email}</p>
                         <p><strong>Mobile Number:</strong> {formData.mobileNumber}</p>
-                        <p><strong>Address:</strong> {formData.address}</p>
+                        <p><strong>Address:</strong> {formData.address || "Not provided"}</p>
                     </div>
                 </div>
 
