@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './Appointment.css';
 
-function Appointment() {
+function Appointment({ embedded = false, preRegEmail = '' }) {
     // Base states
-    const [email, setEmail] = useState("");
+    const [email, setEmail] = useState(preRegEmail || "");
     const [appointmentDate, setAppointmentDate] = useState("");
     const [appointmentTime, setAppointmentTime] = useState("");
     const [appointmentReason, setAppointmentReason] = useState("");
@@ -23,6 +23,25 @@ function Appointment() {
     useEffect(() => {
         loadAvailabilityData();
     }, []);
+
+    // Update email when preRegEmail changes
+    useEffect(() => {
+        if (preRegEmail) {
+            setEmail(preRegEmail);
+        }
+    }, [preRegEmail]);
+
+    // Save appointment data to session storage for the pre-registration flow
+    useEffect(() => {
+        if (embedded && appointmentDate && appointmentTime && appointmentReason) {
+            const appointmentData = {
+                date: appointmentDate,
+                time: appointmentTime,
+                purpose: appointmentReason
+            };
+            sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
+        }
+    }, [embedded, appointmentDate, appointmentTime, appointmentReason]);
 
     // Fetch availability data from API
     const loadAvailabilityData = async () => {
@@ -165,7 +184,7 @@ function Appointment() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Handle form submission
+    // Handle form submission - only used in standalone mode
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -218,7 +237,7 @@ function Appointment() {
         }
     };
 
-    // Success page
+    // Success page for standalone mode
     if (bookingSuccess) {
         return (
             <div className="appointment-main-container">
@@ -237,10 +256,9 @@ function Appointment() {
     }
 
     return (
-        <div classname="form-wrapper">
-        <div className="appointment-main-container">
+        <div className={embedded ? "appointment-embedded-container" : "appointment-main-container"}>
             <div className="appointment-section">
-                <div className="appointment-title">Book an Appointment</div>
+                {!embedded && <div className="appointment-title">Book an Appointment</div>}
                 
                 {isLoading ? (
                     <div className="appointment-loading">Loading availability data...</div>
@@ -250,20 +268,25 @@ function Appointment() {
                         <p>There are currently no appointments available for booking. Please check back later.</p>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="appointment-form">
-                        {/* Email Field */}
-                        <div className="appointment-form-group">
-                            <label htmlFor="email">Email <span className="appointment-required">*</span></label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                name="email"
-                                value={email}
-                                onChange={handleInputChange}
-                                placeholder="your@email.com"
-                            />
-                            {errors.email && <div className="appointment-error">{errors.email}</div>}
-                        </div>
+                    <form 
+                        onSubmit={embedded ? (e) => e.preventDefault() : handleSubmit} 
+                        className={embedded ? "appointment-embedded-form" : "appointment-form"}
+                    >
+                        {/* Email Field - Hide it in embedded mode as it comes from pre-registration */}
+                        {!embedded && (
+                            <div className="appointment-form-group">
+                                <label htmlFor="email">Email <span className="appointment-required">*</span></label>
+                                <input 
+                                    type="email" 
+                                    id="email" 
+                                    name="email"
+                                    value={email}
+                                    onChange={handleInputChange}
+                                    placeholder="your@email.com"
+                                />
+                                {errors.email && <div className="appointment-error">{errors.email}</div>}
+                            </div>
+                        )}
                         
                         {/* Date Selection */}
                         <div className="appointment-form-group">
@@ -321,20 +344,16 @@ function Appointment() {
                             ></textarea>
                             {errors.appointmentReason && <div className="appointment-error">{errors.appointmentReason}</div>}
                         </div>
-                        
-                        {/* Submit Button */}
-                        <div className="appointment-btn-group">
-                            <button 
-                                type="submit"
-                                className="appointment-submit-btn"
-                            >
-                                Book Appointment    
-                            </button>
-                        </div>
+
+                        {/* Validation notice for embedded mode */}
+                        {embedded && (appointmentDate && appointmentTime && appointmentReason) && (
+                            <div className="appointment-embedded-success">
+                                <p>✓ Appointment details saved for your registration</p>
+                            </div>
+                        )}
                     </form>
                 )}
             </div>
-        </div>
         </div>
     );
 }

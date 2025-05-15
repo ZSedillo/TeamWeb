@@ -5,17 +5,28 @@ const ExpectedStudents = () => {
     const [gradeData, setGradeData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const currentYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [availableYears, setAvailableYears] = useState([]);
 
     useEffect(() => {
+        // Generate years from 2020 to current year
+        const years = [];
+        for (let year = 2020; year <= currentYear; year++) {
+            years.push(year);
+        }
+        setAvailableYears(years);
+
         const fetchData = async () => {
             try {
-                const response = await fetch('https://teamweb-kera.onrender.com/preregistration');
+                // Add the registration_year parameter to query
+                const response = await fetch(`https://teamweb-kera.onrender.com/preregistration?registration_year=${selectedYear}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch data');
                 }
                 const data = await response.json();
                 
-                // Transform data into required format
+                // Transform data into required format and filter by selected year
                 const groupedData = processPreRegistrationData(data.preregistration);
                 setGradeData(groupedData);
             } catch (err) {
@@ -26,7 +37,7 @@ const ExpectedStudents = () => {
         };
 
         fetchData();
-    }, []);
+    }, [selectedYear, currentYear]);
 
     const predefinedGrades = [
         "Kinder",
@@ -57,6 +68,7 @@ const ExpectedStudents = () => {
         // Process actual data from the database
         data.forEach(student => {
             const { grade_level, strand, status } = student;
+            
             const isApproved = status === 'approved';
     
             // Convert database format to correct format
@@ -107,7 +119,9 @@ const ExpectedStudents = () => {
         return result;
     };
     
-    
+    const handleYearChange = (e) => {
+        setSelectedYear(parseInt(e.target.value));
+    };
     
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error: {error}</p>;
@@ -117,6 +131,24 @@ const ExpectedStudents = () => {
             <div className="page-header">
                 <h1>Students Overview</h1>
                 <p>Track approved and pending students per grade level</p>
+                
+                <div className="filters">
+                    <div className="year-filter">
+                        <label htmlFor="year-select">School Year:</label>
+                        <select 
+                            id="year-select"
+                            value={selectedYear}
+                            onChange={handleYearChange}
+                            className="year-select"
+                        >
+                            {availableYears.map(year => (
+                                <option key={year} value={year}>
+                                    {year} - {year + 1}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div className="data-table-container">
@@ -177,7 +209,6 @@ const ExpectedStudents = () => {
                             }
                         })}
                     </tbody>
-
                     </table>
                 </div>
             </div>

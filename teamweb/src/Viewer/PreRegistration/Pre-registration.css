@@ -289,6 +289,11 @@
     resize: vertical;
 }
 
+.pre-reg-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
 .pre-reg-form-group select {
     -moz-appearance: none;
     -webkit-appearance: none;

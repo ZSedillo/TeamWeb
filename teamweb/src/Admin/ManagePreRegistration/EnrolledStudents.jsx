@@ -17,6 +17,7 @@ function EnrolledStudents() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedGrade, setSelectedGrade] = useState("");
     const [selectedStrand, setSelectedStrand] = useState("");
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [expandedRow, setExpandedRow] = useState(null);
     
     // Pagination states
@@ -25,59 +26,65 @@ function EnrolledStudents() {
     const [totalRecords, setTotalRecords] = useState(0);
     const [limit] = useState(10);
 
+    // Generate available years for filter (2020-2025)
+    const availableYears = Array.from(
+        { length: 6 }, 
+        (_, i) => (2020 + i).toString()
+    );
+
     // Fetch data from API
-// Fetch data from API
-const fetchStudentData = async () => {
-    try {
-        setLoading(true);
-        
-        // Construct query parameters based on active filters
-        let queryParams = new URLSearchParams({
-            page: currentPage,
-            limit: limit,
-            enrollment: true // Only fetch enrolled students
-        });
-        
-        // Add filters to query parameters if they exist
-        if (searchTerm) queryParams.append('search', searchTerm);
-        if (selectedGrade) queryParams.append('grade', selectedGrade);
-        if (selectedStrand) queryParams.append('strand', selectedStrand);
-        
-        console.log("Fetching with params:", queryParams.toString()); // Debug log
-        
-        const response = await fetch(
-            `https://teamweb-kera.onrender.com/preregistration/enrolled?${queryParams.toString()}`
-        );
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.preregistration || data.preregistration.length === 0) {
-            // Clear the data when no results are found
+    const fetchStudentData = async () => {
+        try {
+            setLoading(true);
+            
+            // Construct query parameters based on active filters
+            let queryParams = new URLSearchParams({
+                page: currentPage,
+                limit: limit,
+                enrollment: true // Only fetch enrolled students
+            });
+            
+            // Add filters to query parameters if they exist
+            if (searchTerm) queryParams.append('search', searchTerm);
+            if (selectedGrade) queryParams.append('grade', selectedGrade);
+            if (selectedStrand) queryParams.append('strand', selectedStrand);
+            if (selectedYear) queryParams.append('year', selectedYear);
+            
+            console.log("Fetching with params:", queryParams.toString()); // Debug log
+            
+            const response = await fetch(
+                `https://teamweb-kera.onrender.com/preregistration/enrolled?${queryParams.toString()}`
+            );
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.preregistration || data.preregistration.length === 0) {
+                // Clear the data when no results are found
+                setEnrolledStudents([]);
+            } else {
+                setEnrolledStudents(data.preregistration);
+            }
+            
+            setTotalPages(data.totalPages);
+            setTotalRecords(data.totalRecords);
+        } catch (err) {
+            setError('Failed to fetch enrolled students data: ' + err.message);
+            console.error(err);
+            // Clear the data on error too
             setEnrolledStudents([]);
-        } else {
-            setEnrolledStudents(data.preregistration);
+        } finally {
+            setLoading(false);
         }
-        
-        setTotalPages(data.totalPages);
-        setTotalRecords(data.totalRecords);
-    } catch (err) {
-        setError('Failed to fetch enrolled students data: ' + err.message);
-        console.error(err);
-        // Clear the data on error too
-        setEnrolledStudents([]);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     // Fetch data on initial load and when filters or pagination changes
     useEffect(() => {
         fetchStudentData();
-    }, [searchTerm, selectedGrade, selectedStrand, currentPage, limit]);
+    }, [searchTerm, selectedGrade, selectedStrand, selectedYear, currentPage, limit]);
 
     // Event handlers
     const handlePageChange = (newPage) => {
@@ -95,6 +102,7 @@ const fetchStudentData = async () => {
         if (searchTerm) filters.push(`Name: "${searchTerm}"`);
         if (selectedGrade) filters.push(`Grade: ${selectedGrade}`);
         if (selectedStrand) filters.push(`Strand: ${selectedStrand}`);
+        if (selectedYear) filters.push(`Year: ${selectedYear}`);
         return filters.length > 0 ? `Filtered by: ${filters.join(', ')}` : 'Showing all enrolled students';
     };
 
@@ -231,7 +239,7 @@ const fetchStudentData = async () => {
         
         // Create CSV content with added enrollment status column
         const csvRows = [
-            ['Name', 'Gender', 'Grade Level', 'Strand', 'Email', 'Phone Number', 'Student Type', 'Registration Date', 'Enrollment Status']
+            ['Name', 'Gender', 'Grade Level', 'Strand', 'Email', 'Phone Number', 'Student Type', 'Registration Year', 'Registration Date', 'Enrollment Status']
         ];
     
         enrolledStudents.forEach(student => {
@@ -243,8 +251,9 @@ const fetchStudentData = async () => {
                 student.email || '',
                 student.phone_number || '',
                 student.isNewStudent === 'new' ? 'New Student' : 'Returning Student',
+                student.registration_year || new Date().getFullYear().toString(),
                 student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '',
-                student.enrollment ? "Enrolled" : "Not Enrolled" // Fixed to use boolean value
+                student.enrollment ? "Enrolled" : "Not Enrolled"
             ]);
         });
     
@@ -254,7 +263,7 @@ const fetchStudentData = async () => {
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `enrolled_students_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `enrolled_students_${selectedYear}_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -269,11 +278,11 @@ const fetchStudentData = async () => {
             },
             body: JSON.stringify({
                 username: username,
-                activityLog: `[Enrolled Students] Exported enrolled students data with enrollment status as CSV on ${new Date().toLocaleString()}`
+                activityLog: `[Enrolled Students] Exported enrolled students data for ${selectedYear} with enrollment status as CSV on ${new Date().toLocaleString()}`
             }),
         });
     
-        toast.success('Successfully exported enrolled students data', {
+        toast.success(`Successfully exported enrolled students data for ${selectedYear}`, {
             position: "top-center",
             autoClose: 3000,
         });
@@ -285,6 +294,14 @@ const fetchStudentData = async () => {
             position: "top-center",
             autoClose: 2000,
         });
+    };
+
+    const clearAllFilters = () => {
+        setSearchTerm("");
+        setSelectedGrade("");
+        setSelectedStrand("");
+        setSelectedYear(new Date().getFullYear().toString());
+        setCurrentPage(1);
     };
 
     return (
@@ -311,6 +328,18 @@ const fetchStudentData = async () => {
                 </div>
                 <div className="filter-group">
                     <Filter size={16} />
+                    
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                        className="filter-select year-select"
+                    >
+                        {availableYears.map(year => (
+                            <option key={year} value={year}>
+                                {year}
+                            </option>
+                        ))}
+                    </select>
                     <select 
                         value={selectedGrade} 
                         onChange={(e) => setSelectedGrade(e.target.value)}
@@ -349,15 +378,10 @@ const fetchStudentData = async () => {
                 <div className="active-filters">
                     <div className="filters-left">
                         <span>{getActiveFiltersText()}</span>
-                        {(searchTerm || selectedGrade || selectedStrand) && (
+                        {(searchTerm || selectedGrade || selectedStrand || selectedYear !== new Date().getFullYear().toString()) && (
                             <button 
                                 className="clear-filters-btn"
-                                onClick={() => {
-                                    setSearchTerm("");
-                                    setSelectedGrade("");
-                                    setSelectedStrand("");
-                                    setCurrentPage(1);
-                                }}
+                                onClick={clearAllFilters}
                             >
                                 Clear Filters
                             </button>
@@ -382,7 +406,12 @@ const fetchStudentData = async () => {
                     </div>
                 </div>
 
-                {enrolledStudents.length === 0 ? (
+                {loading ? (
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Loading enrolled students data...</p>
+                    </div>
+                ) : enrolledStudents.length === 0 ? (
                     <div className="empty-state">
                         <User size={48} />
                         <h3>No Enrolled Students Found</h3>
@@ -464,12 +493,18 @@ const fetchStudentData = async () => {
                                                             <div className="details-grid">
                                                                 <div className="details-item">
                                                                     <span className="details-label">Student Type:</span>
-                                                                    <span className="details-value">{student.isNewStudent}</span>
+                                                                    <span className="details-value">{student.isNewStudent === 'new' ? 'New Student' : 'Returning Student'}</span>
                                                                 </div>
                                                                 <div className="details-item">
                                                                     <span className="details-label">Date of Birth:</span>
                                                                     <span className="details-value">
                                                                         {new Date(student.birthdate).toLocaleDateString()}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="details-item">
+                                                                    <span className="details-label">Registration Year:</span>
+                                                                    <span className="details-value">
+                                                                        {student.registration_year || new Date(student.createdAt).getFullYear()}
                                                                     </span>
                                                                 </div>
                                                                 <div className="details-item">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AdminHeader from '../Component/AdminHeader.jsx';
 import UpdateAppointment from './UpdateAppointment';
 import ViewReports from './ViewReports';
-import { Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 ,ChevronDown } from 'lucide-react';
+import {MapPin, Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 ,ChevronDown } from 'lucide-react';
 import ExpectedStudents from './ExpectedStudents';
 import EnrolledStudents from './EnrolledStudents';
 
@@ -33,6 +33,7 @@ function ManagePreRegistration() {
 
     // Filter and search states
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedYear, setSelectedYear] = useState("");
     const [selectedGrade, setSelectedGrade] = useState("");
     const [selectedStrand, setSelectedStrand] = useState("");
     const [selectedType, setSelectedType] = useState("");
@@ -50,6 +51,14 @@ function ManagePreRegistration() {
     const [showDeleteConfirmationDialog, setShowDeleteConfirmationDialog] = useState(false);
     const [studentToDelete, setStudentToDelete] = useState(null);
 
+    const currentYear = new Date().getFullYear().toString();
+    const startYear = 2020;
+
+    const yearOptions = [];
+    for (let year = currentYear; year >= startYear; year--) {
+        yearOptions.push(year.toString());
+    }
+    
     const handleTabChange = (tabId) => {
         setActiveTab(tabId);
         setIsDropdownOpen(false);
@@ -369,7 +378,7 @@ const DeleteStudentDialog = () => {
           
           // Cleanup
           return () => window.removeEventListener('resize', checkIsMobile);
-    }, [currentPage, limit, searchTerm, selectedGrade, selectedStrand, selectedType]);
+    }, [currentPage, limit, searchTerm, selectedYear ,selectedGrade, selectedStrand, selectedType]);
 
     useEffect(() => {
         //console.log("Updated student to enroll:", studentToEnroll);
@@ -383,22 +392,25 @@ const DeleteStudentDialog = () => {
         { id: "enrolled", label: "Enrolled Students", icon: <User size={16} /> }
       ];
 
-    const fetchStudentData = async () => {
+      const fetchStudentData = async () => {
         try {
             setLoading(true);
-            
+            // Get the current year if selectedYear is not set
+            const currentYear = new Date().getFullYear().toString();
             // Construct query parameters based on active filters
             let queryParams = new URLSearchParams({
                 page: currentPage,
-                limit: limit
+                limit: limit,
             });
             
-            // Add filters to query parameters if they exist
+            // Add other filters to query parameters if they exist
             if (searchTerm) queryParams.append('search', searchTerm);
+            queryParams.append('registration_year', selectedYear || currentYear);
             if (selectedGrade) queryParams.append('grade', selectedGrade);
             if (selectedStrand) queryParams.append('strand', selectedStrand);
             if (selectedType) queryParams.append('type', selectedType);
             
+            console.log(queryParams.toString());
             const response = await fetch(
                 `https://teamweb-kera.onrender.com/preregistration?${queryParams.toString()}`
             );
@@ -408,6 +420,9 @@ const DeleteStudentDialog = () => {
             }
             
             const data = await response.json();
+            console.log(data);
+
+
             setStudents(data.preregistration);
             setTotalPages(data.totalPages);
             setTotalRecords(data.totalRecords);
@@ -428,6 +443,11 @@ const DeleteStudentDialog = () => {
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
+        setCurrentPage(1); // Reset to first page when search changes
+    };
+
+    const handleYearChange = (e) => {
+        setSelectedYear(e.target.value);
         setCurrentPage(1); // Reset to first page when search changes
     };
 
@@ -647,6 +667,7 @@ const handleEnrollmentChange = async () => {
         const filters = [];
         
         if (searchTerm) filters.push(`Name: "${searchTerm}"`);
+        if (selectedYear) filters.push(`Year: ${selectedYear}`);
         if (selectedGrade) filters.push(`Grade: ${selectedGrade}`);
         if (selectedStrand) filters.push(`Strand: ${selectedStrand}`);
         if (selectedType) filters.push(`Type: ${selectedType}`);
@@ -797,11 +818,12 @@ const handleEnrollmentChange = async () => {
             <div className="data-table-container">
                 <div className="active-filters">
                     <span>{getActiveFiltersText()}</span>
-                    {(searchTerm || selectedGrade || selectedStrand || selectedType) && (
+                    {(searchTerm || selectedYear || selectedGrade || selectedStrand || selectedType) && (
                         <button 
                             className="clear-filters-btn"
                             onClick={() => {
                                 setSearchTerm("");
+                                setSelectedYear("");
                                 setSelectedGrade("");
                                 setSelectedStrand("");
                                 setSelectedType("");
@@ -825,6 +847,7 @@ const handleEnrollmentChange = async () => {
                                 <th>Grade Level</th>
                                 <th>Strand</th>
                                 <th>Email Address</th>
+                                <th>Address</th>
                                 <th>Phone Number</th>
                                 <th>Details</th>
                                 <th>Status</th>
@@ -860,6 +883,12 @@ const handleEnrollmentChange = async () => {
                                                 <div className="email-container">
                                                     <Mail size={14} />
                                                     <span>{student.email}</span>
+                                                </div>
+                                            </td>
+                                            <td className="cell-address" title={student.address}>
+                                                <div className="address-container">
+                                                    <MapPin size={14} />
+                                                    <span>{student.address}</span>
                                                 </div>
                                             </td>
                                             <td className="cell-phone" title={student.phone_number}>
@@ -1052,7 +1081,8 @@ const handleEnrollmentChange = async () => {
       )}
                 {activeTab === "table" && (
                     <>
-                        <div className="filters-container">
+                    <div className="filters-container">
+                        <div className="search-and-year-container">
                             <div className="search-container">
                                 <Search size={18} className="search-icon" />
                                 <input
@@ -1063,38 +1093,50 @@ const handleEnrollmentChange = async () => {
                                     className="search-input"
                                 />
                             </div>
-                            <div className="filter-group">
-                                <Filter size={16} />
-                                <select value={selectedGrade} onChange={handleGradeChange} className="filter-select">
-                                    <option value="">All Grades</option>
-                                    <option value="Kinder">Kinder</option>
-                                    <option value="1">Grade 1</option>
-                                    <option value="2">Grade 2</option>
-                                    <option value="3">Grade 3</option>
-                                    <option value="4">Grade 4</option>
-                                    <option value="5">Grade 5</option>
-                                    <option value="6">Grade 6</option>
-                                    <option value="7">Grade 7</option>
-                                    <option value="8">Grade 8</option>
-                                    <option value="9">Grade 9</option>
-                                    <option value="10">Grade 10</option>
-                                    <option value="11">Grade 11</option>
-                                    <option value="12">Grade 12</option>
-                                </select>
-
-                                <select value={selectedStrand} onChange={handleStrandChange} className="filter-select">
-                                    <option value="">All Strands</option>
-                                    <option value="ABM">ABM</option>
-                                    <option value="STEM">STEM</option>
-                                    <option value="HUMSS">HUMSS</option>
-                                </select>
-                                <select value={selectedType} onChange={handleTypeChange} className="filter-select">
-                                    <option value="">All Types</option>
-                                    <option value="new">New</option>
-                                    <option value="old">Old</option>
-                                </select>
-                            </div>
                         </div>
+                        <div className="filter-group">
+                            <Filter size={16} />
+                            <select
+                                value={`${selectedYear}`}
+                                onChange={handleYearChange}
+                                className="filter-select"
+                                >
+                                {yearOptions.map((year) => (
+                                    <option key={year} value={year}>
+                                    {year}
+                                    </option>
+                                ))}
+                            </select>
+                            <select value={selectedGrade} onChange={handleGradeChange} className="filter-select">
+                                <option value="">All Grades</option>
+                                <option value="Kinder">Kinder</option>
+                                <option value="1">Grade 1</option>
+                                <option value="2">Grade 2</option>
+                                <option value="3">Grade 3</option>
+                                <option value="4">Grade 4</option>
+                                <option value="5">Grade 5</option>
+                                <option value="6">Grade 6</option>
+                                <option value="7">Grade 7</option>
+                                <option value="8">Grade 8</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                            </select>
+
+                            <select value={selectedStrand} onChange={handleStrandChange} className="filter-select">
+                                <option value="">All Strands</option>
+                                <option value="ABM">ABM</option>
+                                <option value="STEM">STEM</option>
+                                <option value="HUMSS">HUMSS</option>
+                            </select>
+                            <select value={selectedType} onChange={handleTypeChange} className="filter-select">
+                                <option value="">All Types</option>
+                                <option value="new">New</option>
+                                <option value="old">Old</option>
+                            </select>
+                        </div>
+                    </div>
                         
                         {renderTable()}
                         <div className="danger-zone-section">

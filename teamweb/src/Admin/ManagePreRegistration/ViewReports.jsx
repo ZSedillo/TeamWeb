@@ -18,6 +18,13 @@ const ViewReports = () => {
   
   // State for report view
   const [reportView, setReportView] = useState('byGrade');
+  
+  // State for selected year
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+
+  // Generate years from 2020 to current year for the dropdown
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 2019 }, (_, i) => (2020 + i).toString());
 
   // Grade levels configuration
   const gradeLevels = {
@@ -35,51 +42,58 @@ const ViewReports = () => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  // Fetch registration data
-// Fetch registration data
-const fetchRegistrations = async () => {
-  setIsLoading(true);
-  setError(null);
-  
-  try {
-    const response = await fetch('https://teamweb-kera.onrender.com/preregistration');
+  // Fetch registration data with year parameter
+  const fetchRegistrations = async (year = selectedYear) => {
+    setIsLoading(true);
+    setError(null);
     
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status} - ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Ensure data is properly extracted from the response
-    if (Array.isArray(data)) {
-      setRegistrationData(data);
-    } else if (data && typeof data === 'object') {
-      // Check for preregistration array in response
-      if (data.preregistration && Array.isArray(data.preregistration)) {
-        setRegistrationData(data.preregistration);
-      } else if (data.data && Array.isArray(data.data)) {
-        // Sometimes APIs return data nested in a data property
-        setRegistrationData(data.data);
+    try {
+      const response = await fetch(`https://teamweb-kera.onrender.com/preregistration?registration_year=${year}`);
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Ensure data is properly extracted from the response
+      if (Array.isArray(data)) {
+        setRegistrationData(data);
+      } else if (data && typeof data === 'object') {
+        // Check for preregistration array in response
+        if (data.preregistration && Array.isArray(data.preregistration)) {
+          setRegistrationData(data.preregistration);
+        } else if (data.data && Array.isArray(data.data)) {
+          // Sometimes APIs return data nested in a data property
+          setRegistrationData(data.data);
+        } else {
+          console.error("API did not return data in expected format:", data);
+          setError("Invalid data format received from API");
+          setRegistrationData([]);
+        }
       } else {
-        console.error("API did not return data in expected format:", data);
+        console.error("API did not return valid data:", data);
         setError("Invalid data format received from API");
         setRegistrationData([]);
       }
-    } else {
-      console.error("API did not return valid data:", data);
-      setError("Invalid data format received from API");
+      
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("Error fetching registration data:", err);
+      setError(err.message);
       setRegistrationData([]);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setLastUpdated(new Date());
-  } catch (err) {
-    console.error("Error fetching registration data:", err);
-    setError(err.message);
-    setRegistrationData([]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
+  // Handle year change
+  const handleYearChange = (e) => {
+    const year = e.target.value;
+    setSelectedYear(year);
+    console.log("Year Selected" + year);
+    fetchRegistrations(year);
+  };
 
   // Export functionality
   const handleExport = () => {
@@ -115,7 +129,7 @@ const fetchRegistrations = async () => {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `registration_report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `registration_report_${selectedYear}_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -128,16 +142,15 @@ const fetchRegistrations = async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        username: username, // Replace with actual username
-        activityLog: `[Manage Pre-Registration: Reports] Registration data exported as CSV on ${new Date().toLocaleString()}`
+        username: localStorage.getItem('username') || 'user', // Get username from localStorage or use default
+        activityLog: `[Manage Pre-Registration: Reports] Registration data for ${selectedYear} exported as CSV on ${new Date().toLocaleString()}`
       }),
     });
   };
 
-
   // Refresh functionality
   const handleRefresh = () => {
-    fetchRegistrations();
+    fetchRegistrations(selectedYear);
   };
 
   // Initial data fetch
@@ -216,6 +229,21 @@ const fetchRegistrations = async () => {
       <div className="reports-header">
         <h1>Registration Reports</h1>
         <div className="reports-header-actions">
+          <div className="year-selector">
+            <label htmlFor="year-select">Year:</label>
+            <select
+              id="year-select"
+              className="year-dropdown"
+              value={selectedYear}
+              onChange={handleYearChange}
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
           <button className="btn btn-export" onClick={handleExport}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -251,7 +279,7 @@ const fetchRegistrations = async () => {
           {/* Total Students */}
           <div className="total-students-card">
             <div className="total-students-count">{totalApproved}</div>
-            <div className="total-students-label">Pre-registered students</div>
+            <div className="total-students-label">Pre-registered students for {selectedYear}</div>
           </div>
 
           {/* Report Tabs */}
@@ -383,7 +411,7 @@ const fetchRegistrations = async () => {
 
           {/* Last Updated */}
           <div className="last-updated">
-            Last updated: {lastUpdated.toLocaleDateString()} at {lastUpdated.toLocaleTimeString()} | Academic Year: 2025-2026
+            Last updated: {lastUpdated.toLocaleDateString()} at {lastUpdated.toLocaleTimeString()} | Academic Year: {selectedYear}-{parseInt(selectedYear) + 1}
           </div>
         </>
       )}

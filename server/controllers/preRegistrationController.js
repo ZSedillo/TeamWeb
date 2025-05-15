@@ -13,6 +13,13 @@ const getPreRegistrations = async (req, res) => {
         if (req.query.search) {
             filterQuery.name = { $regex: req.query.search, $options: 'i' };
         }
+        // Check if the user has provided a registration year, otherwise set it to the current year
+        const currentYear = new Date().getFullYear().toString();
+        if (req.query.registration_year) {
+             filterQuery.registration_year = req.query.registration_year;
+        } else {
+            filterQuery.registration_year = currentYear; // Default to current year
+        }
         if (req.query.grade) filterQuery.grade_level = req.query.grade;
         if (req.query.strand) filterQuery.strand = req.query.strand;
         if (req.query.type) filterQuery.isNewStudent = req.query.type;
@@ -22,6 +29,8 @@ const getPreRegistrations = async (req, res) => {
         else if (req.query.grade) sortObject = { grade_level: 1, name: 1 };
         else if (req.query.strand) sortObject = { strand: 1, name: 1 };
         else if (req.query.type) sortObject = { isNewStudent: 1, name: 1 };
+
+        console.log('Received year:', req.query.year);
 
         if (req.query.grade) {
             const aggregationPipeline = [
@@ -83,7 +92,7 @@ const addPreRegistration = async (req, res) => {
     let {
         name, phone_number, age, gender, birthdate, strand, grade_level, email,
         status, appointment_date, nationality, parent_guardian_name, parent_guardian_number,
-        preferred_time, purpose_of_visit, isNewStudent
+        preferred_time, purpose_of_visit, isNewStudent, address, registration_year
     } = req.body;
 
     if (!grade_level) return res.status(400).json({ error: "Grade level is required." });
@@ -94,6 +103,11 @@ const addPreRegistration = async (req, res) => {
     const validStatuses = ['pending', 'approved', 'rejected'];
     if (status && !validStatuses.includes(status.toLowerCase())) return res.status(400).json({ error: `Invalid status value.` });
 
+    // Set default registration year if not provided
+    if (!registration_year) {
+        registration_year = new Date().getFullYear().toString();
+    }
+
     try {
         const existingPreRegistration = await preRegistrationModel.findOne({ email });
         let preRegistrationData;
@@ -101,18 +115,48 @@ const addPreRegistration = async (req, res) => {
         if (existingPreRegistration) {
             preRegistrationData = await preRegistrationModel.findOneAndUpdate(
                 { email },
-                { name, phone_number, age, gender, birthdate: new Date(birthdate), strand, grade_level, nationality,
-                  parent_guardian_name, parent_guardian_number, isNewStudent, status: status ? status.toLowerCase() : 'pending',
-                  appointment_date, preferred_time, purpose_of_visit },
+                { 
+                    name, 
+                    phone_number, 
+                    age, 
+                    gender, 
+                    birthdate: new Date(birthdate), 
+                    strand, 
+                    grade_level, 
+                    nationality,
+                    parent_guardian_name, 
+                    parent_guardian_number, 
+                    isNewStudent, 
+                    status: status ? status.toLowerCase() : 'pending',
+                    appointment_date, 
+                    preferred_time, 
+                    purpose_of_visit, 
+                    address,
+                    registration_year
+                },
                 { new: true }
             );
         } else {
             preRegistrationData = new preRegistrationModel({
-                name, phone_number, age, gender, birthdate: new Date(birthdate), strand, grade_level, email,
-                nationality, parent_guardian_name, parent_guardian_number, isNewStudent,
+                name, 
+                phone_number, 
+                age, 
+                gender, 
+                birthdate: new Date(birthdate), 
+                strand, 
+                grade_level, 
+                email,
+                nationality, 
+                parent_guardian_name, 
+                parent_guardian_number, 
+                isNewStudent,
                 status: status ? status.toLowerCase() : 'pending', 
-                appointment_date, preferred_time, purpose_of_visit,
-                enrollment: false // Ensure enrollment is explicitly set to false
+                appointment_date, 
+                preferred_time, 
+                purpose_of_visit,
+                enrollment: false, // Ensure enrollment is explicitly set to false
+                registration_year, // Now defined and initialized above
+                address
             });
 
             await preRegistrationData.save();
@@ -213,6 +257,11 @@ const getEnrolledPreRegistrations = async (req, res) => {
         if (req.query.strand) {
             filterQuery.strand = req.query.strand;
         }
+        
+        // Apply year filter if provided
+        if (req.query.year) {
+            filterQuery.registration_year = req.query.year;
+        }
 
         let sortObject = { createdAt: -1 }; // Default sort by most recent
         
@@ -279,7 +328,6 @@ const getEnrolledPreRegistrations = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
-
 
 // DELETE - Delete all Pre-Registrations
 const deletePreRegistration = async (req, res) => {

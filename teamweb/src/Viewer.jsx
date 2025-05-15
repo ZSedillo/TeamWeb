@@ -16,7 +16,7 @@ function Viewer() {
       const response = await fetch("https://teamweb-kera.onrender.com/homepage/images");
       if (!response.ok) throw new Error(`Failed to fetch images: ${response.status}`);
       const data = await response.json();
-      console.log(data.image_url);
+      console.log("Fetched images:", data);
       setImages(data);
       setError(null);
     } catch (error) {
@@ -83,17 +83,20 @@ function Viewer() {
                 const position = getPosition(index);
                 return (
                   <div
-                    key={index}
+                    key={image._id || index}
                     className={`news-item ${position}`}
                   >
                     <img
-                      src={`${image.image_url}`}
-                      alt={`News ${index + 1}`}
+                      src={image.image_url}
+                      alt={image.title || `News ${index + 1}`}
                       className="news-image"
                     />
-                    <div className="news-title-overlay">
-                      {image.title || `News ${index + 1}`}
-                    </div>
+                    {/* Enhanced overlay with title and description */}
+                  <div className="news-title-overlay">
+                  <h3 className="news-title">
+                    {image.description || `News ${index + 1}`}
+                  </h3>
+                  </div>
                   </div>
                 );
               })}
