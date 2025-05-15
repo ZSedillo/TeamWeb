@@ -12,15 +12,19 @@ const uploadImage = async (req, res) => {
         const file = req.files.image;
         const fileName = `images/${v4()}`;
 
-        // Upload image to S3
+        // Upload to S3
         const { url, key } = await putObject(file.data, fileName);
 
         if (!url || !key) {
             return res.status(400).json({ status: "error", data: "Image is not uploaded" });
         }
 
+        const description = req.body.description || "";
+
         const newImage = new Homepage({
-            image_url: url,key,
+            image_url: url,
+            key,
+            description,
             created_at: new Date(),
         });
 
@@ -31,6 +35,7 @@ const uploadImage = async (req, res) => {
         res.status(500).json({ message: "Error saving image to database" });
     }
 };
+
 
 const deleteImage = async (req, res) => {
     try {
