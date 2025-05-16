@@ -866,7 +866,7 @@ const handleEnrollmentChange = async () => {
                                             id={`student-row-${student._id}`}
                                             className={expandedRow === index ? 'row-expanded' : ''}
                                         >
-                                            <td className="cell-name" title={student.name}>{student.name}</td>
+                                            <td className="cell-name" title={student.lastName +", "+ student.firstName}>{student.lastName}, {student.firstName}</td>
                                             <td className="cell-center">{student.gender}</td>
                                             <td className="cell-center">{student.isNewStudent}</td>
                                             <td className="cell-center">
