@@ -90,7 +90,7 @@ const getPreRegistrations = async (req, res) => {
 // POST - Add a new Pre-Registration
 const addPreRegistration = async (req, res) => {
     let {
-        name, phone_number, age, gender, birthdate, strand, grade_level, email,
+        firstName, lastName, phone_number, age, gender, birthdate, strand, grade_level, email,
         status, appointment_date, nationality, parent_guardian_name, parent_guardian_number,
         preferred_time, purpose_of_visit, isNewStudent, address, registration_year
     } = req.body;
@@ -99,6 +99,8 @@ const addPreRegistration = async (req, res) => {
     if (!isNewStudent || !['new', 'old'].includes(isNewStudent)) return res.status(400).json({ error: "isNewStudent must be 'new' or 'old'." });
     if (!gender || !['Male', 'Female'].includes(gender)) return res.status(400).json({ error: "Gender must be 'Male' or 'Female'." });
     if (!birthdate || isNaN(Date.parse(birthdate))) return res.status(400).json({ error: "Invalid birthdate format." });
+    if (!firstName) return res.status(400).json({ error: "First name is required." });
+    if (!lastName) return res.status(400).json({ error: "Last name is required." });
 
     const validStatuses = ['pending', 'approved', 'rejected'];
     if (status && !validStatuses.includes(status.toLowerCase())) return res.status(400).json({ error: `Invalid status value.` });
@@ -116,7 +118,8 @@ const addPreRegistration = async (req, res) => {
             preRegistrationData = await preRegistrationModel.findOneAndUpdate(
                 { email },
                 { 
-                    name, 
+                    firstName,
+                    lastName,
                     phone_number, 
                     age, 
                     gender, 
@@ -138,7 +141,8 @@ const addPreRegistration = async (req, res) => {
             );
         } else {
             preRegistrationData = new preRegistrationModel({
-                name, 
+                firstName,
+                lastName,
                 phone_number, 
                 age, 
                 gender, 
@@ -245,7 +249,11 @@ const getEnrolledPreRegistrations = async (req, res) => {
 
         // Apply search filter if provided
         if (req.query.search) {
-            filterQuery.name = { $regex: req.query.search, $options: 'i' };
+            // Search in both firstName and lastName fields
+            filterQuery.$or = [
+                { firstName: { $regex: req.query.search, $options: 'i' } },
+                { lastName: { $regex: req.query.search, $options: 'i' } }
+            ];
         }
         
         // Apply grade filter if provided
@@ -290,10 +298,12 @@ const getEnrolledPreRegistrations = async (req, res) => {
                                 ],
                                 default: 100
                             }
-                        }
+                        },
+                        // Add computed fullName for sorting
+                        fullName: { $concat: ["$lastName", " ", "$firstName"] }
                     }
                 },
-                { $sort: { gradeOrder: 1, name: 1 } },
+                { $sort: { gradeOrder: 1, fullName: 1 } },
                 { $skip: skip },
                 ...(limit ? [{ $limit: limit }] : []) // Apply limit only if specified
             ];
@@ -309,8 +319,11 @@ const getEnrolledPreRegistrations = async (req, res) => {
             });
         }
 
-        // For other queries, use the standard find operation
-        let query = preRegistrationModel.find(filterQuery).sort(sortObject).skip(skip);
+        // For other queries, use the standard find operation with name sorting
+        let query = preRegistrationModel.find(filterQuery)
+            .sort({ lastName: 1, firstName: 1 }) // Sort by last name then first name
+            .skip(skip);
+            
         if (limit) query = query.limit(limit); // Apply limit only if specified
 
         const records = await query;
