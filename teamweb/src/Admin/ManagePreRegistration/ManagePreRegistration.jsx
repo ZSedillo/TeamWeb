@@ -788,8 +788,16 @@ const handleEnrollmentChange = async () => {
                 </div>
             </div>
         );
-    };
-    
+    };  
+
+    function capitalizeFullName(name) {
+    if (!name) return '';
+    return name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
+
     // Table renderer
     const renderTable = () => {
         if (loading) return (
@@ -866,7 +874,12 @@ const handleEnrollmentChange = async () => {
                                             id={`student-row-${student._id}`}
                                             className={expandedRow === index ? 'row-expanded' : ''}
                                         >
-                                            <td className="cell-name" title={student.lastName +", "+ student.firstName}>{student.lastName}, {student.firstName}</td>
+                                        <td className="cell-name" title={
+                                        `${capitalizeFullName(student.lastName)}, ${capitalizeFullName(student.firstName)}`
+                                        }>
+                                        {capitalizeFullName(student.lastName)}, {capitalizeFullName(student.firstName)}
+                                        </td>
+                                        
                                             <td className="cell-center">{student.gender}</td>
                                             <td className="cell-center">{student.isNewStudent}</td>
                                             <td className="cell-center">
