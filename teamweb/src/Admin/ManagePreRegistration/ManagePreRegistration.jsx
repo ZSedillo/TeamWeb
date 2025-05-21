@@ -404,7 +404,10 @@ const DeleteStudentDialog = () => {
             });
             
             // Add other filters to query parameters if they exist
-            if (searchTerm) queryParams.append('search', searchTerm);
+            if (searchTerm) {
+                queryParams.append('search', searchTerm.trim());
+                queryParams.append('name', searchTerm.trim());
+            }
             queryParams.append('registration_year', selectedYear || currentYear);
             if (selectedGrade) queryParams.append('grade', selectedGrade);
             if (selectedStrand) queryParams.append('strand', selectedStrand);
