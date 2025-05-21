@@ -1152,7 +1152,7 @@ const handleEnrollmentChange = async () => {
                     </div>
                         
                         {renderTable()}
-                        <div className="danger-zone-section">
+                        {/* <div className="danger-zone-section">
                         <h3>Database Management</h3>
                         <div className="danger-zone-container">
                             <div className="danger-zone-warning">
@@ -1169,7 +1169,7 @@ const handleEnrollmentChange = async () => {
                             Delete All Records
                             </button>
                         </div>
-                        </div>
+                        </div> */}
                     </>
                 )}
                 
