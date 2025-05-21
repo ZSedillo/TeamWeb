@@ -428,32 +428,6 @@
     background-color: #325aa8;
 }
 
-/* Add these styles for address selector grid */
-.address-selector-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.address-selector-row {
-    display: flex;
-    gap: 1rem;
-}
-
-.address-selector-col {
-    flex: 1 1 0;
-    min-width: 180px;
-    display: flex;
-    flex-direction: column;
-}
-
-@media (max-width: 700px) {
-    .address-selector-row {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-}
-
 @media (max-width: 992px) {
     .pre-reg-form-grid {
         grid-template-columns: 1fr;

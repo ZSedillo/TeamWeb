@@ -11,7 +11,10 @@ const getPreRegistrations = async (req, res) => {
         let filterQuery = {};
 
         if (req.query.search) {
-            filterQuery.name = { $regex: `^${req.query.search}$`, $options: 'i' };
+            filterQuery.$or = [
+                { firstName: { $regex: req.query.search, $options: 'i' } },
+                { lastName: { $regex: req.query.search, $options: 'i' } }
+            ];
         }
         // Check if the user has provided a registration year, otherwise set it to the current year
         const currentYear = new Date().getFullYear().toString();

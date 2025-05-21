@@ -404,7 +404,10 @@ const DeleteStudentDialog = () => {
             });
             
             // Add other filters to query parameters if they exist
-            if (searchTerm) queryParams.append('search', searchTerm);
+            if (searchTerm) {
+                queryParams.append('search', searchTerm.trim());
+                queryParams.append('name', searchTerm.trim());
+            }
             queryParams.append('registration_year', selectedYear || currentYear);
             if (selectedGrade) queryParams.append('grade', selectedGrade);
             if (selectedStrand) queryParams.append('strand', selectedStrand);
@@ -790,12 +793,13 @@ const handleEnrollmentChange = async () => {
         );
     };  
 
-    function capitalizeFullName(name) {
-    if (!name) return '';
-    return name
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
+    function capitalizeFullName(name, isLastName = false) {
+        if (!name) return '';
+        if (isLastName) return name.toUpperCase();
+        return name
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
     }
 
     // Table renderer
@@ -875,9 +879,9 @@ const handleEnrollmentChange = async () => {
                                             className={expandedRow === index ? 'row-expanded' : ''}
                                         >
                                         <td className="cell-name" title={
-                                        `${capitalizeFullName(student.lastName)}, ${capitalizeFullName(student.firstName)}`
+                                        `${capitalizeFullName(student.lastName, true)}, ${capitalizeFullName(student.firstName)}`
                                         }>
-                                        {capitalizeFullName(student.lastName)}, {capitalizeFullName(student.firstName)}
+                                        {capitalizeFullName(student.lastName, true)}, {capitalizeFullName(student.firstName)}
                                         </td>
                                         
                                             <td className="cell-center">{student.gender}</td>
@@ -1097,14 +1101,17 @@ const handleEnrollmentChange = async () => {
                     <div className="filters-container">
                         <div className="search-and-year-container">
                             <div className="search-container">
-                                <Search size={18} className="search-icon" />
                                 <input
                                     type="text"
+                                    className="search-input"
                                     placeholder="Search by student name..."
                                     value={searchTerm}
                                     onChange={handleSearchChange}
-                                    className="search-input"
+                                    style={{ paddingLeft: 36 }}
                                 />
+                                <span className="search-icon">
+                                    <svg width="18" height="18" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                </span>
                             </div>
                         </div>
                         <div className="filter-group">
