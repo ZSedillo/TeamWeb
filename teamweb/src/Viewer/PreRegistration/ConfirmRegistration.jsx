@@ -155,7 +155,7 @@ const handleConfirm = async () => {
                 <div className="pre-reg-confirm-section">
                     <h3>Personal Information</h3>
                     <div className="pre-reg-confirm-grid">
-                        <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
+                        <p><strong>Name:</strong> {formData.lastName}, {formData.firstName}</p>
                         <p><strong>Date of Birth:</strong> {formatDate(formData.dateOfBirth)}</p>
                         <p><strong>Gender:</strong> {formData.gender}</p>
                         <p><strong>Nationality:</strong> {formData.nationality}</p>
