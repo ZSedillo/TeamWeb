@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Header from '../Component/Header.jsx';
 import Footer from '../Component/Footer.jsx';
 import Appointment from './Appointment';
+import AddressSelector from './AddressSelector';
 import './Pre-registration.css';
 
 function PreRegistration() {
@@ -13,7 +14,7 @@ function PreRegistration() {
         nationality: "",
         email: "",
         mobileNumber: "",
-        address: "", // Added address field
+        address: "",
         isNewStudent: "",
         parentFirstName: "",
         parentLastName: "",
@@ -40,11 +41,17 @@ function PreRegistration() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        let newValue = value;
+        if (name === 'firstName' || name === 'parentFirstName') {
+            newValue = value.replace(/\b\w/g, c => c.toUpperCase());
+        } else if (name === 'lastName' || name === 'parentLastName') {
+            newValue = value.toUpperCase();
+        }
         setFormData(prev => ({
             ...prev, 
             [name]: name === 'mobileNumber' || name === 'parentMobileNumber' 
                 ? value.replace(/\D/g, '') 
-                : value
+                : newValue
         }));
         setFormErrors(prev => ({ ...prev, [name]: "" }));
 
@@ -220,14 +227,8 @@ function PreRegistration() {
                         <label htmlFor="address">
                             COMPLETE ADDRESS <span className="pre-reg-required">*</span>
                         </label>
-                        <textarea 
-                            id="address" 
-                            name="address" 
-                            value={formData.address} 
-                            onChange={handleChange} 
-                            className="pre-reg-input pre-reg-textarea" 
-                            rows="3"
-                            placeholder="House No., Street, Barangay, City, Province"
+                        <AddressSelector 
+                            onAddressChange={address => setFormData(prev => ({ ...prev, address }))}
                         />
                         {formErrors.address && <div className="error">{formErrors.address}</div>}
                     </div>

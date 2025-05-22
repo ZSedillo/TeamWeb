@@ -32,6 +32,19 @@ function EnrolledStudents() {
         (_, i) => (2020 + i).toString()
     );
 
+    // Helper to format student name
+    function getStudentDisplayName(student) {
+        if (student.lastName && student.firstName) {
+            // Capitalize each word in firstName
+            const formattedFirstName = student.firstName
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+            return `${student.lastName.toUpperCase()}, ${formattedFirstName}`;
+        }
+        return student.name || '';
+    }
+
     // Fetch data from API
     const fetchStudentData = async () => {
         try {
@@ -244,7 +257,7 @@ function EnrolledStudents() {
     
         enrolledStudents.forEach(student => {
             csvRows.push([
-                student.name || '',
+                getStudentDisplayName(student),
                 student.gender || '',
                 student.grade_level || '',
                 student.strand || 'N/A',
@@ -316,14 +329,14 @@ function EnrolledStudents() {
             </div>
 
             <div className="filters-container">
-                <div className="search-container">
+                <div className="search-container enrolled-search-container">
                     <Search size={18} className="search-icon" />
                     <input
                         type="text"
                         placeholder="Search by student name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="search-input"
+                        className="search-input enrolled-search-input"
                     />
                 </div>
                 <div className="filter-group">
@@ -436,7 +449,7 @@ function EnrolledStudents() {
                                 {enrolledStudents.map((student, index) => (
                                     <React.Fragment key={student._id}>
                                         <tr className={expandedRow === index ? 'row-expanded' : ''}>
-                                            <td className="cell-name">{student.name}</td>
+                                            <td className="cell-name">{getStudentDisplayName(student)}</td>
                                             <td className="cell-center">{student.gender}</td>
                                             <td className="cell-center">{student.grade_level}</td>
                                             <td className="cell-center">{student.strand || "N/A"}</td>

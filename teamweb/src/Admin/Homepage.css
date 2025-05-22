@@ -448,3 +448,18 @@ input[type="file"] {
   border-color: #5a67d8;
   box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
 }
+
+.confirm-delete-btn {
+  background-color: #28c76f; /* Bright green */
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.confirm-delete-btn:hover {
+  background-color: #22b36a; /* Slightly darker on hover */
+}

@@ -32,95 +32,96 @@ function ConfirmRegistration() {
         window.location.href = '/preregistration?edit=true';
     };
 
-    const handleConfirm = async () => {
-        if (!formData) return;
+const handleConfirm = async () => {
+    if (!formData) return;
+
+    console.log("Raw Date of Birth from formData:", formData.dateOfBirth);
+
+    const gradeLevel = formData.yearLevel;
+    const isSeniorHigh = gradeLevel === "11" || gradeLevel === "12";
+    const currentYear = new Date().getFullYear().toString();
+
+    const preRegistrationData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone_number: formData.mobileNumber,
+        age: new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear(),
+        birthdate: new Date(formData.dateOfBirth).toISOString(),
+        gender: formData.gender,
+        grade_level: gradeLevel,
+        strand: isSeniorHigh ? formData.strand || "" : "",
+        email: formData.email,
+        nationality: formData.nationality,
+        parent_guardian_name: `${formData.parentFirstName} ${formData.parentLastName}`,
+        parent_guardian_number: formData.parentMobileNumber,
+        isNewStudent: formData.isNewStudent?.toLowerCase() === "new" ? "new" : "old",
+        status: "pending",
+        address: formData.address || "", // Ensure address is included and has a default value
+        registration_year: currentYear, // Add the registration year
+    };
     
-        console.log("Raw Date of Birth from formData:", formData.dateOfBirth);
+    console.log("Pre-registration data to be sent:", preRegistrationData);
     
-        const gradeLevel = formData.yearLevel;
-        const isSeniorHigh = gradeLevel === "11" || gradeLevel === "12";
-        const currentYear = new Date().getFullYear().toString();
-    
-        const preRegistrationData = {
-            name: `${formData.lastName} ${formData.firstName}`,
-            phone_number: formData.mobileNumber,
-            age: new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear(),
-            birthdate: new Date(formData.dateOfBirth).toISOString(),
-            gender: formData.gender,
-            grade_level: gradeLevel,
-            strand: isSeniorHigh ? formData.strand || "" : "",
-            email: formData.email,
-            nationality: formData.nationality,
-            parent_guardian_name: `${formData.parentFirstName} ${formData.parentLastName}`,
-            parent_guardian_number: formData.parentMobileNumber,
-            isNewStudent: formData.isNewStudent?.toLowerCase() === "new" ? "new" : "old",
-            status: "pending",
-            address: formData.address || "", // Ensure address is included and has a default value
-            registration_year: currentYear, // Add the registration year
-        };
-        
-        console.log("Pre-registration data to be sent:", preRegistrationData);
-        
-        try {
-            // First, submit the pre-registration data
-            const response = await fetch("https://teamweb-kera.onrender.com/preregistration/add", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(preRegistrationData),
-            });
-    
-            const result = await response.json();
-    
-            if (response.ok) {
-                // If appointment data exists, also submit that
-                if (appointmentData && formData.needsAppointment === "yes") {
-                    try {
-                        console.log("Submitting appointment data:", {
+    try {
+        // First, submit the pre-registration data
+        const response = await fetch("https://teamweb-kera.onrender.com/preregistration/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(preRegistrationData),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // If appointment data exists, also submit that
+            if (appointmentData && formData.needsAppointment === "yes") {
+                try {
+                    console.log("Submitting appointment data:", {
+                        email: formData.email,
+                        appointment_date: appointmentData.date,
+                        preferred_time: appointmentData.time,
+                        purpose_of_visit: appointmentData.purpose
+                    });
+                    
+                    const bookingResponse = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
                             email: formData.email,
                             appointment_date: appointmentData.date,
                             preferred_time: appointmentData.time,
-                            purpose_of_visit: appointmentData.purpose
-                        });
-                        
-                        const bookingResponse = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                email: formData.email,
-                                appointment_date: appointmentData.date,
-                                preferred_time: appointmentData.time,
-                                purpose_of_visit: appointmentData.purpose,
-                            }),
-                        });
-                        
-                        if (!bookingResponse.ok) {
-                            const bookingResult = await bookingResponse.json();
-                            console.error("Booking error:", bookingResult.error);
-                            // Continue to success page even if booking fails
-                        }
-                    } catch (bookingError) {
-                        console.error("Error submitting appointment:", bookingError);
+                            purpose_of_visit: appointmentData.purpose,
+                        }),
+                    });
+                    
+                    if (!bookingResponse.ok) {
+                        const bookingResult = await bookingResponse.json();
+                        console.error("Booking error:", bookingResult.error);
                         // Continue to success page even if booking fails
                     }
+                } catch (bookingError) {
+                    console.error("Error submitting appointment:", bookingError);
+                    // Continue to success page even if booking fails
                 }
-                
-                // Clear data and redirect to success page
-                sessionStorage.setItem("registrationSuccess", "true");
-                sessionStorage.removeItem("preRegFormData");
-                sessionStorage.removeItem("appointmentData");
-                window.location.href = "/success";
-            } else {
-                alert(`Error: ${result.error || "Something went wrong"}`);
             }
-        } catch (error) {
-            console.error("Error submitting registration:", error);
-            alert("Failed to submit registration. Please try again.");
+            
+            // Clear data and redirect to success page
+            sessionStorage.setItem("registrationSuccess", "true");
+            sessionStorage.removeItem("preRegFormData");
+            sessionStorage.removeItem("appointmentData");
+            window.location.href = "/success";
+        } else {
+            alert(`Error: ${result.error || "Something went wrong"}`);
         }
-    };
+    } catch (error) {
+        console.error("Error submitting registration:", error);
+        alert("Failed to submit registration. Please try again.");
+    }
+};
     
     // Format date for display
     const formatDate = (dateString) => {
@@ -154,7 +155,7 @@ function ConfirmRegistration() {
                 <div className="pre-reg-confirm-section">
                     <h3>Personal Information</h3>
                     <div className="pre-reg-confirm-grid">
-                        <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
+                        <p><strong>Name:</strong> {formData.lastName}, {formData.firstName}</p>
                         <p><strong>Date of Birth:</strong> {formatDate(formData.dateOfBirth)}</p>
                         <p><strong>Gender:</strong> {formData.gender}</p>
                         <p><strong>Nationality:</strong> {formData.nationality}</p>

@@ -176,31 +176,28 @@
 
 .search-container {
     position: relative;
-    flex: 0 1 280px; /* Fixed width to prevent excessive growth */
-    min-width: 240px;
+    display: inline-block;
+    width: 100%;
 }
 
 .search-icon {
     position: absolute;
+    left: 10px;
     top: 50%;
-    left: 0.75rem;
     transform: translateY(-50%);
-    color: #9ca3af;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    color: #888;
 }
 
 .search-input {
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    font-size: 0.95rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
-    transition: border-color 0.2s ease;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #1a3a7e;
-    box-shadow: 0 0 0 2px rgba(26, 58, 126, 0.1);
+    padding: 8px 12px 8px 36px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
 }
 
 .filter-group {
@@ -347,7 +344,6 @@
     flex-shrink: 0; /* Prevent icon from shrinking */
     min-width: 14px; /* Or same as your icon size */
 }
-
 
 .cell-action {
     text-align: center;
@@ -515,7 +511,6 @@
     background-color: #057a55;
 }
 
-
 .btn-enrollment.false {
     color: #dc2626;
     background-color: #fee2e2;
@@ -529,7 +524,6 @@
     color: #ffffff;
     background-color: #dc2626;
 }
-
 
 .btn-enrollment.processing {
     background-color: #e2e8f0;

@@ -700,29 +700,262 @@ Base layout styles
     .modal-body {
         max-height: calc(95vh - 140px);
     }
-
-    /* Pop-up Confirm Modal Overlay */
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 100vw;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 9999; /* Ensure this is above all other modals */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .modal-container {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.25);
-  }
- 
 }
+
+                .confirm-modal {
+                    max-width: 700px;
+                    width: 90%;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+                }
+                
+                .preview-header {
+                    background-color: #f8f9fa;
+                    border-bottom: 1px solid #e9ecef;
+                    padding: 18px 24px;
+                }
+                
+                .preview-header-title {
+                    display: flex;
+                    align-items: center;
+                }
+                
+                .preview-header-title i {
+                    color: #4a6cf7;
+                    font-size: 18px;
+                    margin-right: 12px;
+                }
+                
+                .preview-header-title h3 {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #212529;
+                    margin: 0;
+                }
+                
+                .preview-body {
+                    padding: 0;
+                    max-height: 70vh;
+                    overflow-y: auto;
+                }
+                
+                .confirm-content {
+                    padding: 0;
+                }
+                
+                .preview-card {
+                    background-color: white;
+                    border-radius: 6px;
+                    overflow: hidden;
+                }
+                
+                .preview-image-wrapper {
+                    width: 100%;
+                    height: 240px;
+                    overflow: hidden;
+                    position: relative;
+                    background-color: #f0f2f5;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+                
+                .preview-hero-image {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                
+                .preview-main-content {
+                    padding: 24px;
+                }
+                
+                .preview-section {
+                    margin-bottom: 24px;
+                }
+                
+                .preview-label {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 8px;
+                    color: #6c757d;
+                    font-size: 14px;
+                    font-weight: 500;
+                }
+                
+                .preview-label i {
+                    margin-right: 8px;
+                    width: 16px;
+                    text-align: center;
+                }
+                
+                .preview-title {
+                    font-size: 24px;
+                    font-weight: 600;
+                    color: #212529;
+                    margin: 0;
+                    padding: 10px 14px;
+                    background-color: #f8f9fa;
+                    border-radius: 6px;
+                    border-left: 4px solid #4a6cf7;
+                }
+                
+                .preview-description-container {
+                    background-color: #f8f9fa;
+                    padding: 16px;
+                    border-radius: 6px;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    border-left: 4px solid #6c757d;
+                }
+                
+                .preview-description {
+                    margin: 0;
+                    white-space: pre-line;
+                    color: #343a40;
+                    line-height: 1.6;
+                }
+                
+                .preview-status {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 14px;
+                    background-color: #f8f9fa;
+                    border-radius: 6px;
+                    margin-top: 10px;
+                }
+                
+                .preview-status-label {
+                    display: flex;
+                    align-items: center;
+                    color: #6c757d;
+                    font-size: 14px;
+                    font-weight: 500;
+                }
+                
+                .preview-status-label i {
+                    margin-right: 8px;
+                }
+                
+                .preview-status-badge {
+                    background-color: #4a6cf7;
+                    color: white;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 13px;
+                    font-weight: 600;
+                }
+                
+                .preview-note {
+                    display: flex;
+                    align-items: flex-start;
+                    padding: 16px;
+                    background-color: #fff8e1;
+                    border-left: 4px solid #ffc107;
+                    border-radius: 6px;
+                    margin: 20px 24px;
+                }
+                
+                .preview-note i {
+                    color: #ffc107;
+                    margin-right: 12px;
+                    font-size: 18px;
+                    margin-top: 2px;
+                }
+                
+                .preview-note p {
+                    margin: 0;
+                    color: #6c4500;
+                    font-size: 14px;
+                    line-height: 1.5;
+                }
+                
+                .preview-footer {
+                    padding: 20px 24px;
+                    background-color: #f8f9fa;
+                    border-top: 1px solid #e9ecef;
+                    display: flex;
+                    justify-content: flex-end;
+                }
+                
+                .preview-back-btn {
+                    background-color: white;
+                    color: #495057;
+                    border: 1px solid #ced4da;
+                    padding: 10px 16px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    display: flex;
+                    align-items: center;
+                    transition: all 0.2s ease;
+                }
+                
+                .preview-back-btn:hover {
+                    background-color: #e9ecef;
+                }
+                
+                .preview-back-btn i {
+                    margin-right: 8px;
+                }
+                
+                .preview-confirm-btn {
+                    background-color: #4a6cf7;
+                    color: white;
+                    border: none;
+                    padding: 12px 20px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    margin-left: 12px;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 2px 6px rgba(74, 108, 247, 0.3);
+                }
+                
+                .preview-confirm-btn:hover {
+                    background-color: #3a57d2;
+                    box-shadow: 0 4px 8px rgba(74, 108, 247, 0.4);
+                }
+                
+                .preview-confirm-btn i {
+                    margin-right: 8px;
+                }
+                
+                .image-preview-container {
+                    margin-top: 15px;
+                }
+                
+                .image-preview {
+                    max-width: 100%;
+                    max-height: 200px;
+                    border-radius: 5px;
+                    border: 1px solid #ddd;
+                }
+                
+                @media (max-width: 768px) {
+                    .preview-footer {
+                        flex-direction: column;
+                    }
+                    
+                    .preview-back-btn, .preview-confirm-btn {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                    
+                    .preview-confirm-btn {
+                        margin-left: 0;
+                        margin-top: 12px;
+                    }
+                    
+                    .preview-image-wrapper {
+                        height: 180px;
+                    }
+                    
+                    .preview-title {
+                        font-size: 20px;
+                    }
+                }
