@@ -284,3 +284,26 @@
     font-weight: 500;
     color: #1a3a7e;
 }
+
+/* Fix search icon overlapping input text */
+.enrolled-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.enrolled-search-input {
+    padding-left: 2.5rem !important; /* Increase space for the icon and override other styles */
+    box-sizing: border-box;
+}
+
+.enrolled-search-container .search-icon {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    pointer-events: none;
+    z-index: 2;
+    font-size: 1.1rem;
+}
