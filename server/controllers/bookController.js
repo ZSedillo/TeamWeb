@@ -1,12 +1,12 @@
-const Book = require("../models/Book.js");
+const bookModel = require("../models/Book.js");
 
-// Get all booking availabilities with slots information
+// Fetch all booking availabilities
 const getBookingAvailability = async (req, res) => {
     try {
-        const availabilityData = await Book.find().populate('appointments.slots.students');
+        const availabilityData = await bookModel.find();
         res.json(availabilityData);
     } catch (error) {
-        res.status(500).json({ error: "Server error: " + error.message });
+        res.status(500).json({ error: "Server error" });
     }
 };
 
@@ -14,11 +14,14 @@ const getBookingAvailability = async (req, res) => {
 const addBookingAvailability = async (req, res) => {
     try {
         const { availability, limits } = req.body;
-        const newAvailability = new Book({ availability, limits });
+
+        const newAvailability = new bookModel({ availability, limits });
+
         await newAvailability.save();
-        res.json(newAvailability);
+
+        res.status(201).json({ message: "Availability added", data: newAvailability });
     } catch (error) {
-        res.status(500).json({ error: "Server error: " + error.message });
+        res.status(500).json({ error: "Server error" });
     }
 };
 
@@ -28,7 +31,7 @@ const editBookingAvailability = async (req, res) => {
         const { availability, limits } = req.body;
         const updateFields = { availability };
         if (limits !== undefined) updateFields.limits = limits;
-        const updatedAvailability = await Book.findByIdAndUpdate(
+        const updatedAvailability = await bookModel.findByIdAndUpdate(
             req.params.id,
             updateFields,
             { new: true }
@@ -38,59 +41,10 @@ const editBookingAvailability = async (req, res) => {
             return res.status(404).json({ error: "Availability not found" });
         }
 
-        res.json({
-            message: "Availability updated with capacity",
-            data: updatedAvailability
-        });
+        res.json({ message: "Availability updated", data: updatedAvailability });
     } catch (error) {
-        res.status(500).json({ error: "Server error: " + error.message });
+        res.status(500).json({ error: "Server error" });
     }
 };
 
-// Book a student into a specific slot
-const bookStudent = async (req, res) => {
-    try {
-        const { appointmentId, slotTime, studentId } = req.body;
-
-        // Find the appointment
-        const book = await Book.findOne({
-            'appointments._id': appointmentId
-        });
-
-        if (!book) {
-            return res.status(404).json({ error: "Appointment not found" });
-        }
-
-        // Find the specific slot
-        const appointment = book.appointments.find(a => a._id.equals(appointmentId));
-        const slot = appointment.slots.find(s => s.time === slotTime);
-
-        if (!slot) {
-            return res.status(404).json({ error: "Time slot not found" });
-        }
-
-        // Check capacity
-        if (slot.booked >= slot.capacity) {
-            return res.status(400).json({ error: "This slot is already full" });
-        }
-
-        // Add booking
-        slot.booked += 1;
-        slot.students.push(studentId);
-        await book.save();
-
-        res.json({
-            message: "Student booked successfully",
-            remainingCapacity: slot.capacity - slot.booked
-        });
-    } catch (error) {
-        res.status(500).json({ error: "Server error: " + error.message });
-    }
-};
-
-module.exports = {
-    getBookingAvailability,
-    addBookingAvailability,
-    editBookingAvailability,
-    bookStudent
-};
+module.exports = { getBookingAvailability, addBookingAvailability, editBookingAvailability };
