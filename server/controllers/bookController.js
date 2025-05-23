@@ -30,7 +30,7 @@ const editBookingAvailability = async (req, res) => {
     try {
         const { availability, limits } = req.body;
         const updateFields = { availability };
-        if (limits) updateFields.limits = limits;
+        if (limits !== undefined) updateFields.limits = limits;
         const updatedAvailability = await bookModel.findByIdAndUpdate(
             req.params.id,
             updateFields,
