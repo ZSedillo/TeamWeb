@@ -16,6 +16,10 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
     const [availableTimes, setAvailableTimes] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Slot maxes and filled counts
+    const [slotMaxes, setSlotMaxes] = useState({}); // { '09:00': 3, ... }
+    const [slotFilled, setSlotFilled] = useState({}); // { '09:00': 2, ... }
+
     // Day mapping constant
     const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -49,15 +53,43 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             setIsLoading(true);
             const response = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
             const data = await response.json();
+            setAvailabilityData(data);
+            processAvailableDates(data);
             
-            console.log("API Response:", data);
-            
-            if (data && data.length > 0) {
-                setAvailabilityData(data);
-                processAvailableDates(data);
-            } else {
-                console.log("No availability data returned from API");
+            // Fetch filled counts for each slot for the next 7 days
+            const today = new Date();
+            const filled = {};
+            const maxes = {};
+            for (let i = 0; i < 7; i++) {
+                const date = new Date();
+                date.setDate(today.getDate() + i);
+                const dayName = DAYS[date.getDay()];
+                data.forEach(entry => {
+                    if (entry.availability && entry.availability[dayName]) {
+                        entry.availability[dayName].forEach(slot => {
+                            maxes[slot.time || slot] = slot.max || 3;
+                        });
+                    }
+                });
             }
+            // Fetch all bookings for the next 7 days
+            const bookingsRes = await fetch('https://teamweb-kera.onrender.com/preregistration/all');
+            const bookings = await bookingsRes.json();
+            for (let i = 0; i < 7; i++) {
+                const date = new Date();
+                date.setDate(today.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                bookings.forEach(b => {
+                    if (b.appointment_date && b.preferred_time) {
+                        const bDate = new Date(b.appointment_date).toISOString().split('T')[0];
+                        if (bDate === dateStr) {
+                            filled[b.preferred_time] = (filled[b.preferred_time] || 0) + 1;
+                        }
+                    }
+                });
+            }
+            setSlotMaxes(maxes);
+            setSlotFilled(filled);
             setIsLoading(false);
         } catch (error) {
             console.error("Error fetching availability data:", error);
@@ -85,7 +117,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             
             // Remove duplicates
             availabilityByDay[day] = [...new Set(availabilityByDay[day])];
-            console.log(`Availability for ${day}:`, availabilityByDay[day]);
         });
         
         // Generate the next 7 days with availability info
@@ -113,8 +144,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                     formattedDate: formattedDate,
                     times: availabilityByDay[dayName]
                 });
-                
-                console.log(`Added available date: ${dateString} (${dayName}) with ${availabilityByDay[dayName].length} time slots`);
             }
         }
         
@@ -124,7 +153,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         if (datesList.length > 0) {
             setAppointmentDate(datesList[0].date);
             setAvailableTimes(datesList[0].times);
-            console.log(`Pre-selected date: ${datesList[0].date} with times:`, datesList[0].times);
         }
     };
 
@@ -136,7 +164,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
 
     // Handle date selection
     const handleDateSelect = (dateString) => {
-        console.log(`Selected date: ${dateString}`);
         setAppointmentDate(dateString);
         setAppointmentTime(""); // Reset time selection
         
@@ -144,10 +171,8 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         const selectedDateObj = availableDates.find(d => d.date === dateString);
         if (selectedDateObj) {
             setAvailableTimes(selectedDateObj.times);
-            console.log(`Set available times for ${dateString}:`, selectedDateObj.times);
         } else {
             setAvailableTimes([]);
-            console.log(`No times found for date: ${dateString}`);
         }
         
         // Clear any errors
@@ -156,7 +181,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
 
     // Handle time selection
     const handleTimeSelect = (time) => {
-        console.log(`Selected time: ${time}`);
         setAppointmentTime(time);
         setErrors(prev => ({...prev, appointmentTime: ""}));
     };
@@ -190,13 +214,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         
         if (validateForm()) {
             try {
-                console.log("Submitting appointment data:", {
-                    email,
-                    appointment_date: appointmentDate,
-                    preferred_time: appointmentTime,
-                    purpose_of_visit: appointmentReason
-                });
-                
                 const response = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
                     method: 'POST',
                     headers: {
@@ -316,15 +333,21 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                                     <div className="appointment-no-times">No available times for this date</div>
                                 ) : (
                                     <div className="appointment-time-options">
-                                        {availableTimes.map(time => (
-                                            <div 
-                                                key={time}
-                                                className={`appointment-time-option ${appointmentTime === time ? 'active' : ''}`}
-                                                onClick={() => handleTimeSelect(time)}
-                                            >
-                                                {formatTime(time)}
-                                            </div>
-                                        ))}
+                                        {availableTimes.map(time => {
+                                            const isFull = slotFilled[time] >= slotMaxes[time];
+                                            return (
+                                                <div 
+                                                    key={time}
+                                                    className={`appointment-time-option ${appointmentTime === time ? 'active' : ''} ${isFull ? 'full' : ''}`}
+                                                    onClick={() => !isFull && handleTimeSelect(time)}
+                                                    style={isFull ? { opacity: 0.5, pointerEvents: 'none', background: '#eee' } : {}}
+                                                    title={isFull ? 'This slot is full' : ''}
+                                                >
+                                                    {formatTime(time)}
+                                                    {isFull && <span style={{ color: 'red', marginLeft: 8 }}>(Full)</span>}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>

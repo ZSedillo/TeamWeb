@@ -1,5 +1,6 @@
 const preRegistrationModel = require('../models/PreRegistration');
 const { sendApprovalEmail } = require('../service/emailService');
+const bookModel = require('../models/Book');
 
 // GET all Pre-Registrations (with pagination & filters)
 const getPreRegistrations = async (req, res) => {
@@ -386,6 +387,29 @@ const addBooking = async (req, res) => {
     if (!email) return res.status(400).json({ error: "Email is required to update the booking." });
 
     try {
+        // 1. Check if the slot is already full
+        const bookingDate = new Date(appointment_date);
+        const dayOfWeek = bookingDate.toLocaleDateString('en-US', { weekday: 'long' });
+        const timeSlot = preferred_time;
+
+        // Count current bookings for this date and time
+        const currentCount = await preRegistrationModel.countDocuments({
+            appointment_date: bookingDate,
+            preferred_time: timeSlot
+        });
+
+        // Get max allowed for this slot from Book model
+        const bookAvailability = await bookModel.findOne({});
+        let maxAllowed = 3; // default
+        if (bookAvailability && bookAvailability.availability && bookAvailability.availability[dayOfWeek]) {
+            const slot = bookAvailability.availability[dayOfWeek].find(s => s.time === timeSlot);
+            if (slot && slot.max) maxAllowed = slot.max;
+        }
+
+        if (currentCount >= maxAllowed) {
+            return res.status(400).json({ error: `Time slot ${timeSlot} is already full.` });
+        }
+
         const user = await preRegistrationModel.findOne({ email });
         if (!user) return res.status(404).json({ error: "User not found. Please register first." });
 
