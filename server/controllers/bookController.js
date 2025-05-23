@@ -10,116 +10,27 @@ const getBookingAvailability = async (req, res) => {
     }
 };
 
-// Get availability for specific date
-const getAvailabilityByDate = async (req, res) => {
-    try {
-        const date = new Date(req.params.date);
-        const result = await Book.findOne({
-            'appointments.date': {
-                $gte: new Date(date.setHours(0, 0, 0)),
-                $lt: new Date(date.setHours(23, 59, 59))
-            }
-        }).populate('appointments.slots.students');
-
-        if (!result) {
-            return res.status(404).json({ message: "No availability found for this date" });
-        }
-
-        res.json(result.appointments);
-    } catch (error) {
-        res.status(500).json({ error: "Server error: " + error.message });
-    }
-};
-
-// Add new booking availability with capacity
+// Add new booking availability
 const addBookingAvailability = async (req, res) => {
     try {
-        const { date, slots, purpose = "Student Registration" } = req.body;
-
-        // Validate slots
-        if (!slots || !Array.isArray(slots)) {
-            return res.status(400).json({ error: "Slots array is required" });
-        }
-
-        // Create enhanced slots with capacity tracking
-        const enhancedSlots = slots.map(slot => ({
-            time: slot.time,
-            capacity: slot.capacity || 3, // Default capacity
-            booked: 0,
-            students: []
-        }));
-
-        // Check for existing appointment on this date
-        const existingAppointment = await Book.findOne({
-            'appointments.date': new Date(date)
-        });
-
-        if (existingAppointment) {
-            return res.status(400).json({ error: "Availability already exists for this date" });
-        }
-
-        // Create or update the document
-        const result = await Book.findOneAndUpdate(
-            {},
-            {
-                $push: {
-                    appointments: {
-                        date: new Date(date),
-                        slots: enhancedSlots,
-                        purpose
-                    }
-                }
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-
-        res.status(201).json({
-            message: "Availability added with capacity tracking",
-            data: result
-        });
+        const { availability, limits } = req.body;
+        const newAvailability = new Book({ availability, limits });
+        await newAvailability.save();
+        res.json(newAvailability);
     } catch (error) {
         res.status(500).json({ error: "Server error: " + error.message });
     }
 };
 
-// Update booking availability (including capacities)
+// Edit (or delete) booking availability
 const editBookingAvailability = async (req, res) => {
     try {
-        const { date, slots } = req.body;
-        const appointmentId = req.params.id;
-
-        // Validate slots
-        if (!slots || !Array.isArray(slots)) {
-            return res.status(400).json({ error: "Slots array is required" });
-        }
-
-        // Prepare updated slots (preserve existing bookings)
-        const updatedSlots = await Promise.all(slots.map(async slot => {
-            // Find existing slot to preserve bookings
-            const existingAppointment = await Book.findOne({
-                'appointments._id': appointmentId
-            });
-            
-            const existingSlot = existingAppointment?.appointments
-                .find(a => a._id.equals(appointmentId))
-                ?.slots.find(s => s.time === slot.time);
-
-            return {
-                time: slot.time,
-                capacity: slot.capacity,
-                booked: existingSlot?.booked || 0,
-                students: existingSlot?.students || []
-            };
-        }));
-
-        const updatedAvailability = await Book.findOneAndUpdate(
-            { 'appointments._id': appointmentId },
-            {
-                $set: {
-                    'appointments.$.slots': updatedSlots,
-                    'appointments.$.updatedAt': new Date()
-                }
-            },
+        const { availability, limits } = req.body;
+        const updateFields = { availability };
+        if (limits !== undefined) updateFields.limits = limits;
+        const updatedAvailability = await Book.findByIdAndUpdate(
+            req.params.id,
+            updateFields,
             { new: true }
         );
 
@@ -179,7 +90,6 @@ const bookStudent = async (req, res) => {
 
 module.exports = {
     getBookingAvailability,
-    getAvailabilityByDate,
     addBookingAvailability,
     editBookingAvailability,
     bookStudent

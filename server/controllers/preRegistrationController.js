@@ -1,5 +1,6 @@
 const preRegistrationModel = require('../models/PreRegistration');
 const { sendApprovalEmail } = require('../service/emailService');
+const bookModel = require('../models/Book');
 
 // GET all Pre-Registrations (with pagination & filters)
 const getPreRegistrations = async (req, res) => {
@@ -385,17 +386,52 @@ const addBooking = async (req, res) => {
     const { email, appointment_date, preferred_time, purpose_of_visit } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required to update the booking." });
 
+    const session = await preRegistrationModel.startSession();
+    session.startTransaction();
     try {
-        const user = await preRegistrationModel.findOne({ email });
-        if (!user) return res.status(404).json({ error: "User not found. Please register first." });
+        // 1. Check if the slot is already full (inside transaction)
+        const bookingDate = new Date(appointment_date);
+        const dayOfWeek = bookingDate.toLocaleDateString('en-US', { weekday: 'long' });
+        const timeSlot = preferred_time;
+
+        // Get max allowed for this slot from Book model
+        const bookAvailability = await bookModel.findOne({}).session(session);
+        let maxAllowed = 3; // default
+        if (bookAvailability && bookAvailability.availability && bookAvailability.availability[dayOfWeek]) {
+            const slot = bookAvailability.availability[dayOfWeek].find(s => s.time === timeSlot);
+            if (slot && slot.max) maxAllowed = slot.max;
+        }
+
+        // Count current bookings for this date and time (inside transaction)
+        const currentCount = await preRegistrationModel.countDocuments({
+            appointment_date: bookingDate,
+            preferred_time: timeSlot
+        }).session(session);
+
+        if (currentCount >= maxAllowed) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ error: `Time slot ${timeSlot} is already full.` });
+        }
+
+        const user = await preRegistrationModel.findOne({ email }).session(session);
+        if (!user) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: "User not found. Please register first." });
+        }
 
         user.appointment_date = appointment_date || user.appointment_date;
         user.preferred_time = preferred_time || user.preferred_time;
         user.purpose_of_visit = purpose_of_visit || user.purpose_of_visit;
 
-        await user.save();
+        await user.save({ session });
+        await session.commitTransaction();
+        session.endSession();
         res.status(200).json({ message: "Appointment updated successfully", user });
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error(error);
         res.status(500).json({ error: "Server error" });
     }

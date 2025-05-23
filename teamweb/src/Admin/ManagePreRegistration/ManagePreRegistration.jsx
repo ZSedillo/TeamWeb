@@ -363,6 +363,30 @@ const DeleteStudentDialog = () => {
         </div>
     );
 };
+
+// Utility: Format date string as local date (fixes timezone bug and increments day by 1 for appointment_date)
+const formatLocalDate = (dateString, incrementDay = false) => {
+    if (!dateString) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        let [year, month, day] = dateString.split('-').map(Number);
+        if (incrementDay) day += 1;
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    } else {
+        const date = new Date(dateString);
+        if (incrementDay) date.setDate(date.getDate() + 1);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+};
+
     // Fetch data on component mount or when pagination/filters change
     useEffect(() => {
         fetchStudentData();
@@ -989,11 +1013,7 @@ const handleEnrollmentChange = async () => {
                                                                     <span className="details-label">Date:</span>
                                                                     <span className="details-value">
                                                                         {student.appointment_date
-                                                                            ? new Date(student.appointment_date).toLocaleDateString("en-US", {
-                                                                                year: "numeric",
-                                                                                month: "long",
-                                                                                day: "numeric",
-                                                                            })
+                                                                            ? formatLocalDate(student.appointment_date, true)
                                                                             : "Not scheduled"}
                                                                     </span>
                                                                 </div>
