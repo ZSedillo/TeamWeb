@@ -11,6 +11,7 @@ const UpdateAppointment = (props) => {
   const [appointmentForm, setAppointmentForm] = useState({
     timeSlots: [],
   });
+  const [slotMaxes, setSlotMaxes] = useState({}); // { '09:00': 3, ... }
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingAppointmentId, setEditingAppointmentId] = useState(null);
   const [availabilityData, setAvailabilityData] = useState([]);
@@ -18,7 +19,7 @@ const UpdateAppointment = (props) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('availability');
-   const [username, setUsername] = useState("");
+  const [username, setUsername] = useState("");
 
   // Generate time slots from 9 AM to 4 PM in 1-hour intervals
   const generateTimeSlots = () => {
@@ -305,9 +306,15 @@ const fetchBookingsData = async () => {
       
       const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
       
+      // Build slots as objects with max
+      const slotsWithMax = appointmentForm.timeSlots.map(slot => ({
+        time: slot,
+        max: slotMaxes[slot] || 3
+      }));
+      
       // Create the update for just this specific day
       const dayUpdate = {
-        [dayOfWeek]: appointmentForm.timeSlots
+        [dayOfWeek]: slotsWithMax
       };
       
       let response;
@@ -415,8 +422,14 @@ const fetchBookingsData = async () => {
   // Edit appointment
   const editAppointment = (appointment) => {
     setAppointmentForm({
-      timeSlots: appointment.timeSlots || [],
+      timeSlots: appointment.timeSlots.map(s => s.time || s) || [],
     });
+    setSlotMaxes(
+      (appointment.timeSlots || []).reduce((acc, s) => {
+        if (typeof s === 'object') acc[s.time] = s.max;
+        return acc;
+      }, {})
+    );
     setEditingAppointmentId(appointment.id);
     setIsFormVisible(true);
   };
@@ -759,13 +772,17 @@ const fetchBookingsData = async () => {
                       <div className="time-slots-container">
                         {appointment.timeSlots?.length > 0 ? (
                           appointment.timeSlots.map((slot, index) => {
-                            const hour = parseInt(slot.split(':')[0]);
+                            const slotTime = typeof slot === 'object' ? slot.time : slot;
+                            const slotMax = typeof slot === 'object' ? slot.max : 3;
+                            const filled = getBookingsForDate(selectedDate).filter(b => b.timeSlot === slotTime).length;
+                            const hour = parseInt(slotTime.split(':')[0]);
                             const ampm = hour >= 12 ? 'PM' : 'AM';
                             const displayHour = hour > 12 ? hour - 12 : hour;
                             return (
-                              <div key={index} className="time-slot">
+                              <div key={index} className={`time-slot${filled >= slotMax ? ' full' : ''}`}>
                                 <Clock size={14} />
                                 <span>{`${displayHour}:00 ${ampm}`}</span>
+                                <span style={{ marginLeft: 8 }}>{filled} / {slotMax} filled</span>
                               </div>
                             );
                           })
@@ -850,6 +867,19 @@ const fetchBookingsData = async () => {
                           );
                         })}
                       </select>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={slotMaxes[timeSlot] || 3}
+                        onChange={e => {
+                          setSlotMaxes({ ...slotMaxes, [timeSlot]: parseInt(e.target.value, 10) });
+                        }}
+                        className="slot-max-input"
+                        style={{ width: 50, marginLeft: 8 }}
+                        title="Max bookings for this slot"
+                      />
+                      <span style={{ marginLeft: 4 }}>max</span>
                       <button 
                         type="button" 
                         className="remove-slot-button"
