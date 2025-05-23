@@ -11,28 +11,11 @@ const getBookingAvailability = async (req, res) => {
 };
 
 // Add new booking availability
-// const addBookingAvailability = async (req, res) => {
-//     try {
-//         const { availability } = req.body;
-//         const newAvailability = new bookModel({ availability });
-//         await newAvailability.save();
-
-//         res.status(201).json({ message: "Availability added", data: newAvailability });
-//     } catch (error) {
-//         res.status(500).json({ error: "Server error" });
-//     }
-// };
-
 const addBookingAvailability = async (req, res) => {
     try {
         const { availability, limits } = req.body;
 
-        const newAvailability = new bookModel({ availability });
-
-        // Optional: Add limits only if provided
-        if (limits) {
-            newAvailability.limits = limits;
-        }
+        const newAvailability = new bookModel({ availability, limits });
 
         await newAvailability.save();
 
@@ -42,14 +25,15 @@ const addBookingAvailability = async (req, res) => {
     }
 };
 
-
 // Edit (or delete) booking availability
 const editBookingAvailability = async (req, res) => {
     try {
-        const { availability } = req.body;
+        const { availability, limits } = req.body;
+        const updateFields = { availability };
+        if (limits) updateFields.limits = limits;
         const updatedAvailability = await bookModel.findByIdAndUpdate(
             req.params.id,
-            { availability },
+            updateFields,
             { new: true }
         );
 
