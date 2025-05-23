@@ -18,7 +18,7 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
 
     // Slot maxes and filled counts
     const [slotMaxes, setSlotMaxes] = useState({}); // { '09:00': 3, ... }
-    const [slotFilled, setSlotFilled] = useState({}); // { '09:00': 2, ... }
+    const [slotFilled, setSlotFilled] = useState({}); // { '2025-05-24_09:00': 2, ... }
 
     // Day mapping constant
     const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -35,17 +35,52 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         }
     }, [preRegEmail]);
 
-    // Save appointment data to session storage for the pre-registration flow
+    // Embedded mode: check slot availability before saving to sessionStorage
     useEffect(() => {
-        if (embedded && appointmentDate && appointmentTime && appointmentReason) {
-            const appointmentData = {
-                date: appointmentDate,
-                time: appointmentTime,
-                purpose: appointmentReason
-            };
-            sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
-        }
-    }, [embedded, appointmentDate, appointmentTime, appointmentReason]);
+        const checkAndSaveEmbeddedAppointment = async () => {
+            if (embedded && appointmentDate && appointmentTime && appointmentReason) {
+                try {
+                    // Get all bookings for the selected date
+                    const bookingsRes = await fetch('https://teamweb-kera.onrender.com/preregistration/all');
+                    if (!bookingsRes.ok) throw new Error('Failed to fetch bookings');
+                    const bookings = await bookingsRes.json();
+                    // Count how many bookings for this date and time
+                    const count = bookings.filter(b => {
+                        const slotTime = typeof b.preferred_time === 'object' && b.preferred_time.time ? b.preferred_time.time : b.preferred_time;
+                        let bDate = b.appointment_date;
+                        if (bDate instanceof Date) {
+                            bDate = bDate.toISOString().split('T')[0];
+                        } else if (typeof bDate === 'string' && bDate.includes('T')) {
+                            bDate = bDate.split('T')[0];
+                        }
+                        return bDate === appointmentDate && slotTime === appointmentTime;
+                    }).length;
+                    const max = slotMaxes[appointmentTime] || 3;
+                    if (count >= max) {
+                        setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
+                        // Remove any previously saved appointmentData
+                        sessionStorage.removeItem('appointmentData');
+                        return;
+                    }
+                    // If slot is available, save to sessionStorage
+                    const appointmentData = {
+                        date: appointmentDate,
+                        time: appointmentTime,
+                        purpose: appointmentReason
+                    };
+                    sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
+                } catch (err) {
+                    setErrors(prev => ({ ...prev, appointmentTime: 'Failed to check slot availability. Please try again.' }));
+                    sessionStorage.removeItem('appointmentData');
+                }
+            } else if (embedded) {
+                // If not all fields are filled, remove appointmentData
+                sessionStorage.removeItem('appointmentData');
+            }
+        };
+        checkAndSaveEmbeddedAppointment();
+        // Only run when these change
+    }, [embedded, appointmentDate, appointmentTime, appointmentReason, slotMaxes]);
 
     // Fetch availability data from API
     const loadAvailabilityData = async () => {
@@ -58,8 +93,8 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             
             // Fetch filled counts for each slot for the next 7 days
             const today = new Date();
-            const filled = {};
             const maxes = {};
+            // Build maxes for all slots
             for (let i = 0; i < 7; i++) {
                 const date = new Date();
                 date.setDate(today.getDate() + i);
@@ -67,7 +102,9 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                 data.forEach(entry => {
                     if (entry.availability && entry.availability[dayName]) {
                         entry.availability[dayName].forEach(slot => {
-                            maxes[slot.time || slot] = slot.max || 3;
+                            const slotTime = typeof slot === 'object' && slot.time ? slot.time : slot;
+                            const slotMax = typeof slot === 'object' && slot.max ? slot.max : 3;
+                            maxes[slotTime] = slotMax;
                         });
                     }
                 });
@@ -75,15 +112,23 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             // Fetch all bookings for the next 7 days
             const bookingsRes = await fetch('https://teamweb-kera.onrender.com/preregistration/all');
             const bookings = await bookingsRes.json();
+            const filled = {};
             for (let i = 0; i < 7; i++) {
                 const date = new Date();
                 date.setDate(today.getDate() + i);
                 const dateStr = date.toISOString().split('T')[0];
                 bookings.forEach(b => {
                     if (b.appointment_date && b.preferred_time) {
-                        const bDate = new Date(b.appointment_date).toISOString().split('T')[0];
+                        let bDate = b.appointment_date;
+                        if (bDate instanceof Date) {
+                            bDate = bDate.toISOString().split('T')[0];
+                        } else if (typeof bDate === 'string' && bDate.includes('T')) {
+                            bDate = bDate.split('T')[0];
+                        }
+                        const slotTime = typeof b.preferred_time === 'object' && b.preferred_time.time ? b.preferred_time.time : b.preferred_time;
                         if (bDate === dateStr) {
-                            filled[b.preferred_time] = (filled[b.preferred_time] || 0) + 1;
+                            const key = `${bDate}_${slotTime}`;
+                            filled[key] = (filled[key] || 0) + 1;
                         }
                     }
                 });
@@ -105,18 +150,24 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         // Populate the availability map
         DAYS.forEach(day => {
             availabilityByDay[day] = [];
-            
             data.forEach(entry => {
                 if (entry.availability && entry.availability[day] && entry.availability[day].length > 0) {
-                    availabilityByDay[day] = [
-                        ...availabilityByDay[day],
-                        ...entry.availability[day]
-                    ];
+                    entry.availability[day].forEach(slot => {
+                        if (typeof slot === 'object' && slot.time) {
+                            availabilityByDay[day].push(slot);
+                        } else if (typeof slot === 'string') {
+                            availabilityByDay[day].push({ time: slot, max: 3 });
+                        }
+                    });
                 }
             });
-            
-            // Remove duplicates
-            availabilityByDay[day] = [...new Set(availabilityByDay[day])];
+            const seen = new Set();
+            availabilityByDay[day] = availabilityByDay[day].filter(slot => {
+                const t = slot.time;
+                if (seen.has(t)) return false;
+                seen.add(t);
+                return true;
+            });
         });
         
         // Generate the next 7 days with availability info
@@ -133,7 +184,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             const dayIndex = date.getDay();
             const dayName = DAYS[dayIndex];
             
-            // Check if this day has any available times
             if (availabilityByDay[dayName] && availabilityByDay[dayName].length > 0) {
                 const dateString = date.toISOString().split('T')[0];
                 const formattedDate = formatDate(date);
@@ -167,7 +217,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         setAppointmentDate(dateString);
         setAppointmentTime(""); // Reset time selection
         
-        // Find the selected date in our available dates
         const selectedDateObj = availableDates.find(d => d.date === dateString);
         if (selectedDateObj) {
             setAvailableTimes(selectedDateObj.times);
@@ -175,7 +224,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             setAvailableTimes([]);
         }
         
-        // Clear any errors
         setErrors(prev => ({...prev, appointmentDate: "", appointmentTime: ""}));
     };
 
@@ -211,33 +259,69 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
     // Handle form submission - only used in standalone mode
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (validateForm()) {
-            try {
-                const response = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email,
-                        appointment_date: appointmentDate,
-                        preferred_time: appointmentTime,
-                        purpose_of_visit: appointmentReason,
-                    }),
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    setBookingSuccess(true);
+        if (!validateForm()) return;
+
+        // Fetch latest bookings for the selected date/time before submitting
+        try {
+            setIsLoading(true);
+            // Get all bookings for the selected date
+            const bookingsRes = await fetch('https://teamweb-kera.onrender.com/preregistration/all');
+            const bookings = await bookingsRes.json();
+            // Count how many bookings for this date and time
+            const count = bookings.filter(b => {
+                // Defensive: handle both string and object for preferred_time
+                const slotTime = typeof b.preferred_time === 'object' && b.preferred_time.time ? b.preferred_time.time : b.preferred_time;
+                // Defensive: handle both string and Date for appointment_date
+                let bDate = b.appointment_date;
+                if (bDate instanceof Date) {
+                    bDate = bDate.toISOString().split('T')[0];
+                } else if (typeof bDate === 'string' && bDate.includes('T')) {
+                    bDate = bDate.split('T')[0];
+                }
+                return bDate === appointmentDate && slotTime === appointmentTime;
+            }).length;
+            const max = slotMaxes[appointmentTime] || 3;
+            if (count >= max) {
+                setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
+                setIsLoading(false);
+                return;
+            }
+        } catch (err) {
+            setIsLoading(false);
+            alert('Failed to check slot availability. Please try again.');
+            return;
+        }
+
+        // Submit the booking
+        try {
+            const response = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    appointment_date: appointmentDate,
+                    preferred_time: appointmentTime,
+                    purpose_of_visit: appointmentReason,
+                }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setBookingSuccess(true);
+            } else {
+                // If backend says slot is full, show error
+                if (result.error && result.error.toLowerCase().includes('full')) {
+                    setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
                 } else {
                     alert(result.error || 'Failed to book appointment. Please try again.');
                 }
-            } catch (error) {
-                console.error('Error submitting appointment:', error);
-                alert('Failed to connect to the server. Please try again.');
             }
+        } catch (error) {
+            console.error('Error submitting appointment:', error);
+            alert('Failed to connect to the server. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -289,7 +373,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                         onSubmit={embedded ? (e) => e.preventDefault() : handleSubmit} 
                         className={embedded ? "appointment-embedded-form" : "appointment-form"}
                     >
-                        {/* Email Field - Hide it in embedded mode as it comes from pre-registration */}
                         {!embedded && (
                             <div className="appointment-form-group">
                                 <label htmlFor="email">Email <span className="appointment-required">*</span></label>
@@ -305,7 +388,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                             </div>
                         )}
                         
-                        {/* Date Selection */}
                         <div className="appointment-form-group">
                             <label>Preferred Date <span className="appointment-required">*</span></label>
                             <div className="appointment-date-selection">
@@ -323,7 +405,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                             {errors.appointmentDate && <div className="appointment-error">{errors.appointmentDate}</div>}
                         </div>
                         
-                        {/* Time Selection */}
                         <div className="appointment-form-group">
                             <label>Preferred Time <span className="appointment-required">*</span></label>
                             <div className="appointment-time-selection">
@@ -333,18 +414,24 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                                     <div className="appointment-no-times">No available times for this date</div>
                                 ) : (
                                     <div className="appointment-time-options">
-                                        {availableTimes.map(time => {
-                                            const isFull = slotFilled[time] >= slotMaxes[time];
+                                        {availableTimes.map(slot => {
+                                            const slotTime = typeof slot === 'object' && slot.time ? slot.time : slot;
+                                            const slotMax = typeof slot === 'object' && slot.max ? slot.max : (slotMaxes[slotTime] || 3);
+                                            const filledKey = `${appointmentDate}_${slotTime}`;
+                                            const filled = slotFilled[filledKey] || 0;
+                                            const isFull = filled >= slotMax;
+
+                                            // If the slot is full, do not render it
+                                            if (isFull) return null;
+
                                             return (
                                                 <div 
-                                                    key={time}
-                                                    className={`appointment-time-option ${appointmentTime === time ? 'active' : ''} ${isFull ? 'full' : ''}`}
-                                                    onClick={() => !isFull && handleTimeSelect(time)}
-                                                    style={isFull ? { opacity: 0.5, pointerEvents: 'none', background: '#eee' } : {}}
-                                                    title={isFull ? 'This slot is full' : ''}
+                                                    key={slotTime}
+                                                    className={`appointment-time-option ${appointmentTime === slotTime ? 'active' : ''}`}
+                                                    onClick={() => handleTimeSelect(slotTime)}
                                                 >
-                                                    {formatTime(time)}
-                                                    {isFull && <span style={{ color: 'red', marginLeft: 8 }}>(Full)</span>}
+                                                    {formatTime(slotTime)}
+                                                    <span className="slot-counter">{filled} / {slotMax}</span>
                                                 </div>
                                             );
                                         })}
@@ -354,7 +441,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                             {errors.appointmentTime && <div className="appointment-error">{errors.appointmentTime}</div>}
                         </div>
                         
-                        {/* Reason Field */}
                         <div className="appointment-form-group">
                             <label htmlFor="appointmentReason">Purpose of Visit <span className="appointment-required">*</span></label>
                             <textarea 
@@ -368,7 +454,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                             {errors.appointmentReason && <div className="appointment-error">{errors.appointmentReason}</div>}
                         </div>
 
-                        {/* Validation notice for embedded mode */}
                         {embedded && (appointmentDate && appointmentTime && appointmentReason) && (
                             <div className="appointment-embedded-success">
                                 <p>✓ Appointment details saved for your registration</p>

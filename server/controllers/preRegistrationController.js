@@ -396,7 +396,7 @@ const addBooking = async (req, res) => {
 
         // Get max allowed for this slot from Book model
         const bookAvailability = await bookModel.findOne({}).session(session);
-        let maxAllowed = 3;
+        let maxAllowed = 3; // default
         if (bookAvailability && bookAvailability.availability && bookAvailability.availability[dayOfWeek]) {
             const slot = bookAvailability.availability[dayOfWeek].find(s => s.time === timeSlot);
             if (slot && slot.max) maxAllowed = slot.max;
@@ -408,18 +408,17 @@ const addBooking = async (req, res) => {
             preferred_time: timeSlot
         }).session(session);
 
-        // ENFORCE: If the slot is full, do not allow booking
         if (currentCount >= maxAllowed) {
             await session.abortTransaction();
             session.endSession();
-            return res.status(400).json({ error: `The selected time slot (${timeSlot}) is already full. Please choose another time.` });
+            return res.status(400).json({ error: `Time slot ${timeSlot} is already full.` });
         }
 
         const user = await preRegistrationModel.findOne({ email }).session(session);
         if (!user) {
             await session.abortTransaction();
             session.endSession();
-            return res.status(404).json({ error: "User not found." });
+            return res.status(404).json({ error: "User not found. Please register first." });
         }
 
         user.appointment_date = appointment_date || user.appointment_date;

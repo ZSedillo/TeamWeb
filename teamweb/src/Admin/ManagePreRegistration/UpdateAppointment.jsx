@@ -316,6 +316,14 @@ const fetchBookingsData = async () => {
       const dayUpdate = {
         [dayOfWeek]: slotsWithMax
       };
+
+      // Build limits object nested by day of week
+      const limitsByDay = { [dayOfWeek]: {} };
+      appointmentForm.timeSlots.forEach(slot => {
+        const slotTime = typeof slot === 'object' && slot.time ? slot.time : slot;
+        const slotMax = typeof slot === 'object' && slot.max ? slot.max : (slotMaxes[slotTime] || 3);
+        limitsByDay[dayOfWeek][slotTime] = slotMax;
+      });
       
       let response;
       
@@ -347,7 +355,7 @@ const fetchBookingsData = async () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ availability: mergedAvailability })
+          body: JSON.stringify({ availability: mergedAvailability, limits: limitsByDay })
         });
       } else {
         // For adding a new day to an existing availability
@@ -376,7 +384,7 @@ const fetchBookingsData = async () => {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ availability: mergedAvailability })
+            body: JSON.stringify({ availability: mergedAvailability, limits: limitsByDay })
           });
         } else {
           // If no entries exist, create a new one with just this day's availability
@@ -385,7 +393,7 @@ const fetchBookingsData = async () => {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ availability: dayUpdate })
+            body: JSON.stringify({ availability: dayUpdate, limits: limitsByDay })
           });
         }
       }
@@ -772,8 +780,11 @@ const fetchBookingsData = async () => {
                       <div className="time-slots-container">
                         {appointment.timeSlots?.length > 0 ? (
                           appointment.timeSlots.map((slot, index) => {
-                            const slotTime = typeof slot === 'object' ? slot.time : slot;
-                            const slotMax = typeof slot === 'object' ? slot.max : 3;
+                            // Defensive: handle both string and object, and skip undefined/null
+                            if (!slot) return null;
+                            const slotTime = typeof slot === 'object' && slot.time ? slot.time : (typeof slot === 'string' ? slot : null);
+                            if (!slotTime) return null;
+                            const slotMax = typeof slot === 'object' && slot.max ? slot.max : 3;
                             const filled = getBookingsForDate(selectedDate).filter(b => b.timeSlot === slotTime).length;
                             const hour = parseInt(slotTime.split(':')[0]);
                             const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -856,12 +867,17 @@ const fetchBookingsData = async () => {
                         className="time-slot-select"
                       >
                         <option value="">Select a time</option>
-                        {availableOptions.sort().map(slot => {
-                          const hour = parseInt(slot.split(':')[0]);
+                        {availableOptions.sort().map((slot, optIdx) => {
+                          // Defensive: handle both string and object, and skip undefined/null
+                          if (!slot) return null;
+                          const slotValue = typeof slot === 'object' && slot.time ? slot.time : (typeof slot === 'string' ? slot : null);
+                          if (!slotValue) return null;
+                          const hour = parseInt(slotValue.split(':')[0]);
                           const ampm = hour >= 12 ? 'PM' : 'AM';
                           const displayHour = hour > 12 ? hour - 12 : hour;
+                          // Use a unique key: slotValue + '-' + index + '-' + optIdx
                           return (
-                            <option key={slot} value={slot}>
+                            <option key={`${slotValue}-${index}-${optIdx}`} value={slotValue}>
                               {`${displayHour}:00 ${ampm}`}
                             </option>
                           );
