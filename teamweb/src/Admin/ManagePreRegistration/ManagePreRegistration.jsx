@@ -988,13 +988,13 @@ const handleEnrollmentChange = async () => {
                                                                 <div className="details-item">
                                                                     <span className="details-label">Date:</span>
                                                                     <span className="details-value">
-                                                                        {student.appointment_date
-                                                                            ? new Date(student.appointment_date).toLocaleDateString("en-US", {
-                                                                                year: "numeric",
-                                                                                month: "long",
-                                                                                day: "numeric",
-                                                                            })
-                                                                            : "Not scheduled"}
+                                                                    {student.appointment_date
+                                                                    ? new Date(new Date(student.appointment_date).setDate(new Date(student.appointment_date).getDate() + 1)).toLocaleDateString("en-US", {
+                                                                        year: "numeric",
+                                                                        month: "long",
+                                                                        day: "numeric",
+                                                                        })
+                                                                    : "Not scheduled"}
                                                                     </span>
                                                                 </div>
                                                                 <div className="details-item">

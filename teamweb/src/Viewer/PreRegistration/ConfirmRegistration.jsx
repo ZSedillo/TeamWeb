@@ -127,13 +127,14 @@ const handleConfirm = async () => {
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
+        date.setDate(date.getDate() + 1); // Add 1 day
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
     };
-    
+        
     // Format time for display
     const formatTime = (timeStr) => {
         if (!timeStr) return '';
