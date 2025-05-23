@@ -11,6 +11,7 @@ const UpdateAppointment = (props) => {
   const [appointmentForm, setAppointmentForm] = useState({
     timeSlots: [],
   });
+  const [fullyBookedDates, setFullyBookedDates] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingAppointmentId, setEditingAppointmentId] = useState(null);
   const [availabilityData, setAvailabilityData] = useState([]);
@@ -162,6 +163,8 @@ const fetchAvailabilityData = async () => {
 
 // Add this new function to create default availability if none exists
 // Fix the createDefaultAvailability function to respect deleted days
+// Fixed version of the appointment management functions
+
 const createDefaultAvailability = async () => {
   try {
     const today = new Date();
@@ -174,18 +177,11 @@ const createDefaultAvailability = async () => {
     const existingAvailability = await fetchResponse.json();
     const existingDates = Object.keys(existingAvailability || {});
 
-    // Keep track of which days have been explicitly deleted
-    // We need to store this information somewhere or infer it from the data
-    
-    // If we have availability data, check if the specific day was deleted
-    const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-    
-    // If this exact date was recently deleted, don't recreate it
-    const dateStr = formatDate(selectedDate);
+    // Check if this exact date was recently deleted
     const recentlyDeletedDates = JSON.parse(localStorage.getItem('deletedAvailabilityDates') || '[]');
     
-    if (recentlyDeletedDates.includes(dateStr)) {
-      console.log(`Availability for ${dateStr} was recently deleted. Skipping auto-creation.`);
+    if (recentlyDeletedDates.includes(todayFormatted)) {
+      console.log(`Availability for ${todayFormatted} was recently deleted. Skipping auto-creation.`);
       return;
     }
 
@@ -211,7 +207,7 @@ const createDefaultAvailability = async () => {
   }
 };
 
-  
+
 const fetchBookingsData = async () => {
   try {
     if (props.studentData && props.studentData.length > 0) {
@@ -219,16 +215,12 @@ const fetchBookingsData = async () => {
       
       const studentBookings = props.studentData.map(student => {
         if (student.appointment_date) {
-          // Parse the appointment date string
-          let appointmentDate = new Date(student.appointment_date);
-          
-          // Adjust for the timezone offset if there's a shift
-          // This adds one day to fix the specific issue you're seeing
-          appointmentDate = new Date(appointmentDate.getTime() + 24 * 60 * 60 * 1000);
-          
-          console.log(`Original date: ${student.appointment_date}`);
-          console.log(`Adjusted date: ${appointmentDate.toISOString()}`);
-          
+          const appointmentDate = new Date(student.appointment_date);
+          if (isNaN(appointmentDate.getTime())) {
+            console.error("Invalid date format:", student.appointment_date);
+            return null;
+          }
+
           return {
             _id: student._id,
             date: appointmentDate,
@@ -241,676 +233,992 @@ const fetchBookingsData = async () => {
             grade_level: student.grade_level,
             strand: student.strand,
             gender: student.gender,
+            slotCapacity: student.slot_capacity || 1,
+            isFull: false
           };
         }
         return null;
       }).filter(booking => booking !== null);
       
       if (studentBookings.length > 0) {
-        console.log("Processed bookings data:", studentBookings);
-        setBookingsData(studentBookings);
+        const bookingsWithCapacity = calculateCapacityStatus(studentBookings);
+        console.log("Processed bookings data:", bookingsWithCapacity);
+        setBookingsData(bookingsWithCapacity);
+        updateFullyBookedDates(bookingsWithCapacity);
         return;
       }
     }
     
+    const response = await fetch('https://teamweb-kera.onrender.com/bookings');
+    if (response.ok) {
+      const apiBookings = await response.json();
+      const bookingsWithCapacity = calculateCapacityStatus(apiBookings);
+      setBookingsData(bookingsWithCapacity);
+      updateFullyBookedDates(bookingsWithCapacity);
+    } else {
+      throw new Error('Failed to fetch bookings from API');
+    }
     // Rest of the function remains the same...
   } catch (err) {
     console.error("Failed to fetch bookings:", err);
   }
 };
 
-  // Handle click on a calendar day
-  const handleDayClick = (day) => {
-    setSelectedDate(day);
-    setEditingAppointmentId(null);
+// Add these helper functions RIGHT AFTER fetchBookingsData
+const calculateCapacityStatus = (bookings) => {
+  const slotsMap = {};
+  
+  bookings.forEach(booking => {
+    const dateStr = formatDate(booking.date);
+    const key = `${dateStr}-${booking.timeSlot}`;
     
-    if (viewMode === 'availability') {
-      setAppointmentForm({
-        timeSlots: [''],
-      });
+    if (!slotsMap[key]) {
+      slotsMap[key] = {
+        bookings: [],
+        capacity: booking.slotCapacity || 1
+      };
     }
+    slotsMap[key].bookings.push(booking);
+  });
+  
+  return bookings.map(booking => {
+    const dateStr = formatDate(booking.date);
+    const key = `${dateStr}-${booking.timeSlot}`;
+    const slot = slotsMap[key];
     
-    setIsFormVisible(false);
-  };
+    return {
+      ...booking,
+      isFull: slot.bookings.length >= slot.capacity
+    };
+  });
+};
 
-  // Handle form input change
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+const updateFullyBookedDates = (bookings) => {
+  const dateMap = {};
+  const weekDays = getNextSevenDays();
+  
+  weekDays.forEach(day => {
+    const dateStr = formatDate(day);
+    const dayBookings = bookings.filter(b => formatDate(b.date) === dateStr);
+    const dayAppointments = appointments[dateStr] || [];
     
-    if (name === 'maxAppointments') {
-      const numValue = parseInt(value, 10);
-      if (isNaN(numValue)) return;
-      
-      setAppointmentForm({
-        ...appointmentForm,
-        [name]: Math.min(Math.max(1, numValue), 20)
+    dateMap[dateStr] = dayAppointments.some(appt => {
+      return appt.timeSlots.every(slot => {
+        const slotTime = typeof slot === 'object' ? slot.time : slot;
+        const slotCapacity = typeof slot === 'object' ? slot.capacity : appt.defaultCapacity;
+        const bookingsForSlot = dayBookings.filter(b => b.timeSlot === slotTime).length;
+        return bookingsForSlot >= slotCapacity;
       });
-    } else {
-      setAppointmentForm({
-        ...appointmentForm,
-        [name]: value
-      });
+    });
+  });
+  
+  setFullyBookedDates(dateMap);
+}; 
+
+const handleDayClick = (day) => {
+  const dateStr = formatDate(day);
+  
+  if (viewMode === 'availability' && fullyBookedDates[dateStr]) {
+    toast.info("This day is fully booked. Please select another day.");
+    return;
+  }
+  
+  setSelectedDate(day);
+  setEditingAppointmentId(null);
+  
+  if (viewMode === 'availability') {
+    setAppointmentForm({
+      timeSlots: [''],
+      purpose: 'Student Registration',
+      defaultCapacity: 0,
+      individualCapacities: {}
+    });
+  }
+  
+  setIsFormVisible(false);
+};
+
+// Missing function for updating individual capacity
+const updateIndividualCapacity = (timeSlot, value) => {
+  const numValue = parseInt(value, 10);
+  
+  if (isNaN(numValue) || numValue < 1) {
+    setAppointmentForm(prev => ({
+      ...prev,
+      individualCapacities: {
+        ...prev.individualCapacities,
+        [timeSlot]: ''
+      }
+    }));
+    toast.error("Capacity must be at least 1");
+    return;
+  }
+  
+  const capacityValue = Math.min(numValue, 50);
+  
+  setAppointmentForm(prev => ({
+    ...prev,
+    individualCapacities: {
+      ...prev.individualCapacities,
+      [timeSlot]: capacityValue
     }
-  };
+  }));
+};
 
-  // Save appointment
-  const saveAppointment = async () => {
-    if (!appointmentForm.timeSlots || appointmentForm.timeSlots.length === 0) {
-      toast.error('Please add at least one time slot');
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  
+  if (name === 'defaultCapacity') {
+    const numValue = parseInt(value, 10);
+    
+    if (isNaN(numValue) || numValue < 1) {
+      toast.error("Default capacity must be at least 1");
       return;
     }
     
-    try {
-      setIsLoading(true);
+    setAppointmentForm(prev => ({
+      ...prev,
+      [name]: Math.min(numValue, 50)
+    }));
+    
+  } else if (name.startsWith('individualCapacity_')) {
+    const timeSlot = name.replace('individualCapacity_', '');
+    updateIndividualCapacity(timeSlot, value);
+    
+  } else {
+    setAppointmentForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  }
+};
+// Enhanced saveAppointment function with comprehensive validation
+const saveAppointment = async () => {
+  // Validate at least one time slot exists
+  if (!appointmentForm.timeSlots || appointmentForm.timeSlots.length === 0) {
+    toast.error('Please add at least one time slot');
+    return;
+  }
+
+  // Validate all time slots are filled
+  if (appointmentForm.timeSlots.some(slot => !slot)) {
+    toast.error('Please fill all time slot fields');
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+    
+    const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+    const dateStr = formatDate(selectedDate);
+    
+    // Create enhanced time slots with capacities
+    const enhancedTimeSlots = appointmentForm.timeSlots.map(time => ({
+      time,
+      capacity: appointmentForm.individualCapacities[time] || appointmentForm.defaultCapacity,
+      booked: 0, // Initialize with 0 bookings
+      students: [] // Initialize empty students array
+    }));
+
+    // Create the payload with proper structure
+    const payload = {
+      date: dateStr,
+      dayOfWeek,
+      slots: enhancedTimeSlots,
+      defaultCapacity: appointmentForm.defaultCapacity,
+      purpose: appointmentForm.purpose
+    };
+
+    console.log('Sending payload:', payload); // Debug log
+
+    let response;
+    let endpoint;
+    let method;
+
+    if (editingAppointmentId) {
+      endpoint = `https://teamweb-kera.onrender.com/booking/editBookingAvailability/${editingAppointmentId}`;
+      method = 'PUT';
+    } else {
+      endpoint = 'https://teamweb-kera.onrender.com/booking/addBookingAvailability';
+      method = 'POST';
+    }
+
+    response = await fetch(endpoint, {
+      method,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` // Add auth if needed
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      // Show server error message if available
+      throw new Error(
+        responseData.message || 
+        responseData.error || 
+        `Server responded with status ${response.status}`
+      );
+    }
+
+    // Update local state
+    const updatedAppointments = { ...appointments };
+    if (!updatedAppointments[dateStr]) {
+      updatedAppointments[dateStr] = [];
+    }
+
+    if (editingAppointmentId) {
+      // Update existing appointment
+      const appointmentIndex = updatedAppointments[dateStr].findIndex(
+        appt => appt.id === editingAppointmentId
+      );
       
-      const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-      
-      // Create the update for just this specific day
-      const dayUpdate = {
-        [dayOfWeek]: appointmentForm.timeSlots
-      };
-      
-      let response;
-      
-      if (editingAppointmentId) {
-        // For editing an existing availability entry
-        
-        // First, get the current availability to preserve other days
-        const currentResponse = await fetch(`https://teamweb-kera.onrender.com/booking/bookingAvailability`);
-        if (!currentResponse.ok) {
-          throw new Error('Failed to fetch current availability data');
-        }
-        
-        const availabilityData = await currentResponse.json();
-        const existingEntry = availabilityData.find(item => item._id === editingAppointmentId);
-        
-        if (!existingEntry) {
-          throw new Error('Could not find the availability entry to edit');
-        }
-        
-        // Merge the existing availability with the new day's data
-        const mergedAvailability = {
-          ...existingEntry.availability, // Keep all existing days
-          ...dayUpdate // Update/add only the current day
+      if (appointmentIndex >= 0) {
+        updatedAppointments[dateStr][appointmentIndex] = {
+          ...updatedAppointments[dateStr][appointmentIndex],
+          timeSlots: enhancedTimeSlots,
+          defaultCapacity: appointmentForm.defaultCapacity,
+          purpose: appointmentForm.purpose
         };
-        
-        // Update with the merged data
-        response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${editingAppointmentId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ availability: mergedAvailability })
-        });
-      } else {
-        // For adding a new day to an existing availability
-        
-        // Check if we already have any availability entries
-        const availabilityResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
-        if (!availabilityResponse.ok) {
-          throw new Error('Failed to fetch availability data');
-        }
-        
-        const availabilityData = await availabilityResponse.json();
-        
-        if (availabilityData && availabilityData.length > 0) {
-          // If we have an existing entry, update it by merging
-          const existingEntry = availabilityData[0]; // Use the first available entry
-          
-          // Merge the existing availability with the new day
-          const mergedAvailability = {
-            ...existingEntry.availability, // Keep all existing days
-            ...dayUpdate // Add/update the current day
-          };
-          
-          // Update with the merged data
-          response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${existingEntry._id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ availability: mergedAvailability })
-          });
-        } else {
-          // If no entries exist, create a new one with just this day's availability
-          response = await fetch('https://teamweb-kera.onrender.com/booking/addBookingAvailability', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ availability: dayUpdate })
-          });
-        }
       }
-      
-      if (!response.ok) {
-        throw new Error('Failed to save appointment');
-      }
+    } else {
+      // Add new appointment
+      updatedAppointments[dateStr].push({
+        id: responseData._id || Date.now().toString(), // Use server ID or fallback
+        timeSlots: enhancedTimeSlots,
+        defaultCapacity: appointmentForm.defaultCapacity,
+        purpose: appointmentForm.purpose,
+        dayOfWeek
+      });
+    }
+
+    // Update state
+    setAppointments(updatedAppointments);
+    
+    // Log activity
+    try {
       await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: username, // Replace with actual username
-          activityLog: `[Manage Pre-Registration:Appointments] ${editingAppointmentId ? 'Updated' : 'Added'} availability for ${dayOfWeek}`
+          username: username || 'Admin',
+          activityLog: `[Appointments] ${editingAppointmentId ? 'Updated' : 'Added'} availability for ${dateStr}`
         }),
       });
-      
-      // Refresh the availability data
-      await fetchAvailabilityData();
-      
-      setIsFormVisible(false);
-      setEditingAppointmentId(null);
-      
-      toast.success(editingAppointmentId ? 'Appointment updated successfully' : 'Appointment added successfully');
-    } catch (err) {
-      toast.error('Failed to save appointment: ' + err.message);
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    } catch (logError) {
+      console.error('Failed to log activity:', logError);
     }
-  };
 
-  // Edit appointment
-  const editAppointment = (appointment) => {
+    // Reset form and close
     setAppointmentForm({
-      timeSlots: appointment.timeSlots || [],
+      timeSlots: [''],
+      purpose: 'Student Registration',
+      defaultCapacity: 3,
+      individualCapacities: {}
     });
-    setEditingAppointmentId(appointment.id);
-    setIsFormVisible(true);
-  };
+    setIsFormVisible(false);
+    setEditingAppointmentId(null);
+    
+    toast.success(
+      editingAppointmentId 
+        ? 'Appointment updated successfully' 
+        : 'Appointment added successfully'
+    );
+    
+  } catch (err) {
+    console.error('Save appointment error:', err);
+    
+    // Enhanced error display
+    let errorMessage = 'Failed to save appointment';
+    if (err.message.includes('NetworkError')) {
+      errorMessage = 'Network error - please check your connection';
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    
+    toast.error(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  // Delete appointment for a specific day
-  const deleteAppointment = async (appointmentId) => {
+// Enhanced editAppointment function with proper form initialization
+const editAppointment = (appointment) => {
+  const existingCapacities = {};
+  const timeSlotsSimple = [];
+  
+  // Process the time slots to extract simple time strings and individual capacities
+  if (appointment.timeSlots && Array.isArray(appointment.timeSlots)) {
+    appointment.timeSlots.forEach(slot => {
+      if (typeof slot === 'object' && slot.time) {
+        timeSlotsSimple.push(slot.time);
+        if (slot.capacity !== undefined && slot.capacity !== appointment.defaultCapacity) {
+          existingCapacities[slot.time] = slot.capacity;
+        }
+      } else if (typeof slot === 'string') {
+        timeSlotsSimple.push(slot);
+      }
+    });
+  }
+  
+  setAppointmentForm({
+    timeSlots: timeSlotsSimple.length > 0 ? timeSlotsSimple : [''],
+    purpose: appointment.purpose || 'Student Registration',
+    defaultCapacity: appointment.defaultCapacity || 1,
+    individualCapacities: existingCapacities
+  });
+  
+  setEditingAppointmentId(appointment.id);
+  setIsFormVisible(true);
+};
+// Enhanced deleteAppointment function with confirmation dialog
+const deleteAppointment = async (appointmentId) => {
+  if (!window.confirm('Are you sure you want to delete this appointment availability? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+    
+    const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+    const dateStr = formatDate(selectedDate);
+    
+    // Fetch the current availability data
+    const currentResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
+    if (!currentResponse.ok) {
+      throw new Error('Failed to fetch current availability data');
+    }
+    
+    const availabilityData = await currentResponse.json();
+    const existingEntry = availabilityData.find(item => item._id === appointmentId);
+    
+    if (!existingEntry) {
+      throw new Error('Could not find the availability entry to delete');
+    }
+    
+    // Create a copy of the existing availability object
+    const updatedAvailability = { ...existingEntry.availability };
+    
+    // Remove only the selected day's availability
+    delete updatedAvailability[dayOfWeek];
+    
+    // Update with the modified availability
+    const response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${appointmentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        availability: updatedAvailability,
+        lastModified: new Date().toISOString(),
+        modifiedBy: username || 'Admin'
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to delete appointment');
+    }
+    
+    // Track this deleted date
+    const recentlyDeletedDates = JSON.parse(localStorage.getItem('deletedAvailabilityDates') || '[]');
+    if (!recentlyDeletedDates.includes(dateStr)) {
+      recentlyDeletedDates.push(dateStr);
+      // Keep only last 30 deleted dates to prevent localStorage bloat
+      if (recentlyDeletedDates.length > 30) {
+        recentlyDeletedDates.splice(0, recentlyDeletedDates.length - 30);
+      }
+      localStorage.setItem('deletedAvailabilityDates', JSON.stringify(recentlyDeletedDates));
+    }
+    
+    // Log the activity
     try {
-      setIsLoading(true);
-      
-      const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-      const dateStr = formatDate(selectedDate);
-      
-      // First, fetch the current availability data to preserve other days
-      const currentResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
-      if (!currentResponse.ok) {
-        throw new Error('Failed to fetch current availability data');
-      }
-      
-      const availabilityData = await currentResponse.json();
-      const existingEntry = availabilityData.find(item => item._id === appointmentId);
-      
-      if (!existingEntry) {
-        throw new Error('Could not find the availability entry to delete');
-      }
-      
-      // Create a copy of the existing availability object
-      const updatedAvailability = { ...existingEntry.availability };
-      
-      // Remove only the selected day's availability
-      delete updatedAvailability[dayOfWeek];
-      
-      // Update with the modified availability (where the selected day is removed)
-      const response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${appointmentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ availability: updatedAvailability })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete appointment');
-      }
-      
-      // Track this deleted date so we don't auto-recreate it
-      const recentlyDeletedDates = JSON.parse(localStorage.getItem('deletedAvailabilityDates') || '[]');
-      if (!recentlyDeletedDates.includes(dateStr)) {
-        recentlyDeletedDates.push(dateStr);
-        localStorage.setItem('deletedAvailabilityDates', JSON.stringify(recentlyDeletedDates));
-      }
-      
       await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: username, // Replace with actual username
+          username: username || 'Admin',
           activityLog: `[Manage Pre-Registration:Appointments] Deleted availability for ${dayOfWeek}`
         }),
       });
-      
-      await fetchAvailabilityData();
-      
-      toast.success(`Availability for ${dayOfWeek} deleted successfully`);
-    } catch (err) {
-      toast.error('Failed to delete appointment: ' + err.message);
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Add time slot
-  const addTimeSlot = () => {
-    const newTimeSlots = [...appointmentForm.timeSlots, ''];
-    setAppointmentForm({
-      ...appointmentForm,
-      timeSlots: newTimeSlots
-    });
-  };
-  
-  // Remove time slot
-  const removeTimeSlot = (index) => {
-    const newTimeSlots = [...appointmentForm.timeSlots];
-    newTimeSlots.splice(index, 1);
-    setAppointmentForm({
-      ...appointmentForm,
-      timeSlots: newTimeSlots
-    });
-  };
-  
-  // Update time slot
-  const updateTimeSlot = (index, value) => {
-    // Check if the time is already selected in another slot
-    if (value && appointmentForm.timeSlots.findIndex((slot, i) => slot === value && i !== index) !== -1) {
-      toast.error('This time slot is already selected. Please choose a different time.');
-      return;
+    } catch (logError) {
+      console.warn('Failed to log activity:', logError);
     }
     
-    const newTimeSlots = [...appointmentForm.timeSlots];
-    newTimeSlots[index] = value;
-    setAppointmentForm({
-      ...appointmentForm,
-      timeSlots: newTimeSlots
-    });
-  };
+    await fetchAvailabilityData();
+    
+    toast.success(`Availability for ${dayOfWeek} deleted successfully`);
+  } catch (err) {
+    console.error('Delete appointment error:', err);
+    toast.error('Failed to delete appointment: ' + err.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  // Get available time slots that haven't been selected yet
-  const getAvailableTimeSlots = (currentIndex) => {
-    // Get all time slots that are already selected (except the current one)
-    const selectedSlots = appointmentForm.timeSlots
-      .filter((slot, i) => slot && i !== currentIndex);
-    
-    // Return only time slots that aren't already selected
-    return availableTimeSlots.filter(slot => !selectedSlots.includes(slot));
-  };
-
-  // Get bookings for a specific date
-  const getBookingsForDate = (date) => {
-    // Create a date object for the target date
-    const targetDate = new Date(date);
-    
-    // For debugging
-    console.log(`Looking for bookings on: ${targetDate.toDateString()}`);
-    
-    // Filter bookings based on date match
-    const matchingBookings = bookingsData.filter(booking => {
-      // Get the booking date
-      const bookingDate = new Date(booking.date);
-      
-      // Compare year, month, and day directly
-      const sameYear = bookingDate.getUTCFullYear() === targetDate.getUTCFullYear();
-      const sameMonth = bookingDate.getUTCMonth() === targetDate.getUTCMonth();
-      const sameDay = bookingDate.getUTCDate() === targetDate.getUTCDate();
-      const isMatch = sameYear && sameMonth && sameDay;
-      
-      // Debug output
-      console.log(`Comparing booking: ${bookingDate.toDateString()} with target: ${targetDate.toDateString()}, match: ${isMatch}`);
-      
-      return isMatch;
-    });
-    
-    console.log(`Found ${matchingBookings.length} bookings for ${targetDate.toDateString()}`);
-    return matchingBookings;
-  };
+// Enhanced time slot management functions
+const addTimeSlot = () => {
+  if (appointmentForm.timeSlots.length >= 20) {
+    toast.error('Maximum 20 time slots allowed');
+    return;
+  }
   
-  
-  // Get bookings organized by time slot
-  const getBookingsByTimeSlot = (date) => {
-    const bookings = getBookingsForDate(date);
-    const slotMap = {};
-    
-    bookings.forEach(booking => {
-      if (!slotMap[booking.timeSlot]) {
-        slotMap[booking.timeSlot] = [];
-      }
-      slotMap[booking.timeSlot].push(booking);
-    });
-    
-    return Object.entries(slotMap)
-      .sort(([timeA], [timeB]) => timeA.localeCompare(timeB))
-      .map(([time, bookings]) => ({ time, bookings }));
-  };
+  const newTimeSlots = [...appointmentForm.timeSlots, ''];
+  setAppointmentForm({
+    ...appointmentForm,
+    timeSlots: newTimeSlots
+  });
+};
 
-  // Render week days - always showing today + 6 days
-  const renderWeekDays = () => {
-    const days = getNextSevenDays();
+const removeTimeSlot = (index) => {
+  if (appointmentForm.timeSlots.length <= 1) {
+    toast.error('At least one time slot is required');
+    return;
+  }
+  
+  const newTimeSlots = [...appointmentForm.timeSlots];
+  const removedSlot = newTimeSlots[index];
+  newTimeSlots.splice(index, 1);
+  
+  // Remove individual capacity for the removed slot
+  const updatedCapacities = { ...appointmentForm.individualCapacities };
+  if (removedSlot && updatedCapacities[removedSlot]) {
+    delete updatedCapacities[removedSlot];
+  }
+  
+  setAppointmentForm({
+    ...appointmentForm,
+    timeSlots: newTimeSlots,
+    individualCapacities: updatedCapacities
+  });
+};
+
+const updateTimeSlot = (index, value) => {
+  // Check if the time is already selected in another slot
+  const existingIndex = appointmentForm.timeSlots.findIndex((slot, i) => slot === value && i !== index);
+  if (value && existingIndex !== -1) {
+    toast.error('This time slot is already selected. Please choose a different time.');
+    return;
+  }
+  
+  const oldValue = appointmentForm.timeSlots[index];
+  const newTimeSlots = [...appointmentForm.timeSlots];
+  newTimeSlots[index] = value;
+  
+  // Update individual capacities - rename the key if it exists
+  const updatedCapacities = { ...appointmentForm.individualCapacities };
+  if (oldValue && updatedCapacities[oldValue] && value) {
+    updatedCapacities[value] = updatedCapacities[oldValue];
+    delete updatedCapacities[oldValue];
+  }
+  
+  setAppointmentForm({
+    ...appointmentForm,
+    timeSlots: newTimeSlots,
+    individualCapacities: updatedCapacities
+  });
+};
+
+// Get available time slots that haven't been selected yet
+const getAvailableTimeSlots = (currentIndex) => {
+  const selectedSlots = appointmentForm.timeSlots
+    .filter((slot, i) => slot && i !== currentIndex);
+  
+  return availableTimeSlots.filter(slot => !selectedSlots.includes(slot));
+};
+
+// Get bookings for a specific date with improved date handling
+const getBookingsForDate = (date) => {
+  const targetDate = new Date(date);
+  console.log(`Looking for bookings on: ${targetDate.toDateString()}`);
+  
+  const matchingBookings = bookingsData.filter(booking => {
+    const bookingDate = new Date(booking.date);
     
-    return days.map((day, index) => {
-      const dayNumber = day.getDate();
-      const isToday = formatDate(day) === formatDate(new Date());
-      const dateStr = formatDate(day);
-      
-      // Check if this day is selected
-      const isSelected = selectedDate && formatDate(day) === formatDate(selectedDate);
-      
-      const hasAppointments = appointments[dateStr] && appointments[dateStr].length > 0;
-      const bookings = getBookingsForDate(day);
-      
-      // Add debug info to see what dates are being rendered
-      console.log(`Rendering day: ${dateStr}, bookings: ${bookings.length}`);
-      
+    const sameYear = bookingDate.getUTCFullYear() === targetDate.getUTCFullYear();
+    const sameMonth = bookingDate.getUTCMonth() === targetDate.getUTCMonth();
+    const sameDay = bookingDate.getUTCDate() === targetDate.getUTCDate();
+    const isMatch = sameYear && sameMonth && sameDay;
+    
+    console.log(`Comparing booking: ${bookingDate.toDateString()} with target: ${targetDate.toDateString()}, match: ${isMatch}`);
+    
+    return isMatch;
+  });
+  
+  console.log(`Found ${matchingBookings.length} bookings for ${targetDate.toDateString()}`);
+  return matchingBookings;
+};
+
+// Get bookings organized by time slot
+const getBookingsByTimeSlot = (date) => {
+  const bookings = getBookingsForDate(date);
+  const slotMap = {};
+  
+  bookings.forEach(booking => {
+    if (!slotMap[booking.timeSlot]) {
+      slotMap[booking.timeSlot] = [];
+    }
+    slotMap[booking.timeSlot].push(booking);
+  });
+  
+  return Object.entries(slotMap)
+    .sort(([timeA], [timeB]) => timeA.localeCompare(timeB))
+    .map(([time, bookings]) => ({ time, bookings }));
+};
+
+// Render week days with improved date handling
+const renderWeekDays = () => {
+  const days = getNextSevenDays();
+  
+  return days.map((day, index) => {
+    const dayNumber = day.getDate();
+    const isToday = formatDate(day) === formatDate(new Date());
+    const dateStr = formatDate(day);
+    
+    const isSelected = selectedDate && formatDate(day) === formatDate(selectedDate);
+    
+    const hasAppointments = appointments[dateStr] && appointments[dateStr].length > 0;
+    const bookings = getBookingsForDate(day);
+    
+    console.log(`Rendering day: ${dateStr}, bookings: ${bookings.length}`);     
       return (
-        <div 
-          key={index}
-          className={`calendar-day 
-            ${isToday ? 'today' : ''}
-            ${isSelected ? 'selected' : ''}
-            ${viewMode === 'availability' && hasAppointments ? 'has-appointments' : ''}
-            ${viewMode === 'bookings' && bookings.length > 0 ? 'has-bookings' : ''}`}
-          onClick={() => handleDayClick(day)}
-        >
-          <div className="weekday-name">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.getDay()]}
-          </div>
-          <span className="day-number">{dayNumber}</span>
-          {viewMode === 'availability' && hasAppointments && (
-            <span className="appointment-count">
-              {appointments[dateStr].reduce((sum, appt) => sum + (appt.timeSlots?.length || 0), 0)}
-            </span>
-          )}
-          {viewMode === 'bookings' && bookings.length > 0 && (
-            <span className="booking-count">{bookings.length}</span>
-          )}
-        </div>
-      );
-    });
-  };
-
-  // Render bookings for selected date
-  const renderBookings = () => {
-    const bookingsBySlot = getBookingsByTimeSlot(selectedDate);
-    
-    if (bookingsBySlot.length === 0) {
-      return <div className="no-bookings">No bookings found for this date.</div>;
-    }
-    
-    return (
-      <div className="bookings-by-slot">
-        {bookingsBySlot.map(({ time, bookings }, index) => (
-          <div key={index} className="time-slot-bookings">
-            <h4 className="time-slot-header">
-              <Clock size={16} />
-              {time}
-              <span className="booking-count">{bookings.length} booking(s)</span>
-            </h4>
-            <div className="bookings-list">
-              {bookings.map(booking => (
-                <div key={booking._id} className={`booking-item ${booking.status}`}>
-                  <div className="booking-student-info">
-                    <div className="booking-student-name">
-                      <User size={16} />
-                      {booking.studentName}
-                    </div>
-                    <div className="booking-contact">
-                      <div className="booking-email">{booking.studentEmail}</div>
-                      <div className="booking-phone">{booking.studentPhone}</div>
-                    </div>
-                  </div>
-                  <div className="booking-actions">
-                    <div className="booking-status-badge">
-                      {booking.status}
-                    </div>
-                    <button 
-                      className="btn-view-details"
-                      onClick={() => props.onViewStudentDetails?.(booking._id)}
-                    >
-                      View Details
-                    </button>
-                  </div>
+              <div 
+                key={index}
+                className={`calendar-day 
+                  ${isToday ? 'today' : ''}
+                  ${isSelected ? 'selected' : ''}
+                  ${viewMode === 'availability' && hasAppointments ? 'has-appointments' : ''}
+                  ${viewMode === 'bookings' && bookings.length > 0 ? 'has-bookings' : ''}`}
+                onClick={() => handleDayClick(day)}
+              >
+                <div className="weekday-name">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.getDay()]}
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+                <span className="day-number">{dayNumber}</span>
+                {viewMode === 'availability' && hasAppointments && (
+                  <span className="appointment-count">
+                    {appointments[dateStr].reduce((sum, appt) => sum + (appt.timeSlots?.length || 0), 0)}
+                  </span>
+                )}
+                {viewMode === 'bookings' && bookings.length > 0 && (
+                  <span className="booking-count">{bookings.length}</span>
+                )}
+              </div>
+            );
+          });
+        };
 
-  // Render calendar header with date range - simplified to just show the date range
-  const renderCalendarHeader = () => {
-    const days = getNextSevenDays();
-    const startDate = days[0];
-    const endDate = days[6];
-    const options = { month: 'short', day: 'numeric' };
-    
-    return (
-      <div className="calendar-header">
-        <h2>
-          Current Week: {startDate.toLocaleDateString('default', options)} - {endDate.toLocaleDateString('default', options)}
-        </h2>
-      </div>
-    );
-  };
-
-  return (
-    <div className="appointment-calendar">
-      <div className="section-header">
-        <h2>Manage Appointment System</h2>
-        <p>Configure and view appointments for student pre-registration</p>
-      </div>
-      
-      <div className="view-mode-tabs">
-        <button 
-          className={`view-tab ${viewMode === 'availability' ? 'active' : ''}`}
-          onClick={() => setViewMode('availability')}
-        >
-          <Calendar size={18} />
-          Availability Settings
-        </button>
-        <button 
-          className={`view-tab ${viewMode === 'bookings' ? 'active' : ''}`}
-          onClick={() => setViewMode('bookings')}
-        >
-          <Users size={18} />
-          Booked Appointments
-        </button>
-      </div>
-      
-      {renderCalendarHeader()}
-      
-      <div className="calendar-days">
-        {renderWeekDays()}
-      </div>
-      
-      {isLoading && (
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-          <p>Loading appointment data...</p>
-        </div>
-      )}
-      
-      {error && (
-        <div className="error-state">
-          <AlertCircle size={24} />
-          <p>{error}</p>
-        </div>
-      )}
-      
-      {selectedDate && !isLoading && !error && viewMode === 'availability' && (
-        <div className="appointment-section">
-          <h3>
-            <Calendar size={20} />
-            Appointment Slots for {selectedDate.toLocaleDateString('default', { 
-              weekday: 'long', 
-              month: 'long', 
-              day: 'numeric', 
-              year: 'numeric' 
-            })}
-          </h3>
+        // Render bookings for selected date with capacity information
+        const renderBookings = () => {
+          const bookingsBySlot = getBookingsByTimeSlot(selectedDate);
           
-          {appointments[formatDate(selectedDate)]?.length > 0 ? (
-            <div className="appointment-list">
-              {appointments[formatDate(selectedDate)].map(appointment => (
-                <div key={appointment.id} className="appointment-item">
-                  <div className="appointment-info">
-                    <div className="appointment-slots">
-                      <strong>Available Time Slots:</strong>
-                      <div className="time-slots-container">
-                        {appointment.timeSlots?.length > 0 ? (
+          if (bookingsBySlot.length === 0) {
+            return <div className="no-bookings">No bookings found for this date.</div>;
+          }
+          
+          return (
+            <div className="bookings-by-slot">
+              {bookingsBySlot.map(({ time, bookings }, index) => {
+                // Find the appointment slot to get capacity info
+                const dateStr = formatDate(selectedDate);
+                const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+                
+                // Get appointment data for this day
+                const appointmentData = appointments[dateStr]?.find(appt => appt.dayOfWeek === dayOfWeek);
+                
+                // Find the specific time slot to get its capacity
+                let capacity = 0; // default fallback
+                
+                if (appointmentData) {
+                  // Check enhanced time slots first
+                  if (appointmentData.timeSlots && Array.isArray(appointmentData.timeSlots)) {
+                    const timeSlotData = appointmentData.timeSlots.find(slot => {
+                      if (typeof slot === 'object' && slot.time) {
+                        // Convert 24-hour format to 12-hour format for comparison
+                        const hour = parseInt(slot.time.split(':')[0]);
+                        const ampm = hour >= 12 ? 'PM' : 'AM';
+                        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                        const displayTime = `${displayHour}:00 ${ampm}`;
+                        return displayTime === time;
+                      }
+                      return false;
+                    });
+                    
+                    if (timeSlotData && timeSlotData.capacity) {
+                      capacity = timeSlotData.capacity;
+                    } else {
+                      capacity = appointmentData.defaultCapacity || 1;
+                    }
+                  } else {
+                    // Fallback to default capacity
+                    capacity = appointmentData.defaultCapacity || 1;
+                  }
+                }
+                
+                const isAtCapacity = bookings.length >= capacity;
+                
+                return (
+                  <div key={index} className="time-slot-bookings">
+                    <h4 className="time-slot-header">
+                      <Clock size={16} />
+                      {time}
+                      <span className={`booking-count ${isAtCapacity ? 'at-capacity' : ''}`}>
+                        {bookings.length}/{capacity} slots filled
+                      </span>
+                      {isAtCapacity && <span className="capacity-badge">FULL</span>}
+                    </h4>
+                    <div className="bookings-list">
+                      {bookings.map(booking => (
+                        <div key={booking._id} className={`booking-item ${booking.status}`}>
+                          <div className="booking-student-info">
+                            <div className="booking-student-name">
+                              <User size={16} />
+                              {booking.studentName}
+                            </div>
+                            <div className="booking-contact">
+                              <div className="booking-email">{booking.studentEmail}</div>
+                              <div className="booking-phone">{booking.studentPhone}</div>
+                            </div>
+                          </div>
+                          <div className="booking-actions">
+                            <div className="booking-status-badge">
+                              {booking.status}
+                            </div>
+                            <button 
+                              className="btn-view-details"
+                              onClick={() => props.onViewStudentDetails?.(booking._id)}
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        };
+        // Render calendar header with date range - simplified to just show the date range
+        const renderCalendarHeader = () => {
+          const days = getNextSevenDays();
+          const startDate = days[0];
+          const endDate = days[6];
+          const options = { month: 'short', day: 'numeric' };
+          
+          return (
+            <div className="calendar-header">
+              <h2>
+                Current Week: {startDate.toLocaleDateString('default', options)} - {endDate.toLocaleDateString('default', options)}
+              </h2>
+            </div>
+          );
+        };
+
+        return (
+          <div className="appointment-calendar">
+            <div className="section-header">
+              <h2>Manage Appointment System</h2>
+              <p>Configure and view appointments for student pre-registration</p>
+            </div>
+            
+            <div className="view-mode-tabs">
+              <button 
+                className={`view-tab ${viewMode === 'availability' ? 'active' : ''}`}
+                onClick={() => setViewMode('availability')}
+              >
+                <Calendar size={18} />
+                Availability Settings
+              </button>
+              <button 
+                className={`view-tab ${viewMode === 'bookings' ? 'active' : ''}`}
+                onClick={() => setViewMode('bookings')}
+              >
+                <Users size={18} />
+                Booked Appointments
+              </button>
+            </div>
+            
+            {renderCalendarHeader()}
+            
+            <div className="calendar-days">
+              {renderWeekDays()}
+            </div>
+            
+            {isLoading && (
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>Loading appointment data...</p>
+              </div>
+            )}
+            
+            {error && (
+              <div className="error-state">
+                <AlertCircle size={24} />
+                <p>{error}</p>
+              </div>
+            )}
+            
+            {selectedDate && !isLoading && !error && viewMode === 'availability' && (
+              <div className="appointment-section">
+                <h3>
+                  <Calendar size={20} />
+                  Appointment Slots for {selectedDate.toLocaleDateString('default', { 
+                    weekday: 'long', 
+                    month: 'long', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
+                </h3>
+                
+                {appointments[formatDate(selectedDate)]?.length > 0 ? (
+                  <div className="appointment-list">
+                    {appointments[formatDate(selectedDate)].map(appointment => (
+                      <div key={appointment.id} className="appointment-item">
+                        <div className="appointment-info">
+                          <div className="appointment-slots">
+                            <strong>Available Time Slots:</strong>
+                            <div className="time-slots-container">
+                            {appointment.timeSlots?.length > 0 ? (
                           appointment.timeSlots.map((slot, index) => {
-                            const hour = parseInt(slot.split(':')[0]);
-                            const ampm = hour >= 12 ? 'PM' : 'AM';
-                            const displayHour = hour > 12 ? hour - 12 : hour;
+                            let timeDisplay, capacity;
+                            
+                            // Handle both enhanced and simple time slot formats
+                            if (typeof slot === 'object' && slot.time) {
+                              const hour = parseInt(slot.time.split(':')[0]);
+                              const ampm = hour >= 12 ? 'PM' : 'AM';
+                              const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                              timeDisplay = `${displayHour}:00 ${ampm}`;
+                              
+                              // Fixed capacity logic
+                              capacity = (slot.capacity !== undefined) 
+                                ? slot.capacity 
+                                : (appointment.defaultCapacity !== undefined) 
+                                  ? appointment.defaultCapacity 
+                                  : 3;
+                                  
+                            } else if (typeof slot === 'string') {
+                              const hour = parseInt(slot.split(':')[0]);
+                              const ampm = hour >= 12 ? 'PM' : 'AM';
+                              const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                              timeDisplay = `${displayHour}:00 ${ampm}`;
+                              
+                              // Fixed capacity logic
+                              capacity = (appointment.defaultCapacity !== undefined) 
+                                ? appointment.defaultCapacity 
+                                : 3;
+                            }
+                            
+                            // Get current bookings for this time slot
+                            const currentBookings = getBookingsByTimeSlot(selectedDate)
+                              .find(booking => booking.time === timeDisplay)?.bookings?.length || 0;
+                            
                             return (
                               <div key={index} className="time-slot">
                                 <Clock size={14} />
-                                <span>{`${displayHour}:00 ${ampm}`}</span>
+                                <span>{timeDisplay}</span>
+                                <span className="capacity-info">
+                                  ({currentBookings}/{capacity} booked)
+                                </span>
+                                {currentBookings >= capacity && (
+                                  <span className="full-badge">FULL</span>
+                                )}
                               </div>
                             );
-                          })
+                          }).filter(Boolean) // Remove null values
                         ) : (
                           <span className="no-slots">No time slots defined</span>
                         )}
+                            </div>
+                          </div>
+                          {appointment.defaultCapacity && (
+                            <div className="default-capacity-info">
+                              <strong>Default Capacity per Slot:</strong> {appointment.defaultCapacity} students
+                            </div>
+                          )}
+                        </div>
+                        <div className="appointment-actions">
+                          <button onClick={() => editAppointment(appointment)}>Edit</button>
+                          <button onClick={() => deleteAppointment(appointment.id)}>Delete</button>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-appointments">
+                    <p>No appointment slots configured for this date.</p>
+                    <p>Click the button below to add availability.</p>
+                    <button 
+                  className="add-appointment-button"
+                  onClick={() => {
+                    setIsFormVisible(!isFormVisible);
+                    setEditingAppointmentId(null);
+                    if (!isFormVisible) {
+                      setAppointmentForm({
+                        timeSlots: [''],
+                        purpose: 'Student Registration',
+                        defaultCapacity: 1,
+                        individualCapacities: {}
+                      });
+                    }
+                  }}
+                  disabled={isLoading}
+                >
+                  {isFormVisible ? 'Cancel' : 'Add Availability'}
+                </button>
+                  </div>
+                )}
+                
+                {isFormVisible && (
+                  <div className="appointment-form">
+                    <h4>
+                      {editingAppointmentId ? 'Edit Appointment Availability' : 'New Appointment Availability'}
+                    </h4>
+                    
+                    <div className="form-group">
+                      <label>Purpose:</label>
+                      <input 
+                        type="text" 
+                        name="purpose" 
+                        value={appointmentForm.purpose}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Student Registration, Document Submission"
+                      />
                     </div>
-                  </div>
-                  <div className="appointment-actions">
-                    <button onClick={() => editAppointment(appointment)}>Edit</button>
-                    <button onClick={() => deleteAppointment(appointment.id)}>Delete</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="no-appointments">
-              <p>No appointment slots configured for this date.</p>
-              <p>Click the button below to add availability.</p>
-              <button 
-            className="add-appointment-button"
-            onClick={() => {
-              setIsFormVisible(!isFormVisible);
-              setEditingAppointmentId(null);
-              if (!isFormVisible) {
-                setAppointmentForm({
-                  timeSlots: [''],
-                  purpose: 'Student Registration',
-                });
-              }
-            }}
-            disabled={isLoading}
-          >
-            {isFormVisible ? 'Cancel' : 'Add Availability'}
-          </button>
-            </div>
-          )}
-          
-          {isFormVisible && (
-            <div className="appointment-form">
-              <h4>
-                {editingAppointmentId ? 'Edit Appointment Availability' : 'New Appointment Availability'}
-              </h4>
-              
-              <div className="form-group">
-                <label>Purpose:</label>
-                <input 
-                  type="text" 
-                  name="purpose" 
-                  value={appointmentForm.purpose}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Student Registration, Document Submission"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Time Slots:</label>
-                {appointmentForm.timeSlots.map((timeSlot, index) => {
-                  // Get available time slots for this dropdown (including currently selected value)
-                  const availableOptions = timeSlot 
-                    ? [...getAvailableTimeSlots(index), timeSlot] 
-                    : getAvailableTimeSlots(index);
-                  
-                  return (
-                    <div key={index} className="time-slot-input">
-                      <select
-                        value={timeSlot}
-                        onChange={(e) => updateTimeSlot(index, e.target.value)}
-                        required
-                        className="time-slot-select"
-                      >
-                        <option value="">Select a time</option>
-                        {availableOptions.sort().map(slot => {
-                          const hour = parseInt(slot.split(':')[0]);
-                          const ampm = hour >= 12 ? 'PM' : 'AM';
-                          const displayHour = hour > 12 ? hour - 12 : hour;
-                          return (
-                            <option key={slot} value={slot}>
-                              {`${displayHour}:00 ${ampm}`}
-                            </option>
-                          );
-                        })}
-                      </select>
+                    
+                    <div className="form-group">
+                      <label>Default Capacity per Time Slot:</label>
+                      <input 
+                        type="number" 
+                        name="defaultCapacity" 
+                        value={appointmentForm.defaultCapacity}
+                        onChange={handleInputChange}
+                        min="1"
+                        max="10"
+                        placeholder="Number of students per slot"
+                      />
+                      <small className="form-help-text">
+                        This sets the default number of students that can book each time slot. 
+                        You can customize individual slots below.
+                      </small>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>Time Slots:</label>
+                      {appointmentForm.timeSlots.map((timeSlot, index) => {
+                        // Get available time slots for this dropdown (including currently selected value)
+                        const availableOptions = timeSlot 
+                          ? [...getAvailableTimeSlots(index), timeSlot] 
+                          : getAvailableTimeSlots(index);
+                        
+                        const individualCapacity = appointmentForm.individualCapacities?.[timeSlot] || '';
+                        
+                        return (
+                          <div key={index} className="time-slot-input">
+                            <div className="time-slot-row">
+                              <select
+                                value={timeSlot}
+                                onChange={(e) => updateTimeSlot(index, e.target.value)}
+                                required
+                                className="time-slot-select"
+                              >
+                                <option value="">Select a time</option>
+                                {availableOptions.sort().map(slot => {
+                                  const hour = parseInt(slot.split(':')[0]);
+                                  const ampm = hour >= 12 ? 'PM' : 'AM';
+                                  const displayHour = hour > 12 ? hour - 12 : hour;
+                                  return (
+                                    <option key={slot} value={slot}>
+                                      {`${displayHour}:00 ${ampm}`}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              
+                              {timeSlot && (
+                                <div className="capacity-input-group">
+                                  <label className="capacity-label">Custom Capacity:</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    placeholder={`Default: ${appointmentForm.defaultCapacity}`}
+                                    value={individualCapacity}
+                                    onChange={(e) => updateIndividualCapacity(timeSlot, e.target.value)}
+                                    className="capacity-input"
+                                  />
+                                </div>
+                              )}
+                              
+                              <button 
+                                type="button" 
+                                className="remove-slot-button"
+                                onClick={() => removeTimeSlot(index)}
+                                disabled={appointmentForm.timeSlots.length <= 1}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                       <button 
                         type="button" 
-                        className="remove-slot-button"
-                        onClick={() => removeTimeSlot(index)}
-                        disabled={appointmentForm.timeSlots.length <= 1}
+                        className="add-slot-button"
+                        onClick={addTimeSlot}
+                        disabled={appointmentForm.timeSlots.filter(slot => slot !== '').length >= availableTimeSlots.length}
                       >
-                        Remove
+                        + Add Time Slot
                       </button>
-                    </div>
-                  );
-                })}
-                <button 
-                  type="button" 
-                  className="add-slot-button"
-                  onClick={addTimeSlot}
-                  disabled={appointmentForm.timeSlots.filter(slot => slot !== '').length >= availableTimeSlots.length}
-                >
-                  + Add Time Slot
-                </button>
-              </div>              
-              <button 
-                onClick={saveAppointment}
-                disabled={isLoading}
-                className="save-button"
-              >
-                {isLoading ? 'Saving...' : 'Save Availability'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {selectedDate && !isLoading && !error && viewMode === 'bookings' && (
-        <div className="bookings-section">
-          <div className="bookings-header">
-            <h3>
-              <Users size={20} />
-              Bookings for {selectedDate.toLocaleDateString('default', { 
-                weekday: 'long', 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })}
-            </h3>
+                    </div>              
+                    <button 
+                      onClick={saveAppointment}
+                      disabled={isLoading}
+                      className="save-button"
+                    >
+                      {isLoading ? 'Saving...' : 'Save Availability'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {selectedDate && !isLoading && !error && viewMode === 'bookings' && (
+              <div className="bookings-section">
+                <div className="bookings-header">
+                  <h3>
+                    <Users size={20} />
+                    Bookings for {selectedDate.toLocaleDateString('default', { 
+                      weekday: 'long', 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </h3>
+                </div>
+                
+                {renderBookings()}
+              </div>
+            )}
           </div>
-          
-          {renderBookings()}
-        </div>
-      )}
-    </div>
-  );
-};
+        );
+      };
 
-UpdateAppointment.propTypes = {
-  studentData: PropTypes.array,
-  onViewStudentDetails: PropTypes.func,
-};
+      UpdateAppointment.propTypes = {
+        studentData: PropTypes.array,
+        onViewStudentDetails: PropTypes.func,
+      };
 
-UpdateAppointment.defaultProps = {
-  studentData: [],
-  onViewStudentDetails: null,
-};
+      UpdateAppointment.defaultProps = {
+        studentData: [],
+        onViewStudentDetails: null,
+      };
 
 export default UpdateAppointment;
