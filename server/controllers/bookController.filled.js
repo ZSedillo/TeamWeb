@@ -1,18 +1,22 @@
+// filepath: d:\TeamWeb\server\controllers\bookController.js
 const bookModel = require("../models/Book.js");
 const preRegistrationModel = require("../models/PreRegistration.js");
 
 // Helper: Get filled count for each slot for the next 7 days
-async function getFilledCountsForSlots() {
+async function getFilledCountsForSlots(availability) {
+    // Get all bookings for the next 7 days
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const end = new Date(today);
     end.setDate(today.getDate() + 7);
 
+    // Fetch all bookings in the next 7 days
     const bookings = await preRegistrationModel.find({
         appointment_date: { $gte: today, $lt: end },
         preferred_time: { $ne: null }
     });
 
+    // Build a map: { 'YYYY-MM-DD': { '09:00': count, ... }, ... }
     const filledMap = {};
     bookings.forEach(b => {
         if (!b.appointment_date || !b.preferred_time) return;
@@ -33,14 +37,16 @@ const getBookingAvailability = async (req, res) => {
     try {
         const availabilityData = await bookModel.find();
         const filledCounts = await getFilledCountsForSlots();
+        // For each bookModel, for each day, for each slot, add filled count for each of the next 7 days
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const result = availabilityData.map(book => {
             const newAvailability = {};
             for (const day of Object.keys(book.availability)) {
                 newAvailability[day] = book.availability[day].map(slot => {
+                    // For each of the next 7 days, if the day matches, add filled count
                     const slotWithFilled = { ...slot._doc };
-                    slotWithFilled.filled = 0;
+                    slotWithFilled.filled = 0; // default
                     for (let i = 0; i < 7; i++) {
                         const date = new Date(today);
                         date.setDate(today.getDate() + i);
@@ -61,41 +67,6 @@ const getBookingAvailability = async (req, res) => {
     }
 };
 
-// Add new booking availability
-const addBookingAvailability = async (req, res) => {
-    try {
-        const { availability, limits } = req.body;
-
-        const newAvailability = new bookModel({ availability, limits });
-
-        await newAvailability.save();
-
-        res.status(201).json({ message: "Availability added", data: newAvailability });
-    } catch (error) {
-        res.status(500).json({ error: "Server error" });
-    }
-};
-
-// Edit (or delete) booking availability
-const editBookingAvailability = async (req, res) => {
-    try {
-        const { availability, limits } = req.body;
-        const updateFields = { availability };
-        if (limits !== undefined) updateFields.limits = limits;
-        const updatedAvailability = await bookModel.findByIdAndUpdate(
-            req.params.id,
-            updateFields,
-            { new: true }
-        );
-
-        if (!updatedAvailability) {
-            return res.status(404).json({ error: "Availability not found" });
-        }
-
-        res.json({ message: "Availability updated", data: updatedAvailability });
-    } catch (error) {
-        res.status(500).json({ error: "Server error" });
-    }
-};
+// ...existing code for addBookingAvailability and editBookingAvailability...
 
 module.exports = { getBookingAvailability, addBookingAvailability, editBookingAvailability };
