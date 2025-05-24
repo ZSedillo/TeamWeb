@@ -227,7 +227,7 @@ const fetchBookingsData = async () => {
             _id: student._id,
             date: appointmentDate,
             timeSlot: student.preferred_time || "09:00",
-            studentName: student.name,
+            studentName: student.lastName + ", " + student.firstName,
             studentEmail: student.email,
             studentPhone: student.phone_number,
             purpose: student.purpose_of_visit || "Registration",
