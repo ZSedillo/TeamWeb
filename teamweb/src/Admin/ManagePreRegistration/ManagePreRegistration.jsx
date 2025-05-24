@@ -1013,7 +1013,11 @@ const handleEnrollmentChange = async () => {
                                                                     <span className="details-label">Date:</span>
                                                                     <span className="details-value">
                                                                         {student.appointment_date
-                                                                            ? formatLocalDate(student.appointment_date, true)
+                                                                            ? new Date(student.appointment_date).toLocaleDateString("en-US", {
+                                                                                year: "numeric",
+                                                                                month: "long",
+                                                                                day: "numeric",
+                                                                            })
                                                                             : "Not scheduled"}
                                                                     </span>
                                                                 </div>

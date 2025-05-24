@@ -126,25 +126,14 @@ const handleConfirm = async () => {
     // Format date for display
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        // Parse as local date to avoid timezone shift
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-            const [year, month, day] = dateString.split('-').map(Number);
-            const date = new Date(year, month - 1, day + 1);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } else {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
     };
-    
+        
     // Format time for display
     const formatTime = (timeStr) => {
         if (!timeStr) return '';
