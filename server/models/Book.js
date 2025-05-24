@@ -22,14 +22,14 @@ const bookSchema = new mongoose.Schema({
   availability: {
     Monday: [{
       time: String,
-      max: { type: Number, default: 3 }, // default max bookings per slot
+      max: { type: Number }, // default max bookings per slot
     }],
-    Tuesday: [{ time: String, max: { type: Number, default: 3 } }],
-    Wednesday: [{ time: String, max: { type: Number, default: 3 } }],
-    Thursday: [{ time: String, max: { type: Number, default: 3 } }],
-    Friday: [{ time: String, max: { type: Number, default: 3 } }],
-    Saturday: [{ time: String, max: { type: Number, default: 3 } }],
-    Sunday: [{ time: String, max: { type: Number, default: 3 } }],
+    Tuesday: [{ time: String, max: { type: Number } }],
+    Wednesday: [{ time: String, max: { type: Number } }],
+    Thursday: [{ time: String, max: { type: Number } }],
+    Friday: [{ time: String, max: { type: Number } }],
+    Saturday: [{ time: String, max: { type: Number } }],
+    Sunday: [{ time: String, max: { type: Number } }],
   },
   limits: {
     Monday: { type: Map, of: Number },
