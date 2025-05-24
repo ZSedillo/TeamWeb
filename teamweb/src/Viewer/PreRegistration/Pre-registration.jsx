@@ -21,7 +21,11 @@ function PreRegistration() {
         parentMobileNumber: "",
         yearLevel: "",
         strand: "",
-        needsAppointment: ""
+        needsAppointment: "",
+        // Add appointment fields to main form state
+        appointment_date: "",
+        preferred_time: "",
+        purpose_of_visit: ""
     });
     const [formErrors, setFormErrors] = useState({});
     const [progress, setProgress] = useState(0);
@@ -80,6 +84,19 @@ function PreRegistration() {
 
         if ((data.yearLevel === '11' || data.yearLevel === '12') && !data.strand) {
             errors.strand = "Strand is required for Senior High School students";
+        }
+
+        // Appointment validation
+        if (data.needsAppointment === "yes") {
+            if (!data.appointment_date) {
+                errors.appointment_date = "Please select an appointment date.";
+            }
+            if (!data.preferred_time) {
+                errors.preferred_time = "Please select an appointment time.";
+            }
+            if (!data.purpose_of_visit || !data.purpose_of_visit.trim()) {
+                errors.purpose_of_visit = "Please enter a purpose for your appointment.";
+            }
         }
 
         return errors;
@@ -397,7 +414,19 @@ function PreRegistration() {
                     <div className="pre-reg-appointment-section">
                         <div className="pre-reg-subtitle">Appointment Details</div>
                         <div className="appointment-form-embedded">
-                            <Appointment embedded={true} preRegEmail={formData.email} />
+                            <Appointment
+                                embedded={true}
+                                preRegEmail={formData.email}
+                                appointmentDate={formData.appointment_date}
+                                appointmentTime={formData.preferred_time}
+                                appointmentReason={formData.purpose_of_visit}
+                                setAppointmentDate={date => setFormData(prev => ({ ...prev, appointment_date: date }))}
+                                setAppointmentTime={time => setFormData(prev => ({ ...prev, preferred_time: time }))}
+                                setAppointmentReason={reason => setFormData(prev => ({ ...prev, purpose_of_visit: reason }))}
+                            />
+                            {formErrors.appointment_date && <div className="error">{formErrors.appointment_date}</div>}
+                            {formErrors.preferred_time && <div className="error">{formErrors.preferred_time}</div>}
+                            {formErrors.purpose_of_visit && <div className="error">{formErrors.purpose_of_visit}</div>}
                         </div>
                     </div>
                 )}

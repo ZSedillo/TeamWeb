@@ -3,11 +3,17 @@ import './Appointment.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-function Appointment({ embedded = false, preRegEmail = '' }) {
+function Appointment({
+    embedded = false,
+    preRegEmail = '',
+    appointmentDate,
+    appointmentTime,
+    appointmentReason,
+    setAppointmentDate,
+    setAppointmentTime,
+    setAppointmentReason
+}) {
     const [email, setEmail] = useState(preRegEmail || "");
-    const [appointmentDate, setAppointmentDate] = useState("");
-    const [appointmentTime, setAppointmentTime] = useState("");
-    const [appointmentReason, setAppointmentReason] = useState("");
     const [errors, setErrors] = useState({});
     const [bookingSuccess, setBookingSuccess] = useState(false);
 
@@ -50,27 +56,20 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
     }, [preRegEmail]);
 
     useEffect(() => {
-        const checkAndSaveEmbeddedAppointment = () => {
-            if (embedded && appointmentDate && appointmentTime && appointmentReason) {
-                const { filled, max } = getSlotInfoForDate(appointmentDate, appointmentTime);
-                if (filled >= max) {
-                    setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
-                    sessionStorage.removeItem('appointmentData');
-                    return;
-                }
-
+        // Only save to sessionStorage if all fields are filled and slot is available
+        if (embedded && appointmentDate && appointmentTime && appointmentReason) {
+            const { filled, max } = getSlotInfoForDate(appointmentDate, appointmentTime);
+            if (max > 0 && filled < max) {
                 const appointmentData = {
                     appointment_date: appointmentDate,
                     preferred_time: appointmentTime,
                     purpose_of_visit: appointmentReason
                 };
-                sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
-            } else if (embedded) {
-                sessionStorage.removeItem('appointmentData');
+                setErrors(prev => ({ ...prev, appointmentTime: '' }));
+            } else if (max > 0 && filled >= max) {
+                setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
             }
-        };
-
-        checkAndSaveEmbeddedAppointment();
+        }
     }, [embedded, appointmentDate, appointmentTime, appointmentReason, availabilityData]);
 
     const loadAvailabilityData = async () => {
@@ -157,8 +156,13 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
     const handleDateSelect = (dateString) => {
         setAppointmentDate(dateString);
         setAppointmentTime("");
-        const selectedDate = availableDates.find(d => d.date === dateString);
-        setAvailableTimes(selectedDate?.times || []);
+        // Find the selected date object from availableDates
+        const selectedDateObj = availableDates.find(d => d.date === dateString);
+        if (selectedDateObj) {
+            setAvailableTimes(selectedDateObj.times);
+        } else {
+            setAvailableTimes([]);
+        }
         setErrors(prev => ({ ...prev, appointmentDate: "", appointmentTime: "" }));
     };
 
@@ -227,7 +231,12 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
 
                 <div className="date-selector">
                     {availableDates.map(({ date, formattedDate }) => (
-                        <button key={date} type="button" onClick={() => handleDateSelect(date)}>
+                        <button
+                            key={date}
+                            type="button"
+                            className={appointmentDate === date ? "selected" : ""}
+                            onClick={() => handleDateSelect(date)}
+                        >
                             {formattedDate}
                         </button>
                     ))}
@@ -238,6 +247,7 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                         <button
                             key={time}
                             type="button"
+                            className={appointmentTime === time ? "selected" : ""}
                             disabled={filled >= max}
                             onClick={() => handleTimeSelect(time)}
                         >
@@ -246,7 +256,10 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                     ))}
                 </div>
 
-                <button type="submit">Review Appointment</button>
+                {/* Only show the Review Appointment button if not embedded */}
+                {!embedded && (
+                    <button type="submit">Review Appointment</button>
+                )}
             </form>
         </div>
     );

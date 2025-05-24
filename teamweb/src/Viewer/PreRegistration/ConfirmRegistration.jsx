@@ -5,22 +5,11 @@ import './Pre-registration.css';
 
 function ConfirmRegistration() {
     const [formData, setFormData] = useState(null);
-    const [appointmentData, setAppointmentData] = useState(null);
 
     useEffect(() => {
         const storedData = sessionStorage.getItem('preRegFormData');
         if (storedData) {
-            const parsedData = JSON.parse(storedData);
-            setFormData(parsedData);
-            
-            // Check if the user has selected to book an appointment
-            if (parsedData.needsAppointment === "yes") {
-                // Look for appointment data in sessionStorage
-                const storedAppointmentData = sessionStorage.getItem('appointmentData');
-                if (storedAppointmentData) {
-                    setAppointmentData(JSON.parse(storedAppointmentData));
-                }
-            }
+            setFormData(JSON.parse(storedData));
         } else {
             window.location.href = '/preregistration';
         }
@@ -28,104 +17,90 @@ function ConfirmRegistration() {
 
     const handleEdit = (e) => {
         e.preventDefault();
-        // Keep the data in sessionStorage when going back to edit
         window.location.href = '/preregistration?edit=true';
     };
 
-const handleConfirm = async () => {
-    if (!formData) return;
+    const handleConfirm = async () => {
+        if (!formData) return;
 
-    console.log("Raw Date of Birth from formData:", formData.dateOfBirth);
+        console.log("Raw Date of Birth from formData:", formData.dateOfBirth);
 
-    const gradeLevel = formData.yearLevel;
-    const isSeniorHigh = gradeLevel === "11" || gradeLevel === "12";
-    const currentYear = new Date().getFullYear().toString();
+        const gradeLevel = formData.yearLevel;
+        const isSeniorHigh = gradeLevel === "11" || gradeLevel === "12";
+        const currentYear = new Date().getFullYear().toString();
 
-    const preRegistrationData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone_number: formData.mobileNumber,
-        age: new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear(),
-        birthdate: new Date(formData.dateOfBirth).toISOString(),
-        gender: formData.gender,
-        grade_level: gradeLevel,
-        strand: isSeniorHigh ? formData.strand || "" : "",
-        email: formData.email,
-        nationality: formData.nationality,
-        parent_guardian_name: `${formData.parentFirstName} ${formData.parentLastName}`,
-        parent_guardian_number: formData.parentMobileNumber,
-        isNewStudent: formData.isNewStudent?.toLowerCase() === "new" ? "new" : "old",
-        status: "pending",
-        address: formData.address || "", // Ensure address is included and has a default value
-        registration_year: currentYear, // Add the registration year
-    };
-    
-    console.log("Pre-registration data to be sent:", preRegistrationData);
-    
-    try {
-        // First, submit the pre-registration data
-        const response = await fetch("https://teamweb-kera.onrender.com/preregistration/add", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(preRegistrationData),
-        });
+        const preRegistrationData = {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone_number: formData.mobileNumber,
+            age: new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear(),
+            birthdate: new Date(formData.dateOfBirth).toISOString(),
+            gender: formData.gender,
+            grade_level: gradeLevel,
+            strand: isSeniorHigh ? formData.strand || "" : "",
+            email: formData.email,
+            nationality: formData.nationality,
+            parent_guardian_name: `${formData.parentFirstName} ${formData.parentLastName}`,
+            parent_guardian_number: formData.parentMobileNumber,
+            isNewStudent: formData.isNewStudent?.toLowerCase() === "new" ? "new" : "old",
+            status: "pending",
+            address: formData.address || "", // Ensure address is included and has a default value
+            registration_year: currentYear, // Add the registration year
+        };
+        
+        console.log("Pre-registration data to be sent:", preRegistrationData);
+        
+        try {
+            // First, submit the pre-registration data
+            const response = await fetch("https://teamweb-kera.onrender.com/preregistration/add", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(preRegistrationData),
+            });
 
-        const result = await response.json();
+            const result = await response.json();
 
-        if (response.ok) {
-            // If appointment data exists, also submit that
-            if (appointmentData && formData.needsAppointment === "yes") {
-                try {
-                    console.log("Submitting appointment data:", {
-                        email: formData.email,
-                        appointment_date: appointmentData.appointment_date,
-                        preferred_time: appointmentData.preferred_time,
-                        purpose_of_visit: appointmentData.purpose_of_visit
-                    });
-                    
-                    // Increment the appointment date by 1 day before sending to the backend
-                    const appointmentDateObj = new Date(appointmentData.appointment_date);
-                    appointmentDateObj.setDate(appointmentDateObj.getDate() + 1);
-                    const incrementedAppointmentDate = appointmentDateObj.toISOString().split('T')[0];
-                    const bookingResponse = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: formData.email,
-                            appointment_date: incrementedAppointmentDate,
-                            preferred_time: appointmentData.preferred_time,
-                            purpose_of_visit: appointmentData.purpose_of_visit,
-                        }),
-                    });
-                    
-                    if (!bookingResponse.ok) {
-                        const bookingResult = await bookingResponse.json();
-                        console.error("Booking error:", bookingResult.error);
-                        // Continue to success page even if booking fails
+            if (response.ok) {
+                // If appointment data exists in formData, also submit that
+                if (formData.needsAppointment === "yes" && formData.appointment_date && formData.preferred_time && formData.purpose_of_visit) {
+                    try {
+                        // Increment the appointment date by 1 day before sending to the backend
+                        const appointmentDateObj = new Date(formData.appointment_date);
+                        appointmentDateObj.setDate(appointmentDateObj.getDate() + 1);
+                        const incrementedAppointmentDate = appointmentDateObj.toISOString().split('T')[0];
+                        const bookingResponse = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                email: formData.email,
+                                appointment_date: incrementedAppointmentDate,
+                                preferred_time: formData.preferred_time,
+                                purpose_of_visit: formData.purpose_of_visit
+                            }),
+                        });
+                        if (!bookingResponse.ok) {
+                            const bookingResult = await bookingResponse.json();
+                            console.error("Booking error:", bookingResult.error);
+                        }
+                    } catch (bookingError) {
+                        console.error("Error submitting appointment:", bookingError);
                     }
-                } catch (bookingError) {
-                    console.error("Error submitting appointment:", bookingError);
-                    // Continue to success page even if booking fails
                 }
+                sessionStorage.setItem("registrationSuccess", "true");
+                sessionStorage.removeItem("preRegFormData");
+                window.location.href = "/success";
+            } else {
+                alert(`Error: ${result.error || "Something went wrong"}`);
             }
-            
-            // Clear data and redirect to success page
-            sessionStorage.setItem("registrationSuccess", "true");
-            sessionStorage.removeItem("preRegFormData");
-            sessionStorage.removeItem("appointmentData");
-            window.location.href = "/success";
-        } else {
-            alert(`Error: ${result.error || "Something went wrong"}`);
+        } catch (error) {
+            console.error("Error submitting registration:", error);
+            alert("Failed to submit registration. Please try again.");
         }
-    } catch (error) {
-        console.error("Error submitting registration:", error);
-        alert("Failed to submit registration. Please try again.");
-    }
-};
+    };
     
     // Format date for display
     const formatDate = (dateString) => {
@@ -193,13 +168,13 @@ const handleConfirm = async () => {
                 </div>
 
                 {/* Appointment Information Section (if applicable) */}
-                {formData.needsAppointment === "yes" && appointmentData && (
+                {formData.needsAppointment === "yes" && formData.appointment_date && (
                     <div className="pre-reg-confirm-section">
                         <h3>Appointment Details</h3>
                         <div className="pre-reg-confirm-grid">
-                            <p><strong>Date:</strong> {formatDate(appointmentData.appointment_date)}</p>
-                            <p><strong>Time:</strong> {formatTime(appointmentData.preferred_time)}</p>
-                            <p><strong>Purpose:</strong> {appointmentData.purpose_of_visit}</p>
+                            <p><strong>Date:</strong> {formatDate(formData.appointment_date)}</p>
+                            <p><strong>Time:</strong> {formatTime(formData.preferred_time)}</p>
+                            <p><strong>Purpose:</strong> {formData.purpose_of_visit}</p>
                         </div>
                     </div>
                 )}
