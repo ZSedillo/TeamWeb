@@ -213,43 +213,34 @@ const createDefaultAvailability = async () => {
   
 const fetchBookingsData = async () => {
   try {
-    if (props.studentData && props.studentData.length > 0) {
-      console.log("Processing student data:", props.studentData);
-      
-      const studentBookings = props.studentData.map(student => {
-        if (student.appointment_date) {
-          // Parse the appointment date string
-          let appointmentDate = new Date(student.appointment_date);
-          
-          console.log(`Original date: ${student.appointment_date}`);
-          console.log(`Used date: ${appointmentDate.toISOString()}`);
-          return {
-            _id: student._id,
-            date: appointmentDate,
-            timeSlot: student.preferred_time || "09:00",
-            studentName: student.lastName + ", " + student.firstName,
-            studentEmail: student.email,
-            studentPhone: student.phone_number,
-            purpose: student.purpose_of_visit || "Registration",
-            status: student.status === "approved" ? "confirmed" : "pending",
-            grade_level: student.grade_level,
-            strand: student.strand,
-            gender: student.gender,
-          };
-        }
-        return null;
-      }).filter(booking => booking !== null);
-      
-      if (studentBookings.length > 0) {
-        console.log("Processed bookings data:", studentBookings);
-        setBookingsData(studentBookings);
-        return;
-      }
-    }
-    
-    // Rest of the function remains the same...
+    // Get the start and end of the current week
+    const weekDays = getNextSevenDays();
+    const start = weekDays[0];
+    const end = weekDays[6];
+    const startStr = start.toISOString().split('T')[0];
+    const endStr = end.toISOString().split('T')[0];
+    // Fetch all bookings for the week from backend
+    const response = await fetch(`https://teamweb-kera.onrender.com/booking/getBookings?start=${startStr}&end=${endStr}`);
+    if (!response.ok) throw new Error('Failed to fetch bookings');
+    const bookings = await response.json();
+    // Map bookings to the format expected by the frontend
+    const mapped = bookings.map(booking => ({
+      _id: booking._id,
+      date: booking.appointment_date,
+      timeSlot: booking.preferred_time?.time || booking.preferred_time || '09:00',
+      studentName: booking.lastName + ', ' + booking.firstName,
+      studentEmail: booking.email,
+      studentPhone: booking.phone_number,
+      purpose: booking.purpose_of_visit || 'Registration',
+      status: booking.status === 'approved' ? 'confirmed' : 'pending',
+      grade_level: booking.grade_level,
+      strand: booking.strand,
+      gender: booking.gender,
+    }));
+    setBookingsData(mapped);
   } catch (err) {
-    console.error("Failed to fetch bookings:", err);
+    setBookingsData([]);
+    console.error('Failed to fetch bookings:', err);
   }
 };
 
@@ -265,6 +256,10 @@ const fetchBookingsData = async () => {
     }
     
     setIsFormVisible(false);
+    // Always refresh bookings when switching days in bookings view
+    if (viewMode === 'bookings') {
+      fetchBookingsData();
+    }
   };
 
   // Handle form input change
@@ -581,15 +576,31 @@ const fetchBookingsData = async () => {
   // Get bookings organized by time slot
   const getBookingsByTimeSlot = (date) => {
     const bookings = getBookingsForDate(date);
+    const dateStr = formatDate(date);
+    // Get all possible slots for this date from availability (if any)
+    let slotsFromAvailability = [];
+    if (appointments[dateStr] && appointments[dateStr][0] && appointments[dateStr][0].timeSlots) {
+      slotsFromAvailability = appointments[dateStr][0].timeSlots.map(slot =>
+        typeof slot === 'object' && slot.time ? slot.time : slot
+      );
+    }
+    // Get all slots that have bookings, even if not in availability
+    const slotsFromBookings = Array.from(new Set(bookings.map(b => b.timeSlot)));
+    // If there is no availability for the day, but there are bookings, use all slots from bookings
+    const allSlots = slotsFromAvailability.length > 0
+      ? Array.from(new Set([...slotsFromAvailability, ...slotsFromBookings])).sort()
+      : slotsFromBookings.sort();
+    // Build slot map with all slots
     const slotMap = {};
-    
+    allSlots.forEach(slot => {
+      slotMap[slot] = [];
+    });
     bookings.forEach(booking => {
       if (!slotMap[booking.timeSlot]) {
         slotMap[booking.timeSlot] = [];
       }
       slotMap[booking.timeSlot].push(booking);
     });
-    
     return Object.entries(slotMap)
       .sort(([timeA], [timeB]) => timeA.localeCompare(timeB))
       .map(([time, bookings]) => ({ time, bookings }));
@@ -643,11 +654,9 @@ const fetchBookingsData = async () => {
   // Render bookings for selected date
   const renderBookings = () => {
     const bookingsBySlot = getBookingsByTimeSlot(selectedDate);
-    
     if (bookingsBySlot.length === 0) {
-      return <div className="no-bookings">No bookings found for this date.</div>;
+      return <div className="no-bookings">No bookings for this date.</div>;
     }
-    
     return (
       <div className="bookings-by-slot">
         {bookingsBySlot.map(({ time, bookings }, index) => (
@@ -658,31 +667,37 @@ const fetchBookingsData = async () => {
               <span className="booking-count">{bookings.length} booking(s)</span>
             </h4>
             <div className="bookings-list">
-              {bookings.map(booking => (
-                <div key={booking._id} className={`booking-item ${booking.status}`}>
-                  <div className="booking-student-info">
-                    <div className="booking-student-name">
-                      <User size={16} />
-                      {booking.studentName}
+              {bookings.length === 0 ? (
+                <div className="no-bookings">No bookings for this slot.</div>
+              ) : (
+                bookings.map(booking => (
+                  <div key={booking._id} className={`booking-item ${booking.status}`}>
+                    <div className="booking-student-info">
+                      <div className="booking-student-name">
+                        <User size={16} />
+                        {booking.studentName}
+                      </div>
+                      <div className="booking-contact">
+                        <div className="booking-email">{booking.studentEmail}</div>
+                        <div className="booking-phone">{booking.studentPhone}</div>
+                      </div>
+                      <div className="booking-purpose">Purpose: {booking.purpose}</div>
+
                     </div>
-                    <div className="booking-contact">
-                      <div className="booking-email">{booking.studentEmail}</div>
-                      <div className="booking-phone">{booking.studentPhone}</div>
+                    <div className="booking-actions">
+                      <div className="booking-status-badge">
+                        {booking.status}
+                      </div>
+                      <button 
+                        className="btn-view-details"
+                        onClick={() => props.onViewStudentDetails?.(booking._id)}
+                      >
+                        View Details
+                      </button>
                     </div>
                   </div>
-                  <div className="booking-actions">
-                    <div className="booking-status-badge">
-                      {booking.status}
-                    </div>
-                    <button 
-                      className="btn-view-details"
-                      onClick={() => props.onViewStudentDetails?.(booking._id)}
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         ))}
