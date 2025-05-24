@@ -423,11 +423,8 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             const currentYear = new Date().getFullYear().toString();
             // Construct query parameters based on active filters
             let queryParams = new URLSearchParams({
-                page: currentPage,
-                limit: limit,
+                // Remove 'page' and 'limit' for now to fetch all records
             });
-            
-            // Add other filters to query parameters if they exist
             if (searchTerm) {
                 queryParams.append('search', searchTerm.trim());
                 queryParams.append('name', searchTerm.trim());
@@ -436,8 +433,8 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             if (selectedGrade) queryParams.append('grade', selectedGrade);
             if (selectedStrand) queryParams.append('strand', selectedStrand);
             if (selectedType) queryParams.append('type', selectedType);
-            
-            console.log(queryParams.toString());
+            // Fetch all records (set a very high limit)
+            queryParams.append('limit', 10000);
             const response = await fetch(
                 `https://teamweb-kera.onrender.com/preregistration?${queryParams.toString()}`
             );
@@ -447,12 +444,20 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             }
             
             const data = await response.json();
-            console.log(data);
-
-
-            setStudents(data.preregistration);
-            setTotalPages(data.totalPages);
-            setTotalRecords(data.totalRecords);
+            // Sort all students by last name (case-insensitive)
+            const sortedStudents = data.preregistration.sort((a, b) => {
+                const lastA = (a.lastName || '').toLowerCase();
+                const lastB = (b.lastName || '').toLowerCase();
+                if (lastA < lastB) return -1;
+                if (lastA > lastB) return 1;
+                return 0;
+            });
+            // Paginate client-side
+            const startIdx = (currentPage - 1) * limit;
+            const endIdx = startIdx + limit;
+            setStudents(sortedStudents.slice(startIdx, endIdx));
+            setTotalPages(Math.ceil(sortedStudents.length / limit));
+            setTotalRecords(sortedStudents.length);
         } catch (err) {
             setError('Failed to fetch student data: ' + err.message);
             console.error(err);
