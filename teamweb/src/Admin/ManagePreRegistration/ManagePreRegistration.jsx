@@ -369,7 +369,7 @@ const formatLocalDate = (dateString, incrementDay = false) => {
     if (!dateString) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
         let [year, month, day] = dateString.split('-').map(Number);
-        if (incrementDay) day += 1;
+        // Do NOT increment the day here, always use the date as-is
         const date = new Date(year, month - 1, day);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -378,7 +378,7 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         });
     } else {
         const date = new Date(dateString);
-        if (incrementDay) date.setDate(date.getDate() + 1);
+        // Do NOT increment the day here, always use the date as-is
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
@@ -814,8 +814,8 @@ const handleEnrollmentChange = async () => {
                     </div>
                 </div>
             </div>
-        );
-    };  
+        );  
+    };
 
     function capitalizeFullName(name, isLastName = false) {
         if (!name) return '';
@@ -1013,11 +1013,7 @@ const handleEnrollmentChange = async () => {
                                                                     <span className="details-label">Date:</span>
                                                                     <span className="details-value">
                                                                         {student.appointment_date
-                                                                            ? new Date(student.appointment_date).toLocaleDateString("en-US", {
-                                                                                year: "numeric",
-                                                                                month: "long",
-                                                                                day: "numeric",
-                                                                            })
+                                                                            ? formatLocalDate(student.appointment_date, true)
                                                                             : "Not scheduled"}
                                                                     </span>
                                                                 </div>

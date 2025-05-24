@@ -80,11 +80,15 @@ const handleConfirm = async () => {
                 try {
                     console.log("Submitting appointment data:", {
                         email: formData.email,
-                        appointment_date: appointmentData.date,
-                        preferred_time: appointmentData.time,
-                        purpose_of_visit: appointmentData.purpose
+                        appointment_date: appointmentData.appointment_date,
+                        preferred_time: appointmentData.preferred_time,
+                        purpose_of_visit: appointmentData.purpose_of_visit
                     });
                     
+                    // Increment the appointment date by 1 day before sending to the backend
+                    const appointmentDateObj = new Date(appointmentData.appointment_date);
+                    appointmentDateObj.setDate(appointmentDateObj.getDate() + 1);
+                    const incrementedAppointmentDate = appointmentDateObj.toISOString().split('T')[0];
                     const bookingResponse = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
                         method: 'POST',
                         headers: {
@@ -92,9 +96,9 @@ const handleConfirm = async () => {
                         },
                         body: JSON.stringify({
                             email: formData.email,
-                            appointment_date: appointmentData.date,
-                            preferred_time: appointmentData.time,
-                            purpose_of_visit: appointmentData.purpose,
+                            appointment_date: incrementedAppointmentDate,
+                            preferred_time: appointmentData.preferred_time,
+                            purpose_of_visit: appointmentData.purpose_of_visit,
                         }),
                     });
                     
@@ -127,6 +131,8 @@ const handleConfirm = async () => {
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
+        // Always increment by 1 day for display
+        date.setDate(date.getDate() + 1);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
@@ -191,9 +197,9 @@ const handleConfirm = async () => {
                     <div className="pre-reg-confirm-section">
                         <h3>Appointment Details</h3>
                         <div className="pre-reg-confirm-grid">
-                            <p><strong>Date:</strong> {formatDate(appointmentData.date)}</p>
-                            <p><strong>Time:</strong> {formatTime(appointmentData.time)}</p>
-                            <p><strong>Purpose:</strong> {appointmentData.purpose}</p>
+                            <p><strong>Date:</strong> {formatDate(appointmentData.appointment_date)}</p>
+                            <p><strong>Time:</strong> {formatTime(appointmentData.preferred_time)}</p>
+                            <p><strong>Purpose:</strong> {appointmentData.purpose_of_visit}</p>
                         </div>
                     </div>
                 )}

@@ -26,6 +26,7 @@ function AddressSelector({ onAddressChange }) {
       setFilteredCities([]);
       setFilteredBarangays([]);
     }
+    // Only run when region changes
   }, [region]);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ function AddressSelector({ onAddressChange }) {
       setBarangay('');
       setFilteredBarangays([]);
     }
+    // Only run when province changes
   }, [province]);
 
   useEffect(() => {
@@ -42,9 +44,11 @@ function AddressSelector({ onAddressChange }) {
       setFilteredBarangays(barangayData.filter(b => b.city_code === city));
       setBarangay('');
     }
+    // Only run when city changes
   }, [city]);
 
   useEffect(() => {
+    // Only run when address fields change, not on every render
     if (region && province && city && barangay && street.trim()) {
       const regionName = regionData.find(r => r.region_code === region)?.region_name || '';
       const provinceName = provinceData.find(p => p.province_code === province)?.province_name || '';
@@ -55,7 +59,7 @@ function AddressSelector({ onAddressChange }) {
     } else {
       onAddressChange('');
     }
-  }, [region, province, city, barangay, street, onAddressChange]);
+  }, [region, province, city, barangay, street]);
 
   const showStreetError = touched && !street.trim();
 

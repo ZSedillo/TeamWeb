@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Appointment.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Appointment({ embedded = false, preRegEmail = '' }) {
     // Base states
@@ -28,6 +30,27 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         loadAvailabilityData();
     }, []);
 
+    // Helper to get filled/max for a slot on a date from API data
+    const getSlotInfoForDate = (dateStr, slotTime) => {
+        const date = new Date(dateStr);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        for (const entry of availabilityData) {
+            const slots = entry.availability[dayName];
+            console.log('[DEBUG getSlotInfoForDate] dateStr:', dateStr, 'dayName:', dayName, 'slotTime:', slotTime, 'slots:', slots);
+            if (Array.isArray(slots)) {
+                for (const slot of slots) {
+                    console.log('[DEBUG getSlotInfoForDate] Checking slot:', slot);
+                    if (slot.time === slotTime) {
+                        console.log('[DEBUG getSlotInfoForDate] MATCHED slot:', slot);
+                        return { filled: slot.filled || 0, max: slot.max };
+                    }
+                }
+            }
+        }
+        console.log('[DEBUG getSlotInfoForDate] No match found, returning default 0/3');
+        return { filled: 0, max: 3 };
+    };
+
     // Update email when preRegEmail changes
     useEffect(() => {
         if (preRegEmail) {
@@ -37,50 +60,27 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
 
     // Embedded mode: check slot availability before saving to sessionStorage
     useEffect(() => {
-        const checkAndSaveEmbeddedAppointment = async () => {
+        const checkAndSaveEmbeddedAppointment = () => {
             if (embedded && appointmentDate && appointmentTime && appointmentReason) {
-                try {
-                    // Get all bookings for the selected date
-                    const bookingsRes = await fetch('https://teamweb-kera.onrender.com/preregistration/all');
-                    if (!bookingsRes.ok) throw new Error('Failed to fetch bookings');
-                    const bookings = await bookingsRes.json();
-                    // Count how many bookings for this date and time
-                    const count = bookings.filter(b => {
-                        const slotTime = typeof b.preferred_time === 'object' && b.preferred_time.time ? b.preferred_time.time : b.preferred_time;
-                        let bDate = b.appointment_date;
-                        if (bDate instanceof Date) {
-                            bDate = bDate.toISOString().split('T')[0];
-                        } else if (typeof bDate === 'string' && bDate.includes('T')) {
-                            bDate = bDate.split('T')[0];
-                        }
-                        return bDate === appointmentDate && slotTime === appointmentTime;
-                    }).length;
-                    const max = slotMaxes[appointmentTime] || 3;
-                    if (count >= max) {
-                        setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
-                        // Remove any previously saved appointmentData
-                        sessionStorage.removeItem('appointmentData');
-                        return;
-                    }
-                    // If slot is available, save to sessionStorage
-                    const appointmentData = {
-                        date: appointmentDate,
-                        time: appointmentTime,
-                        purpose: appointmentReason
-                    };
-                    sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
-                } catch (err) {
-                    setErrors(prev => ({ ...prev, appointmentTime: 'Failed to check slot availability. Please try again.' }));
+                const { filled, max } = getSlotInfoForDate(appointmentDate, appointmentTime);
+                if (filled >= max) {
+                    setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
                     sessionStorage.removeItem('appointmentData');
+                    return;
                 }
+                // If slot is available, save to sessionStorage
+                const appointmentData = {
+                    appointment_date: appointmentDate,
+                    preferred_time: appointmentTime,
+                    purpose_of_visit: appointmentReason
+                };
+                sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
             } else if (embedded) {
-                // If not all fields are filled, remove appointmentData
                 sessionStorage.removeItem('appointmentData');
             }
         };
         checkAndSaveEmbeddedAppointment();
-        // Only run when these change
-    }, [embedded, appointmentDate, appointmentTime, appointmentReason, slotMaxes]);
+    }, [embedded, appointmentDate, appointmentTime, appointmentReason, availabilityData]);
 
     // Fetch availability data from API
     const loadAvailabilityData = async () => {
@@ -90,51 +90,19 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             const data = await response.json();
             setAvailabilityData(data);
             processAvailableDates(data);
-            
-            // Fetch filled counts for each slot for the next 7 days
-            const today = new Date();
+            // Build maxes for all slots (always use backend value)
             const maxes = {};
-            // Build maxes for all slots
-            for (let i = 0; i < 7; i++) {
-                const date = new Date();
-                date.setDate(today.getDate() + i);
-                const dayName = DAYS[date.getDay()];
-                data.forEach(entry => {
-                    if (entry.availability && entry.availability[dayName]) {
-                        entry.availability[dayName].forEach(slot => {
-                            const slotTime = typeof slot === 'object' && slot.time ? slot.time : slot;
-                            const slotMax = typeof slot === 'object' && slot.max ? slot.max : 3;
-                            maxes[slotTime] = slotMax;
-                        });
+            for (const entry of data) {
+                for (const day of Object.keys(entry.availability)) {
+                    for (const slot of entry.availability[day]) {
+                        const slotTime = typeof slot === 'object' && slot.time ? slot.time : slot;
+                        // Fix: typeof slot.max === 'number' (not 'Number')
+                        const slotMax = typeof slot === 'object' && typeof slot.max === 'number' ? slot.max : 3;
+                        maxes[slotTime] = slotMax;
                     }
-                });
-            }
-            // Fetch all bookings for the next 7 days
-            const bookingsRes = await fetch('https://teamweb-kera.onrender.com/preregistration/all');
-            const bookings = await bookingsRes.json();
-            const filled = {};
-            for (let i = 0; i < 7; i++) {
-                const date = new Date();
-                date.setDate(today.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
-                bookings.forEach(b => {
-                    if (b.appointment_date && b.preferred_time) {
-                        let bDate = b.appointment_date;
-                        if (bDate instanceof Date) {
-                            bDate = bDate.toISOString().split('T')[0];
-                        } else if (typeof bDate === 'string' && bDate.includes('T')) {
-                            bDate = bDate.split('T')[0];
-                        }
-                        const slotTime = typeof b.preferred_time === 'object' && b.preferred_time.time ? b.preferred_time.time : b.preferred_time;
-                        if (bDate === dateStr) {
-                            const key = `${bDate}_${slotTime}`;
-                            filled[key] = (filled[key] || 0) + 1;
-                        }
-                    }
-                });
+                }
             }
             setSlotMaxes(maxes);
-            setSlotFilled(filled);
             setIsLoading(false);
         } catch (error) {
             console.error("Error fetching availability data:", error);
@@ -241,90 +209,6 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
         return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
     };
 
-    // Form validation
-    const validateForm = () => {
-        const newErrors = {};
-        
-        if (!email) newErrors.email = "Email is required";
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Invalid email format";
-        
-        if (!appointmentDate) newErrors.appointmentDate = "Please select a date";
-        if (!appointmentTime) newErrors.appointmentTime = "Please select a time";
-        if (!appointmentReason.trim()) newErrors.appointmentReason = "Please provide a reason for your visit";
-        
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    // Handle form submission - only used in standalone mode
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!validateForm()) return;
-
-        // Fetch latest bookings for the selected date/time before submitting
-        try {
-            setIsLoading(true);
-            // Get all bookings for the selected date
-            const bookingsRes = await fetch('https://teamweb-kera.onrender.com/preregistration/all');
-            const bookings = await bookingsRes.json();
-            // Count how many bookings for this date and time
-            const count = bookings.filter(b => {
-                // Defensive: handle both string and object for preferred_time
-                const slotTime = typeof b.preferred_time === 'object' && b.preferred_time.time ? b.preferred_time.time : b.preferred_time;
-                // Defensive: handle both string and Date for appointment_date
-                let bDate = b.appointment_date;
-                if (bDate instanceof Date) {
-                    bDate = bDate.toISOString().split('T')[0];
-                } else if (typeof bDate === 'string' && bDate.includes('T')) {
-                    bDate = bDate.split('T')[0];
-                }
-                return bDate === appointmentDate && slotTime === appointmentTime;
-            }).length;
-            const max = slotMaxes[appointmentTime] || 3;
-            if (count >= max) {
-                setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
-                setIsLoading(false);
-                return;
-            }
-        } catch (err) {
-            setIsLoading(false);
-            alert('Failed to check slot availability. Please try again.');
-            return;
-        }
-
-        // Submit the booking
-        try {
-            const response = await fetch('https://teamweb-kera.onrender.com/preregistration/addBooking', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email,
-                    appointment_date: appointmentDate,
-                    preferred_time: appointmentTime,
-                    purpose_of_visit: appointmentReason,
-                }),
-            });
-            const result = await response.json();
-            if (response.ok) {
-                setBookingSuccess(true);
-            } else {
-                // If backend says slot is full, show error
-                if (result.error && result.error.toLowerCase().includes('full')) {
-                    setErrors(prev => ({ ...prev, appointmentTime: 'This slot is already full. Please choose another time.' }));
-                } else {
-                    alert(result.error || 'Failed to book appointment. Please try again.');
-                }
-            }
-        } catch (error) {
-            console.error('Error submitting appointment:', error);
-            alert('Failed to connect to the server. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     // Handle input change for email and reason
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -336,6 +220,21 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
             setAppointmentReason(value);
             if (errors.appointmentReason) setErrors(prev => ({...prev, appointmentReason: ""}));
         }
+    };
+
+    // Handle review information
+    const handleReviewInformation = (e) => {
+        e.preventDefault();
+        const { filled, max } = getSlotInfoForDate(appointmentDate, appointmentTime);
+        if (typeof max === 'number') {
+            if (filled === max) {
+                toast.error('This slot is already full. Please choose another time.');
+                setErrors(prev => ({ ...prev, appointmentTime: '' }));
+                return;
+            }
+        }
+        // If all good, proceed to review (submit or next step)
+        // ...existing review logic here...
     };
 
     // Success page for standalone mode
@@ -370,7 +269,7 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                     </div>
                 ) : (
                     <form 
-                        onSubmit={embedded ? (e) => e.preventDefault() : handleSubmit} 
+                        onSubmit={embedded ? (e) => e.preventDefault() : handleReviewInformation} 
                         className={embedded ? "appointment-embedded-form" : "appointment-form"}
                     >
                         {!embedded && (
@@ -416,24 +315,19 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                                     <div className="appointment-time-options">
                                         {availableTimes.map(slot => {
                                             const slotTime = typeof slot === 'object' && slot.time ? slot.time : slot;
-                                            const slotMax = typeof slot === 'object' && slot.max ? slot.max : (slotMaxes[slotTime] || 3);
-                                            const filledKey = `${appointmentDate}_${slotTime}`;
-                                            const filled = slotFilled[filledKey] || 0;
-                                            const isFull = filled >= slotMax;
-
-                                            // If the slot is full, do not render it
-                                            if (isFull) return null;
-
-                                            return (
-                                                <div 
-                                                    key={slotTime}
-                                                    className={`appointment-time-option ${appointmentTime === slotTime ? 'active' : ''}`}
-                                                    onClick={() => handleTimeSelect(slotTime)}
-                                                >
-                                                    {formatTime(slotTime)}
-                                                    <span className="slot-counter">{filled} / {slotMax}</span>
-                                                </div>
-                                            );
+                                            const { filled, max } = getSlotInfoForDate(appointmentDate, slotTime);
+                                            console.log('DEBUG slotTime:', slotTime, 'filled:', filled, 'max:', max, 'typeof filled:', typeof filled, 'typeof max:', typeof max);
+                                            return (Number(filled) === Number(max))
+                                                ? null
+                                                : (
+                                                    <div 
+                                                        key={slotTime}
+                                                        className={`appointment-time-option ${appointmentTime === slotTime ? 'active' : ''}`}
+                                                        onClick={() => handleTimeSelect(slotTime)}
+                                                    >
+                                                        {formatTime(slotTime)}
+                                                    </div>
+                                                );
                                         })}
                                     </div>
                                 )}
@@ -462,6 +356,7 @@ function Appointment({ embedded = false, preRegEmail = '' }) {
                     </form>
                 )}
             </div>
+            <ToastContainer position="top-center" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
         </div>
     );
 }

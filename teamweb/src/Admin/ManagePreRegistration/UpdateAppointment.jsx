@@ -37,12 +37,10 @@ const UpdateAppointment = (props) => {
   const formatDate = (date) => {
     // Create a new date object to avoid modifying the original
     const localDate = new Date(date);
-    
-    // Get the UTC components to avoid timezone issues
+    // Do NOT increment the day here, always use the date as-is
     const year = localDate.getUTCFullYear();
     const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
     const day = String(localDate.getUTCDate()).padStart(2, '0');
-    
     // Return consistent YYYY-MM-DD format
     return `${year}-${month}-${day}`;
   };
@@ -223,13 +221,8 @@ const fetchBookingsData = async () => {
           // Parse the appointment date string
           let appointmentDate = new Date(student.appointment_date);
           
-          // Adjust for the timezone offset if there's a shift
-          // This adds one day to fix the specific issue you're seeing
-          appointmentDate = new Date(appointmentDate.getTime() + 24 * 60 * 60 * 1000);
-          
           console.log(`Original date: ${student.appointment_date}`);
-          console.log(`Adjusted date: ${appointmentDate.toISOString()}`);
-          
+          console.log(`Used date: ${appointmentDate.toISOString()}`);
           return {
             _id: student._id,
             date: appointmentDate,
@@ -585,7 +578,6 @@ const fetchBookingsData = async () => {
     return matchingBookings;
   };
   
-  
   // Get bookings organized by time slot
   const getBookingsByTimeSlot = (date) => {
     const bookings = getBookingsForDate(date);
@@ -784,8 +776,11 @@ const fetchBookingsData = async () => {
                             if (!slot) return null;
                             const slotTime = typeof slot === 'object' && slot.time ? slot.time : (typeof slot === 'string' ? slot : null);
                             if (!slotTime) return null;
-                            const slotMax = typeof slot === 'object' && slot.max ? slot.max : 3;
-                            const filled = getBookingsForDate(selectedDate).filter(b => b.timeSlot === slotTime).length;
+                            const slotMax = typeof slot === 'object' && slot.max ? slot.max : undefined;
+                            // Use filled from slot if available (from backend), otherwise fallback to getBookingsForDate
+                            const filled = typeof slot === 'object' && typeof slot.filled === 'number'
+                              ? slot.filled
+                              : getBookingsForDate(selectedDate).filter(b => b.timeSlot === slotTime).length;
                             const hour = parseInt(slotTime.split(':')[0]);
                             const ampm = hour >= 12 ? 'PM' : 'AM';
                             const displayHour = hour > 12 ? hour - 12 : hour;
