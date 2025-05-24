@@ -31,30 +31,37 @@ async function getFilledCountsForSlots() {
 // Fetch all booking availabilities with filled counts for each slot for the next 7 days
 const getBookingAvailability = async (req, res) => {
     try {
-        const availabilityData = await bookModel.find();
         const filledCounts = await getFilledCountsForSlots();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const result = availabilityData.map(book => {
-            const newAvailability = {};
-            for (const day of Object.keys(book.availability)) {
-                newAvailability[day] = book.availability[day].map(slot => {
-                    const slotWithFilled = { ...slot._doc };
-                    slotWithFilled.filled = 0;
-                    for (let i = 0; i < 7; i++) {
-                        const date = new Date(today);
-                        date.setDate(today.getDate() + i);
-                        if (date.toLocaleDateString('en-US', { weekday: 'long' }) === day) {
-                            const dateStr = date.toISOString().split('T')[0];
-                            slotWithFilled.filled = (filledCounts[dateStr] && filledCounts[dateStr][slot.time]) || 0;
-                            break;
-                        }
-                    }
-                    return slotWithFilled;
-                });
-            }
-            return { ...book.toObject(), availability: newAvailability };
-        });
+        const result = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const dateStr = date.toISOString().split('T')[0];
+            // Get all bookModel entries (should be only one, but support multiple)
+            const books = await bookModel.find();
+            let slots = [];
+            books.forEach(book => {
+                if (book.availability && book.availability[dayName]) {
+                    book.availability[dayName].forEach(slot => {
+                        const slotTime = slot.time;
+                        const max = typeof slot.max === 'number' ? slot.max : 3;
+                        const filled = (filledCounts[dateStr] && filledCounts[dateStr][slotTime]) || 0;
+                        slots.push({ time: slotTime, max, filled });
+                    });
+                }
+            });
+            // Remove duplicate slots by time (keep the first occurrence)
+            const seen = new Set();
+            slots = slots.filter(slot => {
+                if (seen.has(slot.time)) return false;
+                seen.add(slot.time);
+                return true;
+            });
+            result.push({ date: dateStr, day: dayName, slots });
+        }
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: "Server error" });

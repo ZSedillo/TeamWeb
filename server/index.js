@@ -50,6 +50,11 @@ app.use('/user', userRoutes);
 
 app.use("/", router); 
 
+// Catch-all for unknown API routes (all methods)
+app.all(['/preregistration/*', '/booking/*', '/user/*', '/report/*', '/calendar/*', '/announcement/*'], (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
+
 app.get("*", (req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
 });
