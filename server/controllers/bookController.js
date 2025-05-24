@@ -98,4 +98,23 @@ const editBookingAvailability = async (req, res) => {
     }
 };
 
-module.exports = { getBookingAvailability, addBookingAvailability, editBookingAvailability };
+// Fetch all bookings for a date range (for admin view)
+const getAllBookings = async (req, res) => {
+    try {
+        const { start, end } = req.query;
+        const startDate = start ? new Date(start) : new Date();
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = end ? new Date(end) : new Date(startDate);
+        endDate.setHours(23, 59, 59, 999);
+
+        const bookings = await preRegistrationModel.find({
+            appointment_date: { $gte: startDate, $lte: endDate },
+            preferred_time: { $ne: null }
+        });
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+module.exports = { getBookingAvailability, addBookingAvailability, editBookingAvailability, getAllBookings };
