@@ -59,190 +59,94 @@ const UpdateAppointment = (props) => {
 
   // Load appointment data
   useEffect(() => {
-    const loggedInUser = localStorage.getItem('username');
-    if (loggedInUser) {
-        setUsername(loggedInUser);
-    } else {
-        setUsername("Admin");
-    }
+    setUsername("Admin"); // Just set a default value
     fetchAvailabilityData();
     fetchBookingsData();
   }, [props.studentData]);
 
-// Modify the fetchAvailabilityData function to auto-populate all days with default availability
-// Modify the fetchAvailabilityData function to respect deleted dates
-const fetchAvailabilityData = async () => {
-  try {
-    setIsLoading(true);
-    const response = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch availability data');
-    }
-    
-    const data = await response.json();
-    setAvailabilityData(data);
-    
-    // Create a formatted appointments object
-    const formattedAppointments = {};
-    
-    // Get the next 7 days
-    const weekDays = getNextSevenDays();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
-    // Get list of recently deleted dates to avoid recreating them
-    const recentlyDeletedDates = JSON.parse(localStorage.getItem('deletedAvailabilityDates') || '[]');
-    
-    // First, populate with any existing availability data from the API
-    if (data && data.length > 0) {
-      data.forEach(item => {
-        weekDays.forEach(date => {
-          const dayName = days[date.getDay()];
-          const dateStr = formatDate(date);
-          
-          if (item.availability && item.availability[dayName] && item.availability[dayName].length > 0) {
-            if (!formattedAppointments[dateStr]) {
-              formattedAppointments[dateStr] = [];
-            }
+  const fetchAvailabilityData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch availability data');
+      }
+      
+      const data = await response.json();
+      setAvailabilityData(data);
+      
+      // Create a formatted appointments object
+      const formattedAppointments = {};
+      
+      // Get the next 7 days
+      const weekDays = getNextSevenDays();
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      
+      // Only populate with existing availability data from the API
+      if (data && data.length > 0) {
+        data.forEach(item => {
+          weekDays.forEach(date => {
+            const dayName = days[date.getDay()];
+            const dateStr = formatDate(date);
             
-            formattedAppointments[dateStr].push({
-              id: item._id,
-              timeSlots: item.availability[dayName] || [],
-            });
-          }
+            if (item.availability && item.availability[dayName] && item.availability[dayName].length > 0) {
+              if (!formattedAppointments[dateStr]) {
+                formattedAppointments[dateStr] = [];
+              }
+              
+              formattedAppointments[dateStr].push({
+                id: item._id,
+                timeSlots: item.availability[dayName] || [],
+              });
+            }
+          });
         });
-      });
-    }
-    
-    // Now, auto-populate any days that don't have availability with default slots
-    // EXCEPT for days that have been explicitly deleted
-    weekDays.forEach(date => {
-      const dateStr = formatDate(date);
-      
-      // Skip auto-population if this date was recently deleted
-      if (recentlyDeletedDates.includes(dateStr)) {
-        console.log(`Skipping auto-population for deleted date: ${dateStr}`);
-        return; // Skip this date
       }
       
-      // If this date doesn't have any appointments yet, add default ones
-      if (!formattedAppointments[dateStr] || formattedAppointments[dateStr].length === 0) {
-        // Check if we have an existing availability entry to use
-        let availabilityId = null;
-        if (data && data.length > 0) {
-          availabilityId = data[0]._id;
-        }
-        
-        formattedAppointments[dateStr] = [{
-          id: availabilityId, // This might be null if no availability exists yet
-          timeSlots: generateTimeSlots(), // This gives us 9AM to 4PM
-        }];
-      }
-    });
-    
-    // Update the appointments state with our complete set
-    setAppointments(formattedAppointments);
-    
-    // If no availability exists yet in the database but we want to show defaults,
-    // we might need to create an initial entry
-    if (data.length === 0) {
-      // This would be a good place to create default availability in the database
-      // for all days of the week if you want persistence
-      createDefaultAvailability();
+      // Update the appointments state with only existing appointments
+      setAppointments(formattedAppointments);
+      
+    } catch (err) {
+      setError('Failed to fetch appointment data: ' + err.message);
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
-    
-  } catch (err) {
-    setError('Failed to fetch appointment data: ' + err.message);
-    console.error(err);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
-// Add this new function to create default availability if none exists
-// Fix the createDefaultAvailability function to respect deleted days
-const createDefaultAvailability = async () => {
-  try {
-    const today = new Date();
-    const todayFormatted = today.toISOString().split('T')[0];
-
-    // Fetch existing availability
-    const fetchResponse = await fetch('https://teamweb-kera.onrender.com/booking/getBookingAvailability');
-    if (!fetchResponse.ok) throw new Error('Failed to fetch existing availability');
-
-    const existingAvailability = await fetchResponse.json();
-    const existingDates = Object.keys(existingAvailability || {});
-
-    // Keep track of which days have been explicitly deleted
-    // We need to store this information somewhere or infer it from the data
-    
-    // If we have availability data, check if the specific day was deleted
-    const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-    
-    // If this exact date was recently deleted, don't recreate it
-    const dateStr = formatDate(selectedDate);
-    const recentlyDeletedDates = JSON.parse(localStorage.getItem('deletedAvailabilityDates') || '[]');
-    
-    if (recentlyDeletedDates.includes(dateStr)) {
-      console.log(`Availability for ${dateStr} was recently deleted. Skipping auto-creation.`);
-      return;
+  const fetchBookingsData = async () => {
+    try {
+      // Get the start and end of the current week
+      const weekDays = getNextSevenDays();
+      const start = weekDays[0];
+      const end = weekDays[6];
+      const startStr = start.toISOString().split('T')[0];
+      const endStr = end.toISOString().split('T')[0];
+      // Fetch all bookings for the week from backend
+      const response = await fetch(`https://teamweb-kera.onrender.com/booking/getBookings?start=${startStr}&end=${endStr}`);
+      if (!response.ok) throw new Error('Failed to fetch bookings');
+      const bookings = await response.json();
+      // Map bookings to the format expected by the frontend
+      const mapped = bookings.map(booking => ({
+        _id: booking._id,
+        date: booking.appointment_date,
+        timeSlot: booking.preferred_time?.time || booking.preferred_time || '09:00',
+        studentName: booking.lastName + ', ' + booking.firstName,
+        studentEmail: booking.email,
+        studentPhone: booking.phone_number,
+        purpose: booking.purpose_of_visit || 'Registration',
+        status: booking.status === 'approved' ? 'confirmed' : 'pending',
+        grade_level: booking.grade_level,
+        strand: booking.strand,
+        gender: booking.gender,
+      }));
+      setBookingsData(mapped);
+    } catch (err) {
+      setBookingsData([]);
+      console.error('Failed to fetch bookings:', err);
     }
-
-    // Only create default availability for today if it doesn't exist yet
-    // and hasn't been explicitly deleted
-    if (!existingDates.includes(todayFormatted)) {
-      const defaultAvailability = { [todayFormatted]: generateTimeSlots() };
-
-      const response = await fetch('https://teamweb-kera.onrender.com/booking/addBookingAvailability', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ availability: defaultAvailability }),
-      });
-
-      if (!response.ok) throw new Error('Failed to create default availability');
-      console.log(`Created availability for ${todayFormatted}`);
-    } else {
-      console.log(`Availability for ${todayFormatted} already exists.`);
-    }
-
-  } catch (err) {
-    console.error('Error creating availability:', err);
-  }
-};
-
-  
-const fetchBookingsData = async () => {
-  try {
-    // Get the start and end of the current week
-    const weekDays = getNextSevenDays();
-    const start = weekDays[0];
-    const end = weekDays[6];
-    const startStr = start.toISOString().split('T')[0];
-    const endStr = end.toISOString().split('T')[0];
-    // Fetch all bookings for the week from backend
-    const response = await fetch(`https://teamweb-kera.onrender.com/booking/getBookings?start=${startStr}&end=${endStr}`);
-    if (!response.ok) throw new Error('Failed to fetch bookings');
-    const bookings = await response.json();
-    // Map bookings to the format expected by the frontend
-    const mapped = bookings.map(booking => ({
-      _id: booking._id,
-      date: booking.appointment_date,
-      timeSlot: booking.preferred_time?.time || booking.preferred_time || '09:00',
-      studentName: booking.lastName + ', ' + booking.firstName,
-      studentEmail: booking.email,
-      studentPhone: booking.phone_number,
-      purpose: booking.purpose_of_visit || 'Registration',
-      status: booking.status === 'approved' ? 'confirmed' : 'pending',
-      grade_level: booking.grade_level,
-      strand: booking.strand,
-      gender: booking.gender,
-    }));
-    setBookingsData(mapped);
-  } catch (err) {
-    setBookingsData([]);
-    console.error('Failed to fetch bookings:', err);
-  }
-};
+  };
 
   // Handle click on a calendar day
   const handleDayClick = (day) => {
@@ -436,7 +340,6 @@ const fetchBookingsData = async () => {
       setIsLoading(true);
       
       const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-      const dateStr = formatDate(selectedDate);
       
       // First, fetch the current availability data to preserve other days
       const currentResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
@@ -457,7 +360,7 @@ const fetchBookingsData = async () => {
       // Remove only the selected day's availability
       delete updatedAvailability[dayOfWeek];
       
-      // Update with the modified availability (where the selected day is removed)
+      // Update with the modified availability
       const response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${appointmentId}`, {
         method: 'PUT',
         headers: {
@@ -470,20 +373,13 @@ const fetchBookingsData = async () => {
         throw new Error('Failed to delete appointment');
       }
       
-      // Track this deleted date so we don't auto-recreate it
-      const recentlyDeletedDates = JSON.parse(localStorage.getItem('deletedAvailabilityDates') || '[]');
-      if (!recentlyDeletedDates.includes(dateStr)) {
-        recentlyDeletedDates.push(dateStr);
-        localStorage.setItem('deletedAvailabilityDates', JSON.stringify(recentlyDeletedDates));
-      }
-      
       await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: username, // Replace with actual username
+          username: username,
           activityLog: `[Manage Pre-Registration:Appointments] Deleted availability for ${dayOfWeek}`
         }),
       });
