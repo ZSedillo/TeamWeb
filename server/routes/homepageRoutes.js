@@ -8,10 +8,11 @@ const {
     deleteImage,
     getAllImages
 } = require("../controllers/homepageController");
+const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 
 // router.post("/upload-image", uploadHomepage.single("image"), uploadImage);
-router.post("/upload-image", fileUpload(), uploadImage);
-router.delete("/delete-image/:filename", deleteImage);
+router.post("/upload-image", authenticate, fileUpload(), uploadImage);
+router.delete("/delete-image/:filename", authenticate, deleteImage);
 router.get("/images", getAllImages);
 
 module.exports = router;
