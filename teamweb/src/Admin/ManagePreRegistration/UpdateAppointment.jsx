@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 
 const UpdateAppointment = (props) => {
+  const getToken = () => localStorage.getItem("token");
   // Initial state for calendar - always use the current date
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState({});
@@ -192,18 +193,20 @@ const UpdateAppointment = (props) => {
       toast.error('Please add at least one time slot');
       return;
     }
-    
+
     try {
       setIsLoading(true);
-      
+
       const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-      
+      const token = getToken(); // get auth token
+      const username = localStorage.getItem('username') || 'Admin'; // fallback username
+
       // Build slots as objects with max
       const slotsWithMax = appointmentForm.timeSlots.map(slot => ({
         time: slot,
         max: slotMaxes[slot] || 3
       }));
-      
+
       // Create the update for just this specific day
       const dayUpdate = {
         [dayOfWeek]: slotsWithMax
@@ -216,65 +219,75 @@ const UpdateAppointment = (props) => {
         const slotMax = typeof slot === 'object' && slot.max ? slot.max : (slotMaxes[slotTime] || 3);
         limitsByDay[dayOfWeek][slotTime] = slotMax;
       });
-      
+
       let response;
-      
+
       if (editingAppointmentId) {
         // For editing an existing availability entry
-        
+
         // First, get the current availability to preserve other days
-        const currentResponse = await fetch(`https://teamweb-kera.onrender.com/booking/bookingAvailability`);
+        const currentResponse = await fetch(`https://teamweb-kera.onrender.com/booking/bookingAvailability`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (!currentResponse.ok) {
           throw new Error('Failed to fetch current availability data');
         }
-        
+
         const availabilityData = await currentResponse.json();
         const existingEntry = availabilityData.find(item => item._id === editingAppointmentId);
-        
+
         if (!existingEntry) {
           throw new Error('Could not find the availability entry to edit');
         }
-        
+
         // Merge the existing availability with the new day's data
         const mergedAvailability = {
-          ...existingEntry.availability, // Keep all existing days
-          ...dayUpdate // Update/add only the current day
+          ...existingEntry.availability,
+          ...dayUpdate
         };
-        
+
         // Update with the merged data
         response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${editingAppointmentId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ availability: mergedAvailability, limits: limitsByDay })
         });
       } else {
         // For adding a new day to an existing availability
-        
+
         // Check if we already have any availability entries
-        const availabilityResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
+        const availabilityResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (!availabilityResponse.ok) {
           throw new Error('Failed to fetch availability data');
         }
-        
+
         const availabilityData = await availabilityResponse.json();
-        
+
         if (availabilityData && availabilityData.length > 0) {
           // If we have an existing entry, update it by merging
-          const existingEntry = availabilityData[0]; // Use the first available entry
-          
+          const existingEntry = availabilityData[0];
+
           // Merge the existing availability with the new day
           const mergedAvailability = {
-            ...existingEntry.availability, // Keep all existing days
-            ...dayUpdate // Add/update the current day
+            ...existingEntry.availability,
+            ...dayUpdate
           };
-          
+
           // Update with the merged data
           response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${existingEntry._id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ availability: mergedAvailability, limits: limitsByDay })
           });
@@ -284,32 +297,35 @@ const UpdateAppointment = (props) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ availability: dayUpdate, limits: limitsByDay })
           });
         }
       }
-      
+
       if (!response.ok) {
         throw new Error('Failed to save appointment');
       }
+
       await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          username: username, // Replace with actual username
+          username: username,
           activityLog: `[Manage Pre-Registration:Appointments] ${editingAppointmentId ? 'Updated' : 'Added'} availability for ${dayOfWeek}`
         }),
       });
-      
+
       // Refresh the availability data
       await fetchAvailabilityData();
-      
+
       setIsFormVisible(false);
       setEditingAppointmentId(null);
-      
+
       toast.success(editingAppointmentId ? 'Appointment updated successfully' : 'Appointment added successfully');
     } catch (err) {
       toast.error('Failed to save appointment: ' + err.message);
@@ -318,6 +334,7 @@ const UpdateAppointment = (props) => {
       setIsLoading(false);
     }
   };
+
 
   // Edit appointment
   const editAppointment = (appointment) => {
@@ -338,54 +355,62 @@ const UpdateAppointment = (props) => {
   const deleteAppointment = async (appointmentId) => {
     try {
       setIsLoading(true);
-      
+
+      const token = getToken(); // Get auth token
+      const username = localStorage.getItem('username') || 'Admin'; // Fallback username
       const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-      
-      // First, fetch the current availability data to preserve other days
-      const currentResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability');
+
+      // Fetch current availability to preserve other days
+      const currentResponse = await fetch('https://teamweb-kera.onrender.com/booking/bookingAvailability', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
       if (!currentResponse.ok) {
         throw new Error('Failed to fetch current availability data');
       }
-      
+
       const availabilityData = await currentResponse.json();
       const existingEntry = availabilityData.find(item => item._id === appointmentId);
-      
+
       if (!existingEntry) {
         throw new Error('Could not find the availability entry to delete');
       }
-      
-      // Create a copy of the existing availability object
+
+      // Copy the current availability object and remove the selected day's availability
       const updatedAvailability = { ...existingEntry.availability };
-      
-      // Remove only the selected day's availability
       delete updatedAvailability[dayOfWeek];
-      
-      // Update with the modified availability
+
+      // Update the database with the modified availability (with the day removed)
       const response = await fetch(`https://teamweb-kera.onrender.com/booking/editBookingAvailability/${appointmentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ availability: updatedAvailability })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete appointment');
       }
-      
+
+      // Log the deletion in activity report
       await fetch("https://teamweb-kera.onrender.com/report/add-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           username: username,
           activityLog: `[Manage Pre-Registration:Appointments] Deleted availability for ${dayOfWeek}`
         }),
       });
-      
+
       await fetchAvailabilityData();
-      
+
       toast.success(`Availability for ${dayOfWeek} deleted successfully`);
     } catch (err) {
       toast.error('Failed to delete appointment: ' + err.message);
@@ -394,6 +419,7 @@ const UpdateAppointment = (props) => {
       setIsLoading(false);
     }
   };
+
   
   // Add time slot
   const addTimeSlot = () => {

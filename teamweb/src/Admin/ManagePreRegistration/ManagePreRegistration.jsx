@@ -12,6 +12,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 
 function ManagePreRegistration() {
+    const getToken = () => localStorage.getItem("token");
     // State management
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -77,21 +78,23 @@ function ManagePreRegistration() {
             });
             return;
         }
-    
+
         try {
             setIsDeleting(true);
-            
+            const token = getToken(); // Get the token
+
             const response = await fetch('https://teamweb-kera.onrender.com/preregistration/deleteAll', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,  // Added Authorization header here
                 },
             });
-    
+
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-    
+
             // Log the activity for deletion
             try {
                 const username = localStorage.getItem('username') || 'Admin';
@@ -99,6 +102,7 @@ function ManagePreRegistration() {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,  // Added Authorization header here as well
                     },
                     body: JSON.stringify({
                         username: username,
@@ -108,13 +112,13 @@ function ManagePreRegistration() {
             } catch (logError) {
                 console.error('Failed to log activity:', logError);
             }
-    
+
             // CSV export logic after deletion
             if (Array.isArray(registrationData) && registrationData.length > 0) {
                 const csvRows = [
                     ['Name', 'Phone Number', 'Grade Level', 'Strand', 'Gender', 'Email', 'Student Type', 'Status', 'Registration Date']
                 ];
-    
+
                 registrationData.forEach(student => {
                     csvRows.push([
                         student.name || '',
@@ -128,7 +132,7 @@ function ManagePreRegistration() {
                         student.createdAt ? new Date(student.createdAt).toLocaleDateString() : ''
                     ]);
                 });
-    
+
                 const csvContent = csvRows.map(e => e.join(",")).join("\n");
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
@@ -139,13 +143,14 @@ function ManagePreRegistration() {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-    
+
                 // Log the export activity
                 const username = localStorage.getItem('username') || 'Admin';
                 await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,  // And here too
                     },
                     body: JSON.stringify({
                         username: username,
@@ -153,7 +158,7 @@ function ManagePreRegistration() {
                     }),
                 });
             }
-    
+
             toast.success(
                 <div>
                     <p><strong>Deletion Successful</strong></p>
@@ -164,7 +169,7 @@ function ManagePreRegistration() {
                     autoClose: 5000,
                 }
             );
-    
+
             // Reset the state and refresh the data
             setShowDeleteConfirmation(false);
             setDeleteConfirmText('');
@@ -179,6 +184,7 @@ function ManagePreRegistration() {
             setIsDeleting(false);
         }
     };
+
     
 
     const DeleteConfirmationDialog = () => {
@@ -269,11 +275,14 @@ const DeleteStudentDialog = () => {
     
     const confirmDelete = async () => {
         try {
+            const token = getToken(); // get the auth token
+
             // Add loading state if needed
             const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/delete/${studentToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,  // added authorization header
                 },
             });
 
@@ -328,6 +337,7 @@ const DeleteStudentDialog = () => {
             setStudentToDelete(null);
         }
     };
+
 
     const handleCancel = () => {
         setShowDeleteConfirmationDialog(false);
@@ -416,9 +426,11 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         { id: "enrolled", label: "Enrolled Students", icon: <User size={16} /> }
       ];
 
-      const fetchStudentData = async () => {
+    const fetchStudentData = async () => {
         try {
             setLoading(true);
+            const token = getToken(); // Get the token here
+
             // Get the current year if selectedYear is not set
             const currentYear = new Date().getFullYear().toString();
             // Construct query parameters based on active filters
@@ -435,14 +447,20 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             if (selectedType) queryParams.append('type', selectedType);
             // Fetch all records (set a very high limit)
             queryParams.append('limit', 10000);
+
             const response = await fetch(
-                `https://teamweb-kera.onrender.com/preregistration?${queryParams.toString()}`
+                `https://teamweb-kera.onrender.com/preregistration/?${queryParams.toString()}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`  // Added Authorization header here
+                    }
+                }
             );
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            
+
             const data = await response.json();
             // Sort all students by last name (case-insensitive)
             const sortedStudents = data.preregistration.sort((a, b) => {
@@ -528,12 +546,14 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             
             // The lowercase value to send to the server
             const newStatus = studentToUpdate.currentStatus === "approved" ? "pending" : "approved";
+            const token = getToken(); // get the auth token
             
             // Update API endpoint to match server code
             const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/status/${studentToUpdate.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`, // added authorization header
                 },
                 body: JSON.stringify({ status: newStatus }),
             });
@@ -555,13 +575,13 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             
             // Log the activity if the status was updated
             try {
-                // Get the current user's username from localStorage or a global state
-                const username = localStorage.getItem('username') || 'Admin'; // Fallback to 'Admin' if not found
+                const username = localStorage.getItem('username') || 'Admin';
                 
                 await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        'Authorization': `Bearer ${token}`, // also add auth here if required by your backend
                     },
                     body: JSON.stringify({
                         username: username,
@@ -570,7 +590,6 @@ const formatLocalDate = (dateString, incrementDay = false) => {
                 });
             } catch (logError) {
                 console.error('Failed to log activity:', logError);
-                // Don't show toast for this error as it's not critical to the user
             }
             
             // Show notification if email was sent (when approving)
@@ -615,6 +634,7 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             setStudentToUpdate(null);
         }
     };
+
     
     // Add these functions near your other handler functions
     const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
@@ -631,62 +651,65 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         setShowEnrollmentConfirmation(true);
     };
 
-const handleEnrollmentChange = async () => {
-    try {
-        if (!studentToEnroll) return;
-        
-        setShowEnrollmentConfirmation(false);
-        setProcessingEnrollment(studentToEnroll.id);
-        console.log("changing: " + studentToEnroll);
-        
-        // Toggle based on the actual enrollment field
-        const newEnrollmentStatus = !studentToEnroll.enrollment;
-        
-        const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ enrollment: newEnrollmentStatus }),
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        setStudents(prevStudents => 
-            prevStudents.map(student => 
-                student._id === studentToEnroll.id 
-                    ? { ...student, enrollment: newEnrollmentStatus } 
-                    : student
-            )
-        );
-        
-        toast.success(
-            <div>
-                <p><strong>Enrollment Status Updated</strong></p>
-                <p>Student enrollment status is now {newEnrollmentStatus ? "Enrolled" : "Not Enrolled"}</p>
-            </div>,
-            {
-                icon: <CheckCircle size={16} />,
-                position: "top-center",
-                autoClose: 3000,
+    const handleEnrollmentChange = async () => {
+        try {
+            if (!studentToEnroll) return;
+
+            setShowEnrollmentConfirmation(false);
+            setProcessingEnrollment(studentToEnroll.id);
+            console.log("changing: " + studentToEnroll);
+
+            // Toggle based on the actual enrollment field
+            const newEnrollmentStatus = !studentToEnroll.enrollment;
+            const token = getToken(); // get the auth token
+
+            const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,  // added authorization header
+                },
+                body: JSON.stringify({ enrollment: newEnrollmentStatus }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-        );
-        
-    } catch (err) {
-        console.error('Failed to update enrollment status:', err);
-        toast.error('Failed to update enrollment status. Please try again.', {
-            position: "top-center",
-            autoClose: 5000,
-        });
-    } finally {
-        setProcessingEnrollment(null);
-        setStudentToEnroll(null);
-    }
-};
+
+            const data = await response.json();
+
+            setStudents(prevStudents => 
+                prevStudents.map(student => 
+                    student._id === studentToEnroll.id 
+                        ? { ...student, enrollment: newEnrollmentStatus } 
+                        : student
+                )
+            );
+
+            toast.success(
+                <div>
+                    <p><strong>Enrollment Status Updated</strong></p>
+                    <p>Student enrollment status is now {newEnrollmentStatus ? "Enrolled" : "Not Enrolled"}</p>
+                </div>,
+                {
+                    icon: <CheckCircle size={16} />,
+                    position: "top-center",
+                    autoClose: 3000,
+                }
+            );
+
+        } catch (err) {
+            console.error('Failed to update enrollment status:', err);
+            toast.error('Failed to update enrollment status. Please try again.', {
+                position: "top-center",
+                autoClose: 5000,
+            });
+        } finally {
+            setProcessingEnrollment(null);
+            setStudentToEnroll(null);
+        }
+    };
+
 
 
     // Toggle row expansion

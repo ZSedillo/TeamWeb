@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import './EnrolledStudents.css';
 
 function EnrolledStudents() {
+    const getToken = () => localStorage.getItem("token");
     // State for enrollment processing
     const [processingEnrollment, setProcessingEnrollment] = useState(null);
     const [showEnrollmentConfirmation, setShowEnrollmentConfirmation] = useState(false);
@@ -64,9 +65,16 @@ function EnrolledStudents() {
             if (selectedYear) queryParams.append('year', selectedYear);
             
             console.log("Fetching with params:", queryParams.toString()); // Debug log
+
+            const token = getToken(); // ✅ Get token
             
             const response = await fetch(
-                `https://teamweb-kera.onrender.com/preregistration/enrolled?${queryParams.toString()}`
+                `https://teamweb-kera.onrender.com/preregistration/enrolled?${queryParams.toString()}`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}` // ✅ Add Authorization header
+                    }
+                }
             );
             
             if (!response.ok) {
@@ -76,8 +84,7 @@ function EnrolledStudents() {
             const data = await response.json();
             
             if (!data.preregistration || data.preregistration.length === 0) {
-                // Clear the data when no results are found
-                setEnrolledStudents([]);
+                setEnrolledStudents([]); // Clear data when no results
             } else {
                 setEnrolledStudents(data.preregistration);
             }
@@ -87,12 +94,12 @@ function EnrolledStudents() {
         } catch (err) {
             setError('Failed to fetch enrolled students data: ' + err.message);
             console.error(err);
-            // Clear the data on error too
-            setEnrolledStudents([]);
+            setEnrolledStudents([]); // Clear data on error
         } finally {
             setLoading(false);
         }
     };
+
 
     // Fetch data on initial load and when filters or pagination changes
     useEffect(() => {
@@ -145,11 +152,13 @@ function EnrolledStudents() {
             setProcessingEnrollment(studentToEnroll.id);
             
             const newStatus = !studentToEnroll.currentStatus;
-            
+            const token = getToken(); // ✅ Get token
+
             const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // ✅ Include token in header
                 },
                 body: JSON.stringify({ enrollment: newStatus }),
             });
@@ -157,17 +166,18 @@ function EnrolledStudents() {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            
-            // Refresh the data after updating enrollment status
+
+            // ✅ Refresh the data
             fetchStudentData();
-            
-            // Log the activity
+
+            // ✅ Log the activity
             try {
                 const username = localStorage.getItem('username') || 'Admin';
                 await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}` // ✅ Include token here as well
                     },
                     body: JSON.stringify({
                         username: username,
@@ -177,7 +187,7 @@ function EnrolledStudents() {
             } catch (logError) {
                 console.error('Failed to log activity:', logError);
             }
-            
+
             toast.success(
                 <div>
                     <p><strong>Enrollment Status Updated</strong></p>
@@ -188,7 +198,7 @@ function EnrolledStudents() {
                     autoClose: 3000,
                 }
             );
-            
+
         } catch (err) {
             console.error('Failed to update enrollment status:', err);
             toast.error('Failed to update enrollment status. Please try again.', {
@@ -200,6 +210,7 @@ function EnrolledStudents() {
             setStudentToEnroll(null);
         }
     };
+
 
     // Add the EnrollmentConfirmationDialog component
     const EnrollmentConfirmationDialog = () => {

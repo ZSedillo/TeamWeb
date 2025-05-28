@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './ViewReports.css';
 
 const ViewReports = () => {
+  const getToken = () => localStorage.getItem("token");
   // State for storing registration data
   const [registrationData, setRegistrationData] = useState([]);
   const [gradesData, setGradesData] = useState([]);
@@ -46,16 +47,22 @@ const ViewReports = () => {
   const fetchRegistrations = async (year = selectedYear) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`https://teamweb-kera.onrender.com/preregistration?registration_year=${year}`);
-      
+      const token = getToken(); // Get auth token
+
+      const response = await fetch(`https://teamweb-kera.onrender.com/preregistration?registration_year=${year}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status} - ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Ensure data is properly extracted from the response
       if (Array.isArray(data)) {
         setRegistrationData(data);
@@ -76,7 +83,7 @@ const ViewReports = () => {
         setError("Invalid data format received from API");
         setRegistrationData([]);
       }
-      
+
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching registration data:", err);
@@ -86,6 +93,7 @@ const ViewReports = () => {
       setIsLoading(false);
     }
   };
+
 
   // Handle year change
   const handleYearChange = (e) => {
@@ -101,7 +109,7 @@ const ViewReports = () => {
       alert("No data available to export");
       return;
     }
-    
+
     // Create CSV content
     const csvRows = [
       ['Name', 'Phone Number', 'Grade Level', 'Strand', 'Gender', 'Email', 'Student Type', 'Status', 'Registration Date']
@@ -135,18 +143,22 @@ const ViewReports = () => {
     link.click();
     document.body.removeChild(link);
 
-    // ✅ Call `/add-report` API
+    // ✅ Call `/add-report` API with token
+    const token = getToken(); // Get auth token
+
     fetch("https://teamweb-kera.onrender.com/report/add-report", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
-        username: localStorage.getItem('username') || 'user', // Get username from localStorage or use default
+        username: localStorage.getItem('username') || 'user',
         activityLog: `[Manage Pre-Registration: Reports] Registration data for ${selectedYear} exported as CSV on ${new Date().toLocaleString()}`
       }),
     });
   };
+
 
   // Refresh functionality
   const handleRefresh = () => {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './ExpectedStudents.css';
 
 const ExpectedStudents = () => {
+    const getToken = () => localStorage.getItem("token");
     const [gradeData, setGradeData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -19,13 +20,20 @@ const ExpectedStudents = () => {
 
         const fetchData = async () => {
             try {
+                const token = getToken(); // Get auth token
                 // Add the registration_year parameter to query
-                const response = await fetch(`https://teamweb-kera.onrender.com/preregistration?registration_year=${selectedYear}`);
+                const response = await fetch(`https://teamweb-kera.onrender.com/preregistration?registration_year=${selectedYear}`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
                 if (!response.ok) {
                     throw new Error('Failed to fetch data');
                 }
+
                 const data = await response.json();
-                
+
                 // Transform data into required format and filter by selected year
                 const groupedData = processPreRegistrationData(data.preregistration);
                 setGradeData(groupedData);
@@ -38,6 +46,7 @@ const ExpectedStudents = () => {
 
         fetchData();
     }, [selectedYear, currentYear]);
+
 
     const predefinedGrades = [
         "Kinder",

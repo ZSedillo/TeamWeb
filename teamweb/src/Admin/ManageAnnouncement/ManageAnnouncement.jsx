@@ -3,6 +3,7 @@ import AdminHeader from "../Component/AdminHeader.jsx";
 import "./ManageAnnouncement.css";
 
 function ManageAnnouncement() {
+    const getToken = () => localStorage.getItem("token");
     const [announcements, setAnnouncements] = useState([]);
     const [newAnnouncement, setNewAnnouncement] = useState({ 
         title: "", 
@@ -68,10 +69,10 @@ function ManageAnnouncement() {
         setShowConfirmModal(true);
     };
     
-    const handleCreateOrUpdateAnnouncement = async () => {
+        const handleCreateOrUpdateAnnouncement = async () => {
         // Hide the confirmation modal
         setShowConfirmModal(false);
-    
+
         const formData = new FormData();
         formData.append("title", newAnnouncement.title.trim());
         formData.append("description", newAnnouncement.description.trim());
@@ -83,47 +84,56 @@ function ManageAnnouncement() {
             // It's an existing image - just send the existing URL or path
             formData.append("existing_image", newAnnouncement.image_url);
         }
+
         try {
             const url = editingId
                 ? `${baseUrl}/announcement/edit/${editingId}`
                 : `${baseUrl}/announcement/add`;
             const method = editingId ? "PUT" : "POST";
-    
+
+            const token = getToken();
+
             // Show loading state
             const submitBtn = document.querySelector('.submit-button');
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.textContent = editingId ? "Updating..." : "Posting...";
             }
-    
+
             const response = await fetch(url, {
                 method,
+                headers: {
+                    'Authorization': `Bearer ${token}`, // ✅ Include token
+                },
                 body: formData,
             });
-    
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("Error response:", errorText);
                 throw new Error("Failed to save announcement");
             }
-    
-            // ✅ Call the `/add-report` API
+
+            // ✅ Call the `/add-report` API with auth header and username
+            const username = localStorage.getItem('username') || 'Unknown User';
+
             await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                 method: "POST",
                 headers: {
+                    'Authorization': `Bearer ${token}`, // ✅ Include token
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    username: username, // Replace with actual username
-                    activityLog: editingId 
+                    username,
+                    activityLog: editingId
                         ? `[Manage Announcement] Edited Announcement: ${newAnnouncement.title.trim()}`
                         : `[Manage Announcement] Added Announcement: ${newAnnouncement.title.trim()}`
                 }),
             });
-    
+
             resetForm();
             fetchAnnouncements();
-    
+
             // Show success toast
             showToast(editingId ? "Announcement updated successfully!" : "Announcement posted successfully!");
         } catch (error) {
@@ -153,32 +163,38 @@ function ManageAnnouncement() {
                 deleteBtn.disabled = true;
                 deleteBtn.textContent = "Deleting...";
             }
-    
+
+            const token = getToken();
+
             const response = await fetch(`${baseUrl}/announcement/delete/${deleteId}`, {
                 method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
-    
+
             if (!response.ok) {
                 throw new Error("Failed to delete announcement");
             }
-    
+
             // ✅ Call `/add-report` API
             await fetch("https://teamweb-kera.onrender.com/report/add-report", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     username: username, // Replace with actual username
                     activityLog: `[Manage Announcement] Deleted Announcement: ${announcementTitle}`
                 }),
             });
-    
+
             fetchAnnouncements();
             setShowDeleteModal(false);
             setDeleteId(null);
             setAnnouncementTitle(null);
-    
+
             // Show success toast
             showToast("Announcement deleted successfully!");
         } catch (error) {

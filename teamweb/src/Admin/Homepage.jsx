@@ -3,6 +3,7 @@ import AdminHeader from "./Component/AdminHeader.jsx";
 import "./Homepage.css";
 
 function Homepage() {
+  const getToken = () => localStorage.getItem("token");
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -58,6 +59,8 @@ function Homepage() {
     formData.append("image", selectedFile);
     formData.append("description", imageDescription || "");
 
+    const token = getToken(); // Assuming the token is stored in localStorage
+
     try {
       const uploadTimer = setInterval(() => {
         setUploadProgress((prev) => {
@@ -73,6 +76,9 @@ function Homepage() {
         "https://teamweb-kera.onrender.com/homepage/upload-image",
         {
           method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: formData,
         }
       );
@@ -87,6 +93,7 @@ function Homepage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             username: username,
@@ -108,6 +115,7 @@ function Homepage() {
     }
   };
 
+
   const cancelUpload = () => {
     setPreviewImage(null);
     setSelectedFile(null);
@@ -127,6 +135,8 @@ function Homepage() {
       ""
     );
 
+    const token = localStorage.getItem("token"); // Assuming the token is stored in localStorage
+
     try {
       const response = await fetch(
         `https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(
@@ -134,6 +144,9 @@ function Homepage() {
         )}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -146,6 +159,7 @@ function Homepage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             username: username,
@@ -159,6 +173,7 @@ function Homepage() {
       console.error("Error deleting image:", error);
     }
   };
+
 
   return (
     <>

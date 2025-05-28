@@ -4,6 +4,7 @@ import AdminHeader from '../Component/AdminHeader.jsx';
 
 // Main Calendar component
 const ManageCalendar = () => {
+  const getToken = () => localStorage.getItem("token");
   const initialYear = new Date().getFullYear(); // Get the current year dynamically
   const [currentYear, setCurrentYear] = useState(initialYear);
   const [hasSeenInitialYear, setHasSeenInitialYear] = useState(false);
@@ -101,27 +102,34 @@ const ManageCalendar = () => {
 
     // Function to delete previous year's entries
     const deletePreviousYearEntries = async () => {
-      try {
-          const response = await fetch('https://teamweb-kera.onrender.com/calendar/delete-previous-year', {
-              method: 'DELETE',
-          });
-  
-          if (response.status === 404) {
-              console.log("No data found from last year to delete.");
-              //return; // Exit early to avoid unnecessary error logging
-          }
-  
-          if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.message || 'Failed to delete previous year’s entries');
-          }
-  
-          const data = await response.json();
-          console.log(data.message || "Previous year's calendar entries deleted successfully.");
-      } catch (error) {
-          console.error('Error deleting previous year’s calendar entries:', error.message);
-      }
-  };
+        try {
+            const token = getToken(); // ✅ Get token
+
+            const response = await fetch('https://teamweb-kera.onrender.com/calendar/delete-previous-year', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`, // ✅ Include token in header
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.status === 404) {
+                console.log("No data found from last year to delete.");
+                // return; // Optional: uncomment if you want to exit early
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete previous year’s entries');
+            }
+
+            const data = await response.json();
+            console.log(data.message || "Previous year's calendar entries deleted successfully.");
+        } catch (error) {
+            console.error('Error deleting previous year’s calendar entries:', error.message);
+        }
+    };
+
   
   
 
@@ -195,12 +203,18 @@ const ManageCalendar = () => {
   const addEvent = async () => {
       if (newEventName.trim() === '') return;
 
+      const token = getToken(); // ✅ Get the auth token
+      const username = localStorage.getItem('username') || 'Admin'; // ✅ Get username
+
       const newEvent = { date: newEventDate, title: newEventName.trim(), type: "event" };
 
       try {
           const response = await fetch('https://teamweb-kera.onrender.com/calendar/add', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}` // ✅ Attach token
+              },
               body: JSON.stringify(newEvent),
           });
 
@@ -217,14 +231,15 @@ const ManageCalendar = () => {
               name: newEventName.trim()
           }]);
 
-          // ✅ Call `/add-report` API
+          // ✅ Log activity
           await fetch("https://teamweb-kera.onrender.com/report/add-report", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
+                  'Authorization': `Bearer ${token}` // ✅ Attach token here too
               },
               body: JSON.stringify({
-                  username: username, // Replace with actual username
+                  username,
                   activityLog: `[Manage Calendar] Added Event: ${newEventName.trim()} on ${newEventDate}`
               }),
           });
@@ -237,17 +252,24 @@ const ManageCalendar = () => {
       }
   };
 
+
   
   const updateEvent = async () => {
       if (newEventName.trim() === '' || !currentEvent) return;
 
+      const token = getToken(); // Get auth token
+      const username = localStorage.getItem('username') || 'Admin'; // Get username
+
       try {
           const response = await fetch(`https://teamweb-kera.onrender.com/calendar/edit/${currentEvent.id}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}` // Attach token
+              },
               body: JSON.stringify({ 
                   date: newEventDate, 
-                  title: newEventName,
+                  title: newEventName.trim(),
                   type: "event"
               }),
           });
@@ -255,12 +277,12 @@ const ManageCalendar = () => {
           if (!response.ok) throw new Error('Failed to update event');
 
           const updatedEvents = events.map((event) =>
-              event.id === currentEvent.id ? { ...event, date: newEventDate, name: newEventName } : event
+              event.id === currentEvent.id ? { ...event, date: newEventDate, name: newEventName.trim() } : event
           );
 
           setEvents(updatedEvents);
 
-          // ✅ Determine what changed and log accordingly
+          // Determine what changed and log accordingly
           let activityLog = "";
           if (currentEvent.name !== newEventName.trim() && currentEvent.date !== newEventDate) {
               activityLog = `[Manage Calendar] Updated Event: Name changed from '${currentEvent.name}' to '${newEventName.trim()}' and Date changed from '${currentEvent.date}' to '${newEventDate}'`;
@@ -275,10 +297,11 @@ const ManageCalendar = () => {
                   method: "POST",
                   headers: {
                       "Content-Type": "application/json",
+                      'Authorization': `Bearer ${token}` // Attach token
                   },
                   body: JSON.stringify({
-                      username: username, // Replace with actual username
-                      activityLog: activityLog
+                      username,
+                      activityLog
                   }),
               });
           }
@@ -290,7 +313,6 @@ const ManageCalendar = () => {
           showNotification('Failed to update event.', true);
       }
   };
-
 
   
   // Show confirmation dialog before deleting
@@ -308,9 +330,15 @@ const ManageCalendar = () => {
   const performDelete = async () => {
       if (!eventToDelete?.id) return;
 
+      const token = getToken(); // Get auth token
+      const username = localStorage.getItem('username') || 'Admin'; // Get username
+
       try {
           const response = await fetch(`https://teamweb-kera.onrender.com/calendar/delete/${eventToDelete.id}`, {
               method: 'DELETE',
+              headers: {
+                  'Authorization': `Bearer ${token}` // Attach token
+              },
           });
 
           if (!response.ok) {
@@ -326,14 +354,15 @@ const ManageCalendar = () => {
           setEventToDelete(null);
           showNotification('Event deleted successfully!');
 
-          // ✅ Call `/add-report` API
+          // Log the deletion activity
           await fetch("https://teamweb-kera.onrender.com/report/add-report", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
+                  'Authorization': `Bearer ${token}` // Attach token
               },
               body: JSON.stringify({
-                  username: username, // Replace with actual username
+                  username,
                   activityLog: `[Manage Calendar] Deleted Event: '${eventToDelete.name}' on '${eventToDelete.date}'`
               }),
           });
@@ -346,7 +375,6 @@ const ManageCalendar = () => {
       }
   };
 
-  
   // Cancel deletion
   const cancelDelete = () => {
     setIsConfirmationOpen(false);

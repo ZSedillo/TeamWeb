@@ -3,6 +3,8 @@ import AdminHeader from "../Component/AdminHeader.jsx";
 import "./ViewReport.css";
 
 function ViewReport() {
+    const getToken = () => localStorage.getItem("token");
+
     const [reports, setReports] = useState([]);
     const [filteredReports, setFilteredReports] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -26,26 +28,32 @@ function ViewReport() {
         filterReports();
     }, [reports, searchQuery]);
 
-    const fetchReports = () => {
-        setLoading(true);
-        fetch("https://teamweb-kera.onrender.com/report/view-report")
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Failed to fetch reports");
-                }
-                return response.json();
-            })
-            .then((data) => {
-                setReports(data);
-                setFilteredReports(data);
-                setLoading(false);
-            })
-            .catch((error) => {
-                console.error("Error fetching reports:", error);
-                setError("Failed to load reports");
-                setLoading(false);
-            });
-    };
+const fetchReports = () => {
+    setLoading(true);
+    const token = getToken();
+    fetch("https://teamweb-kera.onrender.com/report/view-report", {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    })
+    .then((response) => {
+        if (!response.ok) {
+            throw new Error("Failed to fetch reports");
+        }
+        return response.json();
+    })
+    .then((data) => {
+        setReports(data);
+        setFilteredReports(data);
+        setLoading(false);
+    })
+    .catch((error) => {
+        console.error("Error fetching reports:", error);
+        setError("Failed to load reports");
+        setLoading(false);
+    });
+};
+
 
     // Function to handle search input changes
     const handleSearchChange = (e) => {
@@ -123,19 +131,25 @@ function ViewReport() {
         }
 
         setDeleting(true);
-        fetch("https://teamweb-kera.onrender.com/report/delete-reports", { method: "DELETE" })
-            .then((response) => response.json())
-            .then((data) => {
-                alert(data.message);
-                fetchReports(); // Refresh reports after deletion
-            })
-            .catch((error) => {
-                console.error("Error deleting reports:", error);
-                alert("Failed to delete logs.");
-            })
-            .finally(() => {
-                setDeleting(false);
-            });
+        const token = getToken();
+        fetch("https://teamweb-kera.onrender.com/report/delete-reports", {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            alert(data.message);
+            fetchReports(); // Refresh reports after deletion
+        })
+        .catch((error) => {
+            console.error("Error deleting reports:", error);
+            alert("Failed to delete logs.");
+        })
+        .finally(() => {
+            setDeleting(false);
+        });
     };
 
     // Sort reports by latest time first
