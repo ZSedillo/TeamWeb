@@ -10,15 +10,20 @@ const {
     deletePreRegistrationById
 } = require('../controllers/preRegistrationController');
 
+const authenticate = require('../middleware/authMiddleware'); // Import the auth middleware
+
 const router = express.Router();
 
-router.get('/', getPreRegistrations);
+// Public routes
 router.post('/add', addPreRegistration);
-router.put('/status/:id', updatePreRegistrationStatus);
-router.put('/enrollment/:id', updatePreregistrationEnrollmentStatus); 
-router.get('/enrolled', getEnrolledPreRegistrations);
 router.post('/addBooking', addBooking);
-router.delete('/deleteAll', deletePreRegistration); 
-router.delete('/delete/:id', deletePreRegistrationById);
+
+// Protected routes
+router.get('/', authenticate, getPreRegistrations);
+router.put('/status/:id', authenticate, updatePreRegistrationStatus);
+router.put('/enrollment/:id', authenticate, updatePreregistrationEnrollmentStatus);
+router.get('/enrolled', authenticate, getEnrolledPreRegistrations);
+router.delete('/deleteAll', authenticate, deletePreRegistration);
+router.delete('/delete/:id', authenticate, deletePreRegistrationById);
 
 module.exports = router;
