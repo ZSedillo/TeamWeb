@@ -5,9 +5,9 @@ const authenticate = require('../middleware/authMiddleware'); // Import the midd
 const router = express.Router();
 
 router.get("/getBookings", getAllBookings);
+router.get("/bookingAvailability", getBookingAvailability);
 
 // Protected Routes (require login)
-router.get("/bookingAvailability", authenticate, getBookingAvailability);
 router.post("/addBookingAvailability", authenticate, addBookingAvailability);
 router.put("/editBookingAvailability/:id", authenticate, editBookingAvailability);
 
