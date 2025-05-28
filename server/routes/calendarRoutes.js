@@ -6,14 +6,15 @@ const {
     deleteCalendarEntry,
     deletePreviousYearEntries
 } = require("../controllers/calendarController");
+const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 
 const router = express.Router();
 
 // Routes
 router.get("/", getAllCalendarEntries);
-router.post("/add", addCalendarEntry);
-router.put("/edit/:id", editCalendarEntry);
-router.delete("/delete/:id", deleteCalendarEntry);
-router.delete("/delete-previous-year", deletePreviousYearEntries); // New route to delete previous year
+router.post("/add", authenticate, addCalendarEntry);
+router.put("/edit/:id", authenticate, editCalendarEntry);
+router.delete("/delete/:id", authenticate, deleteCalendarEntry);
+router.delete("/delete-previous-year", authenticate, deletePreviousYearEntries); // New route to delete previous year
 
 module.exports = router;
