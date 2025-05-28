@@ -8,13 +8,12 @@ const {
     editAnnouncement,
     deleteAnnouncement
 } = require("../controllers/announcementController");
+const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 
 // Routes
 router.get("/", getAllAnnouncements);
-// router.post("/add", uploadAnnouncement.single("image"), addAnnouncement);
-// router.put("/edit/:id", uploadAnnouncement.single("image"), editAnnouncement);
-router.post("/add", fileUpload(), addAnnouncement);
-router.put("/edit/:id", fileUpload(), editAnnouncement);
-router.delete("/delete/:id", deleteAnnouncement);
+router.post("/add", authenticate, fileUpload(), addAnnouncement);
+router.put("/edit/:id", authenticate, fileUpload(), editAnnouncement);
+router.delete("/delete/:id", authenticate, deleteAnnouncement);
 
 module.exports = router;
