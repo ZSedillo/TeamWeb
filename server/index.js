@@ -1,8 +1,11 @@
-const express = require('express')
-const connectDB = require('./db.js')
-
+const express = require('express');
 const dotenv = require('dotenv');
 const path = require('path');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+const connectDB = require('./db.js');
 
 const homepageRoutes = require("./routes/homepageRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
@@ -12,58 +15,90 @@ const bookRoutes = require("./routes/bookRoutes");
 const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 
-dotenv.config(); 
-const cors = require('cors')
+// Load .env variables
+dotenv.config();
 
-const app = express()
-const router = express.Router();
+const app = express();
 
-app.use(express.json())
-// app.use(cors())
+// --- Security Middleware ---
+
+// Force HTTPS redirect in production
+app.use((req, res, next) => {
+  if (
+    process.env.NODE_ENV === "production" &&
+    req.headers["x-forwarded-proto"] !== "https"
+  ) {
+    return res.redirect("https://" + req.headers.host + req.url);
+  }
+  next();
+});
+
+// Add secure headers
+app.use(helmet());
+
+// Rate limiter (to prevent abuse)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max requests per IP
+  message: "Too many requests from this IP, please try again later.",
+});
+app.use(limiter);
+
+// JSON body parser
+app.use(express.json());
+
+// CORS config
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "https://teamweb-production.up.railway.app", "https://teamweb.up.railway.app"],  // Add localhost:5173 here
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://teamweb-production.up.railway.app",
+    "https://teamweb.up.railway.app"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 }));
 
+// --- Database connection ---
+connectDB();
 
-
-connectDB()
-
-// Set the correct path for static frontend files
+// --- Serve static frontend ---
 const frontendPath = path.join(__dirname, "..", "teamweb");
 app.use(express.static(frontendPath));
 
-
+// --- API Routes ---
 app.use("/homepage", express.static(path.join(__dirname, "homepage")));
 app.use("/homepage", homepageRoutes);
 
 app.use("/announcement", announcementRoutes);
 app.use("/announcement", express.static(path.join(__dirname, "announcement")));
 
-app.use("/calendar", calendarRoutes); 
+app.use("/calendar", calendarRoutes);
 app.use('/preregistration', preRegistrationRoutes);
 app.use("/booking", bookRoutes);
 app.use('/report', reportRoutes);
 app.use('/user', userRoutes);
 
-app.use("/", router); 
-
-// Catch-all for unknown API routes (all methods)
-app.all(['/preregistration/*', '/booking/*', '/user/*', '/report/*', '/calendar/*', '/announcement/*'], (req, res) => {
-    res.status(404).json({ error: 'API endpoint not found' });
+// --- Catch unknown API routes ---
+app.all([
+  '/preregistration/*',
+  '/booking/*',
+  '/user/*',
+  '/report/*',
+  '/calendar/*',
+  '/announcement/*'
+], (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
 });
 
+// --- Catch all for frontend routes (SPA fallback) ---
 app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"));
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// app.listen(3000,() => {
-//     console.log("app is running");
-// })
-
+// --- Start the server ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
