@@ -1,6 +1,6 @@
 // filepath: d:\TeamWeb\server\controllers\bookController.js
-const bookModel = require("../models/Book.js");
-const preRegistrationModel = require("../models/preRegistration.js");
+const bookModel = require("./book.model");
+const preRegistrationModel = require("../preregistration/preRegistration.model");
 
 // Helper: Get filled count for each slot for the next 7 days
 async function getFilledCountsForSlots(availability) {
