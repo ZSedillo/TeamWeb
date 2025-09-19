@@ -7,13 +7,13 @@ const rateLimit = require('express-rate-limit');
 
 const connectDB = require('./db.js');
 
-const homepageRoutes = require("./homepage/homepage.routes");
-const announcementRoutes = require("./announcement/announcement.routes");
-const calendarRoutes = require("./calendar/calendar.routes");
-const preRegistrationRoutes = require("./preregistration/preRegistration.routes");
-const bookRoutes = require("./book/book.routes");
-const reportRoutes = require('./report/report.routes');
-const userRoutes = require('./user/user.routes');
+const homepageRoutes = require("./homepage/homepage.routes.js");
+const announcementRoutes = require("./announcement/announcement.routes.js");
+const calendarRoutes = require("./calendar/calendar.routes.js");
+const preRegistrationRoutes = require("./preregistration/preRegistration.routes.js");
+const bookRoutes = require("./book/book.routes.js");
+const reportRoutes = require('./report/report.routes.js');
+const userRoutes = require('./user/user.routes.js');
 
 // Load .env variables
 dotenv.config();
