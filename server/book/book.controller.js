@@ -1,5 +1,5 @@
 const bookModel = require("./book.model.js");
-const preRegistrationModel = require("../preregistration/PreRegistration.js");
+const preRegistrationModel = require("../preregistration/preRegistration.js");
 
 // Helper: Get filled count for each slot for the next 7 days
 async function getFilledCountsForSlots() {
