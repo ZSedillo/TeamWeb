@@ -1,4 +1,4 @@
-const preRegistrationModel = require('./PreRegistration.model');
+const preRegistrationModel = require('./preRegistration.model');
 const { sendApprovalEmail } = require('../service/emailService');
 const bookModel = require('../book/book.model');
 
