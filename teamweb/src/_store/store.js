@@ -1,19 +1,18 @@
-import { createStore, combineReducers, applyMiddleware } from 'redux';
-import { thunk } from 'redux-thunk';
-// import { tempListReducer } from '../_reducers/temp.reducer';
-// import { userReducer, scholarsReducer, scholarProfileReducer } from '../_reducers/user.reducer';
-// import { feedReducer } from '../_reducers/feed.reducer';
-// import { postReducer } from '../_reducers/post.reducer';
+import { createStore, combineReducers, applyMiddleware, compose } from "redux";
+import * as ReduxThunk from "redux-thunk";
+import { homepageReducer } from "../_reducers/homepage.reducers";
+import { announcementReducer } from "../_reducers/announcement.reducers";
+import { calendarReducer } from "../_reducers/calendar.reducers";
 
-const rootReducer = combineReducers({
-//   tempList: tempListReducer,
-//   user: userReducer,
-//   scholars: scholarsReducer,
-//   scholarProfile: scholarProfileReducer,
-//   feed: feedReducer,
-//   post: postReducer,
+const thunk = ReduxThunk.thunk || ReduxThunk.default;
+
+const reducer = combineReducers({
+  homepage: homepageReducer,
+  announcementState: announcementReducer,
+  calendarState: calendarReducer,
 });
 
-const store = createStore(rootReducer, applyMiddleware(thunk));
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+const store = createStore(reducer, composeEnhancers(applyMiddleware(thunk)));
 
 export default store;

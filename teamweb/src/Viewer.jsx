@@ -1,41 +1,27 @@
-import React, { useState, useEffect, useCallback } from "react"; 
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchHomepageImages } from "./_actions/homepage.actions";
 import Header from "./Viewer/Component/Header.jsx";
 import Footer from "./Viewer/Component/Footer.jsx";
 import School from "./assets/images/School.jpg";
 import "./Viewer.css";
 
 function Viewer() {
-  const [images, setImages] = useState([]);
+  const dispatch = useDispatch();
+  const { images, loading: isLoading, error } = useSelector(state => state.homepage);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  const fetchImages = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("https://teamweb-kera.onrender.com/homepage/images");
-      if (!response.ok) throw new Error(`Failed to fetch images: ${response.status}`);
-      const data = await response.json();
-      console.log("Fetched images:", data);
-      setImages(data);
-      setError(null);
-    } catch (error) {
-      console.error("Error fetching images:", error);
-      setError("Failed to load news images. Please try again later.");
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    dispatch(fetchHomepageImages());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (images.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+      }, 5000);
+      return () => clearInterval(interval);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchImages();
-  }, [fetchImages]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-    }, 5000);
-    return () => clearInterval(interval);
   }, [images]);
 
   const getPosition = (index) => {
@@ -43,6 +29,10 @@ function Viewer() {
     if (index === (currentIndex - 1 + images.length) % images.length) return "prev";
     if (index === (currentIndex + 1) % images.length) return "next";
     return "hidden";
+  };
+
+  const handleRefresh = () => {
+    dispatch(fetchHomepageImages());
   };
 
   return (
@@ -75,7 +65,12 @@ function Viewer() {
             <p>Loading news...</p>
           </div>
         ) : error ? (
-          <div className="error-message">{error}</div>
+          <div className="error-message">
+            {error}
+            <button className="refresh-btn" onClick={handleRefresh}>
+              Try Again
+            </button>
+          </div>
         ) : images.length > 0 ? (
           <>
             <div className="news-container">
@@ -92,11 +87,11 @@ function Viewer() {
                       className="news-image"
                     />
                     {/* Enhanced overlay with title and description */}
-                  <div className="news-title-overlay">
-                  <h3 className="news-title">
-                    {image.description || `News ${index + 1}`}
-                  </h3>
-                  </div>
+                    <div className="news-title-overlay">
+                      <h3 className="news-title">
+                        {image.description || `News ${index + 1}`}
+                      </h3>
+                    </div>
                   </div>
                 );
               })}
@@ -116,7 +111,7 @@ function Viewer() {
         ) : (
           <div className="no-content-message">
             <p>No news items available at this time.</p>
-            <button className="refresh-btn" onClick={fetchImages}>Refresh</button>
+            <button className="refresh-btn" onClick={handleRefresh}>Refresh</button>
           </div>
         )}
       </div>
