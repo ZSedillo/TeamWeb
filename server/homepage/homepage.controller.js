@@ -1,4 +1,4 @@
-const Homepage = require('../models/Homepage')
+const Homepage = require('./homepage.model')
 const { v4} = require("uuid");
 const { putObject } = require('../util/putObject');
 const { deleteObject } = require('../util/deleteObject');

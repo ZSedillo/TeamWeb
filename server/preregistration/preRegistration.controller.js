@@ -1,6 +1,6 @@
-const preRegistrationModel = require('../models/PreRegistration');
+const preRegistrationModel = require('./PreRegistration.model');
 const { sendApprovalEmail } = require('../service/emailService');
-const bookModel = require('../models/Book');
+const bookModel = require('../book/book.model');
 
 // Helper: Get filled count for a specific date and slot
 async function getFilledCountForSlot(dateStr, slotTime) {

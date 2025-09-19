@@ -1,4 +1,4 @@
-const reportModel = require('../models/Report');
+const reportModel = require('./report.model');
 
 // Get all reports
 const viewReports = async (req, res) => {

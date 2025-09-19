@@ -8,7 +8,7 @@ const {
     addBooking,
     deletePreRegistration,
     deletePreRegistrationById
-} = require('../controllers/preRegistrationController');
+} = require('./preRegistration.controller');
 
 const authenticate = require('../middleware/authMiddleware'); // Import the auth middleware
 

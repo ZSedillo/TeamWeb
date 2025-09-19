@@ -7,7 +7,7 @@ const {
     uploadImage,
     deleteImage,
     getAllImages
-} = require("../controllers/homepageController");
+} = require("./homepage.controller");
 const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 
 // router.post("/upload-image", uploadHomepage.single("image"), uploadImage);

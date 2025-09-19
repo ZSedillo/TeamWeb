@@ -1,5 +1,5 @@
 const express = require("express");
-const { getBookingAvailability, addBookingAvailability, editBookingAvailability, getAllBookings } = require("../controllers/bookController");
+const { getBookingAvailability, addBookingAvailability, editBookingAvailability, getAllBookings } = require("./book.controller");
 const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 
 const router = express.Router();

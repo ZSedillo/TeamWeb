@@ -5,7 +5,7 @@ const {
   searchReports,
   addReport,
   deleteReports
-} = require('../controllers/reportController');
+} = require('./report.controller');
 
 const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 

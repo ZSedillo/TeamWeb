@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const announcementModel = require("../models/Announcement");
+const announcementModel = require("./announcement.model");
 const { v4 } = require("uuid");
 const { putObjectAnnouncement } = require("../util/putObjectAnnouncement");
 const { deleteObjectAnnouncement } = require("../util/deleteObjectAnnouncement");

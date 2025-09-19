@@ -5,7 +5,7 @@ const {
     editCalendarEntry, 
     deleteCalendarEntry,
     deletePreviousYearEntries
-} = require("../controllers/calendarController");
+} = require("./calendar.controller");
 const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 
 const router = express.Router();

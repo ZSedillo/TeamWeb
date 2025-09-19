@@ -7,7 +7,7 @@ const {
     addAnnouncement,
     editAnnouncement,
     deleteAnnouncement
-} = require("../controllers/announcementController");
+} = require("./announcement.controller");
 const authenticate = require('../middleware/authMiddleware'); // Import the middleware
 
 // Routes
