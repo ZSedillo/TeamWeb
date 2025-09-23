@@ -1,70 +1,55 @@
 import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { FaUser, FaExclamationTriangle } from "react-icons/fa";
 import { useNavigate } from "react-router";
+import { forgotPassword, clearUserErrors } from "../_actions/user.actions";
 import './ForgotPassword.css';
 import TeamLogo from "../assets/images/TeamLogo.png";
 
 function ForgotPassword() {
-  const [username, setUsername] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState(""); // ✅ Use email instead of username
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  
+  // Get state from Redux store
+  const { loading, error } = useSelector(state => state.user);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username) {
-      setError("Please enter your email or username");
-      return;
-    }
+    if (!email) return;
 
-    setIsLoading(true);
-    setError("");
+    // Clear any existing errors
+    dispatch(clearUserErrors());
 
     try {
-      const response = await fetch('https://teamweb-kera.onrender.com/user/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username }),
-      });
-      
-      const text = await response.text();
-      
-      let data;
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          console.error("Error parsing JSON:", e);
-          throw new Error("Invalid server response");
-        }
-      } else {
-        throw new Error("Empty response from server");
+      const result = await dispatch(forgotPassword(email)); // ✅ Pass email
+
+      if (result.success) {
+        // Navigate to reset-password with resetToken and userId
+        navigate('/reset-password', { 
+          state: { 
+            resetToken: result.resetToken, 
+            userId: result.userId 
+          } 
+        });
       }
-      
-      if (!response.ok) {
-        throw new Error(data?.error || "Failed to verify user");
-      }
-      
-      navigate('/reset-password', { 
-        state: { 
-          resetToken: data.resetToken, 
-          userId: data.userId 
-        } 
-      });
+      // Error handling is done by Redux
     } catch (error) {
-      console.error("Error:", error);
-      setError(error.message || "Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
+      console.error("Forgot password error:", error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setEmail(e.target.value); // ✅ Update email state
+    if (error) {
+      dispatch(clearUserErrors()); // Clear errors when typing
     }
   };
 
   return (
     <>
       <img src={TeamLogo} alt="Team Logo" className="team-logo" />
-      <div className="container">
+      <div className="forgot-container">
         <div className="form-box">
           <div className="form-content">
             <FaUser className="admin-icon" />
@@ -82,14 +67,16 @@ function ForgotPassword() {
             
             <form onSubmit={handleSubmit}>
               <input 
-                type="text" 
+                type="email" 
                 placeholder="Email" 
                 className="input-field" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email} // ✅ Bind to email
+                onChange={handleInputChange}
+                disabled={loading}
+                required
               />
-              <button type="submit" className="btn" disabled={isLoading}>
-                {isLoading ? "PROCESSING..." : "SUBMIT"}
+              <button type="submit" className="btn" disabled={loading || !email}>
+                {loading ? "PROCESSING..." : "SUBMIT"}
               </button>
             </form>
           </div>

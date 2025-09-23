@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import AdminHeader from "./Component/AdminHeader.jsx";
 import "./Homepage.css";
 
 function Homepage() {
-  const getToken = () => localStorage.getItem("token");
+  // Remove localStorage token getter - now using cookies
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -11,15 +12,16 @@ function Homepage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [username, setUsername] = useState("");
 
   // New states
   const [imageDescription, setImageDescription] = useState("");
-  const [showUploadConfirm, setShowUploadConfirm] = useState(false); // NEW
+  const [showUploadConfirm, setShowUploadConfirm] = useState(false);
+
+  // Get user from Redux store instead of localStorage
+  const { user } = useSelector(state => state.user);
+  const username = user?.username || "Admin";
 
   useEffect(() => {
-    const loggedInUser = localStorage.getItem("username");
-    setUsername(loggedInUser || "Admin");
     fetchImages();
   }, []);
 
@@ -45,7 +47,7 @@ function Homepage() {
 
   const confirmUpload = () => {
     if (!selectedFile) return;
-    setShowUploadConfirm(true); // show confirmation modal
+    setShowUploadConfirm(true);
   };
 
   const handleUpload = async () => {
@@ -53,13 +55,11 @@ function Homepage() {
 
     setIsUploading(true);
     setUploadProgress(0);
-    setShowUploadConfirm(false); // close confirmation modal
+    setShowUploadConfirm(false);
 
     const formData = new FormData();
     formData.append("image", selectedFile);
     formData.append("description", imageDescription || "");
-
-    const token = getToken(); // Assuming the token is stored in localStorage
 
     try {
       const uploadTimer = setInterval(() => {
@@ -72,13 +72,12 @@ function Homepage() {
         });
       }, 200);
 
+      // Updated to use cookies instead of Authorization header
       const response = await fetch(
         "https://teamweb-kera.onrender.com/homepage/upload-image",
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include', // Use cookies instead of Authorization header
           body: formData,
         }
       );
@@ -89,12 +88,13 @@ function Homepage() {
       if (response.ok) {
         fetchImages();
 
+        // Also update the report API call to use cookies
         await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include', // Use cookies instead of Authorization header
           body: JSON.stringify({
             username: username,
             activityLog: `[Manage Homepage] Uploaded an Image: ${selectedFile.name}`,
@@ -115,7 +115,6 @@ function Homepage() {
     }
   };
 
-
   const cancelUpload = () => {
     setPreviewImage(null);
     setSelectedFile(null);
@@ -135,18 +134,15 @@ function Homepage() {
       ""
     );
 
-    const token = localStorage.getItem("token"); // Assuming the token is stored in localStorage
-
     try {
+      // Updated to use cookies instead of Authorization header
       const response = await fetch(
         `https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(
           imageKey
         )}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include', // Use cookies instead of Authorization header
         }
       );
 
@@ -155,12 +151,13 @@ function Homepage() {
         setShowDeleteConfirm(false);
         setSelectedImage(null);
 
+        // Also update the report API call to use cookies
         await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include', // Use cookies instead of Authorization header
           body: JSON.stringify({
             username: username,
             activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
@@ -173,7 +170,6 @@ function Homepage() {
       console.error("Error deleting image:", error);
     }
   };
-
 
   return (
     <>
@@ -343,7 +339,7 @@ function Homepage() {
                 <p style={{ marginTop: "10px", color: "#333" }}>
                   <strong>Description:</strong> {imageDescription}
                 </p>
-              )}
+                )}
             </div>
             <div className="modal-footer">
               <button className="cancel-btn" onClick={() => setShowUploadConfirm(false)}>
@@ -356,7 +352,6 @@ function Homepage() {
           </div>
         </div>
       )}
-
     </>
   );
 }

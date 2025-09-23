@@ -38,8 +38,9 @@ body {
 .admin-icon {
     font-size: 2.5rem;
     color: #2563eb;
-    margin-bottom: 0.5rem;
+    margin: 0 auto 0.5rem;
 }
+
 
 .title {
     font-size: 1.5rem;

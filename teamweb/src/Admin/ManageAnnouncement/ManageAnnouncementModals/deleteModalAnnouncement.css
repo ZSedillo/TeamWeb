@@ -1,0 +1,85 @@
+.delete-warning {
+    text-align: center;
+    color: #555;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 10px 0 30px;
+}
+
+.delete-warning i {
+    font-size: 40px;
+    color: #ff4444;
+    margin-bottom: 15px;
+}
+
+.delete-warning p {
+    margin: 5px 0;
+    font-size: 18px;
+}
+
+.delete-note {
+    font-size: 14px !important;
+    color: #888;
+    font-style: italic;
+    margin-top: 10px !important;
+}
+
+.delete-confirm-btn, .delete-cancel-btn {
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 16px;
+}
+
+.delete-confirm-btn {
+    background-color: #ff4444;
+    color: white;
+    border: none;
+}
+
+.delete-confirm-btn:hover {
+    background-color: #cc0000;
+}
+
+.delete-cancel-btn {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.delete-cancel-btn:hover {
+    background-color: #e5e5e5;
+}
+
+.submit-button, .cancel-button {
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 16px;
+}
+
+.submit-button {
+    background-color: #002366;
+    color: white;
+    border: none;
+}
+
+.submit-button:hover {
+    background-color: #001845;
+    box-shadow: 0 2px 8px rgba(0, 35, 102, 0.3);
+}
+
+.cancel-button {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.cancel-button:hover {
+    background-color: #e5e5e5;
+}

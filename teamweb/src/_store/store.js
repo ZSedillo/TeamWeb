@@ -6,6 +6,7 @@ import { calendarReducer } from "../_reducers/calendar.reducers";
 import { preRegistrationReducer } from "../_reducers/preRegistration.reducers";
 import { bookingReducer } from "../_reducers/booking.reducers";
 import { reportReducer } from "../_reducers/report.reducers";
+import { userReducer } from "../_reducers/user.reducers";
 
 const thunk = ReduxThunk.thunk || ReduxThunk.default;
 
@@ -16,6 +17,7 @@ const reducer = combineReducers({
   preRegistration: preRegistrationReducer,
   booking: bookingReducer,
   report: reportReducer,
+  user: userReducer,
 });
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;

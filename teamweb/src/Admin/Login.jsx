@@ -1,17 +1,37 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router"; // For navigation
-import { FaUser, FaExclamationCircle, FaEye, FaEyeSlash } from "react-icons/fa"; // Added eye icons
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { useDispatch, useSelector } from "react-redux";
+import { FaUser, FaExclamationCircle, FaEye, FaEyeSlash } from "react-icons/fa";
+import { login, clearUserErrors } from "../_actions/user.actions";
 import "./Login.css";
 import TeamLogo from "../assets/images/TeamLogo.png";
 
 function Login() {
     const [formData, setFormData] = useState({ username: "", password: "" });
-    const [error, setError] = useState(""); // State for error messages
-    const [showPassword, setShowPassword] = useState(false); // State for password visibility
-    const navigate = useNavigate(); // Hook for navigation
+    const [showPassword, setShowPassword] = useState(false);
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    
+    // Get state from Redux store
+    const { loading, error, isAuthenticated, user } = useSelector(state => state.user);
+
+    useEffect(() => {
+        // Clear any previous errors when component mounts
+        dispatch(clearUserErrors());
+        
+        // If already authenticated, redirect to admin homepage
+        if (isAuthenticated && user) {
+            navigate("/admin-homepage");
+        }
+    }, [dispatch, isAuthenticated, user, navigate]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        
+        // Clear errors when user starts typing
+        if (error) {
+            dispatch(clearUserErrors());
+        }
     };
     
     const togglePasswordVisibility = () => {
@@ -20,30 +40,22 @@ function Login() {
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(""); 
+        
         try {
-            const response = await fetch("https://teamweb-kera.onrender.com/user/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
-            });
-    
-            const data = await response.json();
-            if (response.status === 200 && data.token) {
-                localStorage.setItem("token", data.token); // Save token
-                localStorage.setItem("username", formData.username); // Save username
-                navigate("/admin-homepage"); // Navigate to the admin homepage
-            } else {
-                setError(`Error: ${data.error || "Login failed"}`);
+            const result = await dispatch(login(formData));
+            
+            if (result.success) {
+                navigate("/admin-homepage");
             }
+            // Error handling is done by Redux, no need to handle here
         } catch (error) {
-            setError("Error: An error occurred. Please try again.");
+            console.error('Login error:', error);
         }
     };
     
     return (
         <div className="page-container">
-            <img src={TeamLogo} alt="Team Logo" className="team-logo" /> {/* Logo at the top left */}
+            <img src={TeamLogo} alt="Team Logo" className="team-logo" />
             <div className="login-container">
                 <div className="form-box">
                     <div className="form-content">
@@ -63,6 +75,7 @@ function Login() {
                                 className="input-field"
                                 value={formData.username}
                                 onChange={handleChange}
+                                disabled={loading}
                                 required
                             />
                             <div className="password-input-container">
@@ -73,13 +86,20 @@ function Login() {
                                     className="input-field"
                                     value={formData.password}
                                     onChange={handleChange}
+                                    disabled={loading}
                                     required
                                 />
                                 <span className="password-toggle-icon" onClick={togglePasswordVisibility}>
                                     {showPassword ? <FaEye /> : <FaEyeSlash />}
                                 </span>
                             </div>
-                            <button type="submit" className="btn">LOGIN</button>
+                            <button 
+                                type="submit" 
+                                className="btn" 
+                                disabled={loading}
+                            >
+                                {loading ? 'LOGGING IN...' : 'LOGIN'}
+                            </button>
                         </form>
                         <a href="/forgot-password" className="forgot-password">Forgot Password?</a>
                     </div>
