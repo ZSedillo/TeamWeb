@@ -4,15 +4,12 @@ const userModel = require('../user/user.model.js');
 
 const authenticate = async (req, res, next) => {
     try {
-        // Get token from Authorization header
-        const authHeader = req.headers.authorization;
+        // Get token from HTTP-only cookie instead of Authorization header
+        const token = req.cookies.authToken;
         
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        if (!token) {
             return res.status(401).json({ error: 'Authentication required. No token provided.' });
         }
-        
-        // Extract token (remove "Bearer " prefix)
-        const token = authHeader.split(' ')[1];
         
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -23,7 +20,7 @@ const authenticate = async (req, res, next) => {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        // Add user info to request
+        // Add user info to request (keeping the same structure as your original)
         req.user = { id: user._id };
         
         next();

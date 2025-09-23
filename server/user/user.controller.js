@@ -5,6 +5,14 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// Cookie options for HTTP-only cookies
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    sameSite: 'strict',
+    maxAge: 60 * 60 * 1000 // 1 hour
+};
+
 exports.login = async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -16,10 +24,17 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
+        // Set HTTP-only cookie instead of sending token in response
+        res.cookie('authToken', token, cookieOptions);
+
         res.status(200).json({ 
             message: "Success", 
-            token,
-            user: { id: user._id, username: user.username, email: user.email || 'No email provided' }
+            user: { 
+                id: user._id, 
+                username: user.username, 
+                email: user.email || 'No email provided',
+                role: user.role || 'user'
+            }
         });
     } catch (error) {
         console.error(error);
@@ -40,6 +55,44 @@ exports.register = async (req, res) => {
         res.json({ message: "User registered successfully" });
     } catch (error) {
         console.error("Registration error:", error);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+exports.logout = async (req, res) => {
+    try {
+        // Clear the HTTP-only cookie
+        res.clearCookie('authToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+        });
+        
+        res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+exports.checkAuth = async (req, res) => {
+    try {
+        // This endpoint will be used to check if user is authenticated
+        // The middleware should have already verified the token and attached user to req
+        const user = await userModel.findById(req.user.id).select('-password');
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        res.status(200).json({ 
+            authenticated: true,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email || 'No email provided',
+                role: user.role || 'user'
+            }
+        });
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ error: "Server error" });
     }
 };
