@@ -99,9 +99,9 @@ exports.checkAuth = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-    const { username } = req.body;
+    const { email } = req.body;
     try {
-        const user = await userModel.findOne({ email: username });
+        const user = await userModel.findOne({ email: email });
         if (!user) return res.status(404).json({ error: "No account found with that email" });
 
         const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
