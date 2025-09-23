@@ -30,37 +30,28 @@ function ManageAnnouncement() {
   const baseUrl = "https://teamweb-kera.onrender.com";
   const [username, setUsername] = useState("Admin");
 
-  const getToken = () => localStorage.getItem("token");
-
   useEffect(() => {
     const loggedInUser = localStorage.getItem("username");
     if (loggedInUser) setUsername(loggedInUser);
     dispatch(fetchAnnouncements());
   }, [dispatch]);
 
-    const handleCreateOrUpdateAnnouncement = async (data) => {
-    // Prepare a plain object instead of FormData
+  const handleCreateOrUpdateAnnouncement = async (data) => {
     const payload = {
-        title: data.title || "",
-        description: data.description || "",
-        image_url: data.image_url || null, // either File or existing URL
+      title: data.title || "",
+      description: data.description || "",
+      image_url: data.image_url || null,
     };
 
-    if (editingId) {
-        // Edit existing announcement
-        await dispatch(editAnnouncement(editingId, payload, username));
-    } else {
-        // Add new announcement
-        await dispatch(addAnnouncement(payload, username));
-    }
+    if (editingId) await dispatch(editAnnouncement(editingId, payload, username));
+    else await dispatch(addAnnouncement(payload, username));
 
     resetForm();
     showToast(editingId ? "Announcement updated successfully!" : "Announcement posted successfully!");
-    };
+  };
 
   const handleDelete = async () => {
-    const token = getToken();
-    await dispatch(deleteAnnouncement(deleteId, token, username, announcementTitle));
+    await dispatch(deleteAnnouncement(deleteId, username, announcementTitle));
     setShowDeleteModal(false);
     setDeleteId(null);
     setAnnouncementTitle(null);
@@ -109,7 +100,7 @@ function ManageAnnouncement() {
     }, 100);
   };
 
-  // Pagination calculations
+  // Pagination
   const indexOfLastAnnouncement = pageNumber * announcementsPerPage;
   const indexOfFirstAnnouncement = indexOfLastAnnouncement - announcementsPerPage;
   const currentAnnouncements = announcements.slice(indexOfFirstAnnouncement, indexOfLastAnnouncement);
@@ -137,49 +128,35 @@ function ManageAnnouncement() {
               <button
                 className={`page-button-manage-announcement ${pageNumber === 1 ? "active" : ""}`}
                 onClick={() => paginate(1)}
-                aria-label="Page 1"
-                aria-current={pageNumber === 1 ? "page" : null}
               >1</button>
-
               {pageNumber > 3 && <span className="page-ellipsis">...</span>}
-
               {pageNumber > 2 && pageNumber < totalPages && (
                 Array.from({ length: Math.min(3, totalPages - 2) }, (_, i) => {
                   let pageNum;
                   if (pageNumber <= 2) pageNum = i + 2;
                   else if (pageNumber >= totalPages - 1) pageNum = totalPages - 3 + i;
                   else pageNum = pageNumber - 1 + i;
-
                   if (pageNum === 1 || pageNum === totalPages) return null;
-
                   return (
                     <button
                       key={pageNum}
                       className={`page-button ${pageNumber === pageNum ? "active" : ""}`}
                       onClick={() => paginate(pageNum)}
-                      aria-label={`Page ${pageNum}`}
-                      aria-current={pageNumber === pageNum ? "page" : null}
                     >{pageNum}</button>
                   );
                 }).filter(Boolean)
               )}
-
               {pageNumber < totalPages - 2 && <span className="page-ellipsis">...</span>}
-
               <button
                 className={`page-button ${pageNumber === totalPages ? "active" : ""}`}
                 onClick={() => paginate(totalPages)}
-                aria-label={`Page ${totalPages}`}
-                aria-current={pageNumber === totalPages ? "page" : null}
               >{totalPages}</button>
             </>
         }
-
         <button
           className="page-nav"
           onClick={() => paginate(Math.min(totalPages, pageNumber + 1))}
           disabled={pageNumber === totalPages}
-          aria-label="Next page"
         ><i className="fa fa-chevron-right"></i></button>
       </div>
     );
@@ -235,7 +212,6 @@ function ManageAnnouncement() {
                   const formattedDate = new Date(announcement.created_at).toLocaleDateString(undefined, {
                     year: 'numeric', month: 'short', day: 'numeric'
                   });
-
                   return (
                     <div key={announcement._id} className="announcement-card">
                       <div className="card-image-container">

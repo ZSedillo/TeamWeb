@@ -15,7 +15,7 @@ import {
 
 const BASE_URL = "https://teamweb-kera.onrender.com";
 
-// Fetch all announcements
+// ---------------- Fetch All Announcements ----------------
 export const fetchAnnouncements = () => async (dispatch) => {
   try {
     dispatch({ type: ANNOUNCEMENTS_REQUEST });
@@ -30,11 +30,11 @@ export const fetchAnnouncements = () => async (dispatch) => {
     const data = await response.json();
 
     const sortedAnnouncements =
-      data.announcements?.sort(
+      (data.announcements || []).sort(
         (a, b) =>
           new Date(b.created_at || b.createdAt) -
           new Date(a.created_at || a.createdAt)
-      ) || [];
+      );
 
     dispatch({ type: ANNOUNCEMENTS_SUCCESS, payload: sortedAnnouncements });
   } catch (error) {
@@ -42,12 +42,11 @@ export const fetchAnnouncements = () => async (dispatch) => {
   }
 };
 
-// Add new announcement
+// ---------------- Add Announcement ----------------
 export const addAnnouncement = (data, username = "Admin") => async (dispatch) => {
   try {
     dispatch({ type: ANNOUNCEMENT_ADD_REQUEST });
 
-    // Convert data to FormData
     const formData = new FormData();
     formData.append("title", data.title);
     formData.append("description", data.description);
@@ -63,7 +62,7 @@ export const addAnnouncement = (data, username = "Admin") => async (dispatch) =>
 
     if (!response.ok) throw new Error("Failed to add announcement");
 
-    // Add report using formData.get("title") to avoid undefined
+    // Add report
     await fetch(`${BASE_URL}/report/add-report`, {
       method: "POST",
       credentials: "include",
@@ -75,18 +74,19 @@ export const addAnnouncement = (data, username = "Admin") => async (dispatch) =>
     });
 
     dispatch({ type: ANNOUNCEMENT_ADD_SUCCESS });
+
+    // Refresh announcements via fetchAnnouncements
     dispatch(fetchAnnouncements());
   } catch (error) {
     dispatch({ type: ANNOUNCEMENT_ADD_FAIL, payload: error.message });
   }
 };
 
-// Edit announcement
+// ---------------- Edit Announcement ----------------
 export const editAnnouncement = (id, data, username = "Admin") => async (dispatch) => {
   try {
     dispatch({ type: ANNOUNCEMENT_EDIT_REQUEST });
 
-    // Convert data to FormData
     const formData = new FormData();
     formData.append("title", data.title);
     formData.append("description", data.description);
@@ -114,13 +114,13 @@ export const editAnnouncement = (id, data, username = "Admin") => async (dispatc
     });
 
     dispatch({ type: ANNOUNCEMENT_EDIT_SUCCESS });
-    dispatch(fetchAnnouncements());
+    dispatch(fetchAnnouncements()); // refresh list
   } catch (error) {
     dispatch({ type: ANNOUNCEMENT_EDIT_FAIL, payload: error.message });
   }
 };
 
-// Delete announcement
+// ---------------- Delete Announcement ----------------
 export const deleteAnnouncement = (id, username = "Admin", title) => async (dispatch) => {
   try {
     dispatch({ type: ANNOUNCEMENT_DELETE_REQUEST });
@@ -132,6 +132,7 @@ export const deleteAnnouncement = (id, username = "Admin", title) => async (disp
 
     if (!response.ok) throw new Error("Failed to delete announcement");
 
+    // Add report
     await fetch(`${BASE_URL}/report/add-report`, {
       method: "POST",
       credentials: "include",
@@ -143,7 +144,7 @@ export const deleteAnnouncement = (id, username = "Admin", title) => async (disp
     });
 
     dispatch({ type: ANNOUNCEMENT_DELETE_SUCCESS });
-    dispatch(fetchAnnouncements());
+    dispatch(fetchAnnouncements()); // refresh list
   } catch (error) {
     dispatch({ type: ANNOUNCEMENT_DELETE_FAIL, payload: error.message });
   }
