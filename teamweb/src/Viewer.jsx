@@ -67,9 +67,6 @@ function Viewer() {
         ) : error ? (
           <div className="error-message">
             {error}
-            <button className="refresh-btn" onClick={handleRefresh}>
-              Try Again
-            </button>
           </div>
         ) : images.length > 0 ? (
           <>

@@ -1,18 +1,18 @@
 import {
-  PRE_REGISTRATION_REQUEST,
-  PRE_REGISTRATION_SUCCESS,
-  PRE_REGISTRATION_FAIL,
-} from "../_constants/preRegistration.constants";
+  BOOKING_REQUEST,
+  BOOKING_SUCCESS,
+  BOOKING_FAIL,
+} from "../_constants/booking.constants";
 
 const initialState = { loading: false, success: false, error: null };
 
-export const preRegistrationReducer = (state = initialState, action) => {
+export const bookingReducer = (state = initialState, action) => {
   switch (action.type) {
-    case PRE_REGISTRATION_REQUEST:
+    case BOOKING_REQUEST:
       return { ...state, loading: true, error: null };
-    case PRE_REGISTRATION_SUCCESS:
+    case BOOKING_SUCCESS:
       return { ...state, loading: false, success: true };
-    case PRE_REGISTRATION_FAIL:
+    case BOOKING_FAIL:
       return { ...state, loading: false, error: action.payload };
     default:
       return state;
