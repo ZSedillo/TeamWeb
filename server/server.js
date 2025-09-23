@@ -54,14 +54,13 @@ app.use(cookieParser());
 // CORS config
 app.use(cors({
   origin: [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "https://teamweb-production.up.railway.app",
-    "https://teamweb.up.railway.app"
+    "http://localhost:5173",   // Dev
+    "http://localhost:5174",   // Dev
+    "https://teamweb.up.railway.app" // Frontend on Railway
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: true // ✅ allow cookies
 }));
 
 // --- Database connection ---

@@ -7,11 +7,12 @@ dotenv.config();
 
 // Cookie options for HTTP-only cookies
 const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    sameSite: 'strict',
-    maxAge: 60 * 60 * 1000 // 1 hour
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // ensures HTTPS only
+  sameSite: "none", // must be "none" for cross-site cookies
+  maxAge: 60 * 60 * 1000 // 1 hour
 };
+
 
 exports.login = async (req, res) => {
     const { username, password } = req.body;
