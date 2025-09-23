@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 const connectDB = require('./db.js');
 
@@ -36,7 +37,7 @@ app.use((req, res, next) => {
 // Add secure headers
 app.use(helmet());
 
-// Rate limiter (to prevent abuse)
+// Rate limiter (optional)
 // const limiter = rateLimit({
 //   windowMs: 15 * 60 * 1000, // 15 minutes
 //   max: 100, // max requests per IP
@@ -46,6 +47,9 @@ app.use(helmet());
 
 // JSON body parser
 app.use(express.json());
+
+// ✅ Cookie parser (important for auth middleware to work)
+app.use(cookieParser());
 
 // CORS config
 app.use(cors({
