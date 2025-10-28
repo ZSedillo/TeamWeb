@@ -11,11 +11,12 @@ import {
 export const fetchReports = () => async (dispatch) => {
   try {
     dispatch({ type: REPORTS_REQUEST });
-    const token = localStorage.getItem("token");
 
     const res = await fetch("https://teamweb-kera.onrender.com/report/view-report", {
-      headers: { Authorization: `Bearer ${token}` }
+      method: "GET",
+      credentials: "include",
     });
+
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to fetch reports");
@@ -30,11 +31,10 @@ export const fetchReports = () => async (dispatch) => {
 export const deleteReports = () => async (dispatch) => {
   try {
     dispatch({ type: REPORTS_DELETE_REQUEST });
-    const token = localStorage.getItem("token");
 
     const res = await fetch("https://teamweb-kera.onrender.com/report/delete-reports", {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
+      credentials: "include",
     });
 
     const data = await res.json();

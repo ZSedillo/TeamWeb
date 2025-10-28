@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import AdminHeader from '../Component/AdminHeader.jsx';
 import UpdateAppointment from './UpdateAppointment';
 import ViewReports from './ViewReports';
-import {MapPin, Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2 ,ChevronDown } from 'lucide-react';
+import {MapPin, Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2, ChevronDown } from 'lucide-react';
 import ExpectedStudents from './ExpectedStudents';
 import EnrolledStudents from './EnrolledStudents';
 
@@ -10,13 +11,28 @@ import './ManagePreRegistration.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Import Redux actions
+import {
+    fetchPreRegistrations,
+    updatePreRegistrationStatus,
+    updatePreRegistrationEnrollment,
+    deletePreRegistration,
+    deleteAllPreRegistrations
+} from '../../_actions/preRegistration.actions';
 
 function ManagePreRegistration() {
-    const getToken = () => localStorage.getItem("token");
-    // State management
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const dispatch = useDispatch();
+    
+    // Redux state
+    const { 
+        loading, 
+        preRegistrations, 
+        totalPages: reduxTotalPages, 
+        totalRecords: reduxTotalRecords,
+        error: reduxError 
+    } = useSelector(state => state.preRegistration);
+
+    // Local UI state
     const [processingStatus, setProcessingStatus] = useState(null);
     const [processingEnrollment, setProcessingEnrollment] = useState(null);
     const [showEnrollmentConfirmation, setShowEnrollmentConfirmation] = useState(false);
@@ -26,10 +42,8 @@ function ManagePreRegistration() {
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [studentToUpdate, setStudentToUpdate] = useState(null);
     
-    // Pagination states
+    // Pagination states (client-side)
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalRecords, setTotalRecords] = useState(0);
     const [limit, setLimit] = useState(10);
 
     // Filter and search states
@@ -59,16 +73,25 @@ function ManagePreRegistration() {
     for (let year = currentYear; year >= startYear; year--) {
         yearOptions.push(year.toString());
     }
-    
+
+    // Client-side pagination calculations
+    const students = React.useMemo(() => {
+        const startIdx = (currentPage - 1) * limit;
+        const endIdx = startIdx + limit;
+        return (preRegistrations || []).slice(startIdx, endIdx);
+    }, [preRegistrations, currentPage, limit]);
+
+    const totalPages = Math.ceil((preRegistrations?.length || 0) / limit);
+    const totalRecords = preRegistrations?.length || 0;
+
     const handleTabChange = (tabId) => {
         setActiveTab(tabId);
         setIsDropdownOpen(false);
-      };
+    };
 
-      const getActiveTabData = () => {
+    const getActiveTabData = () => {
         return tabs.find(tab => tab.id === activeTab);
-      };
-    
+    };
 
     const handleDeleteAllPreRegistrations = async () => {
         if (deleteConfirmText !== 'Confirm') {
@@ -81,83 +104,9 @@ function ManagePreRegistration() {
 
         try {
             setIsDeleting(true);
-            const token = getToken(); // Get the token
-
-            const response = await fetch('https://teamweb-kera.onrender.com/preregistration/deleteAll', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,  // Added Authorization header here
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            // Log the activity for deletion
-            try {
-                const username = localStorage.getItem('username') || 'Admin';
-                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`,  // Added Authorization header here as well
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        activityLog: `[Manage Pre-Registration] Deleted all pre-registration records`,
-                    }),
-                });
-            } catch (logError) {
-                console.error('Failed to log activity:', logError);
-            }
-
-            // CSV export logic after deletion
-            if (Array.isArray(registrationData) && registrationData.length > 0) {
-                const csvRows = [
-                    ['Name', 'Phone Number', 'Grade Level', 'Strand', 'Gender', 'Email', 'Student Type', 'Status', 'Registration Date']
-                ];
-
-                registrationData.forEach(student => {
-                    csvRows.push([
-                        student.name || '',
-                        student.phone_number || '',
-                        student.grade_level || '',
-                        student.strand || 'N/A',
-                        student.gender || '',
-                        student.email || '',
-                        student.isNewStudent === 'new' ? 'New Student' : 'Returning Student',
-                        student.status || '',
-                        student.createdAt ? new Date(student.createdAt).toLocaleDateString() : ''
-                    ]);
-                });
-
-                const csvContent = csvRows.map(e => e.join(",")).join("\n");
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `pre_registration_report_${new Date().toISOString().split('T')[0]}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                // Log the export activity
-                const username = localStorage.getItem('username') || 'Admin';
-                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`,  // And here too
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        activityLog: `[Manage Pre-Registration: Reports] Pre-registration records exported as CSV on ${new Date().toLocaleString()}`,
-                    }),
-                });
-            }
+            const username = localStorage.getItem('username') || 'Admin';
+            
+            await dispatch(deleteAllPreRegistrations(preRegistrations, username));
 
             toast.success(
                 <div>
@@ -170,10 +119,8 @@ function ManagePreRegistration() {
                 }
             );
 
-            // Reset the state and refresh the data
             setShowDeleteConfirmation(false);
             setDeleteConfirmText('');
-            fetchStudentData();
         } catch (err) {
             console.error('Failed to delete records:', err);
             toast.error('Failed to delete records. Please try again.', {
@@ -185,14 +132,10 @@ function ManagePreRegistration() {
         }
     };
 
-    
-
     const DeleteConfirmationDialog = () => {
         if (!showDeleteConfirmation) return null;
         
-        // Calculate if input matches required confirmation text
         const isConfirmTextValid = deleteConfirmText === 'Confirm';
-        // Check how close user is to typing "Confirm" (for providing feedback)
         const confirmProgress = Math.min(deleteConfirmText.length, 7) / 7;
         
         return (
@@ -262,161 +205,127 @@ function ManagePreRegistration() {
             </div>
         );
     };
-    // Add this function after handleDeleteAllPreRegistrations
 
-const handleDeleteStudent = (studentId, studentName) => {
-    setStudentToDelete({ id: studentId, name: studentName });
-    setShowDeleteConfirmationDialog(true);
-};
+    const handleDeleteStudent = (studentId, studentName) => {
+        setStudentToDelete({ id: studentId, name: studentName });
+        setShowDeleteConfirmationDialog(true);
+    };
 
-// Add this new DeleteStudentDialog component next to your other dialog components
-const DeleteStudentDialog = () => {
-    if (!showDeleteConfirmationDialog || !studentToDelete) return null;
-    
-    const confirmDelete = async () => {
-        try {
-            const token = getToken(); // get the auth token
-
-            // Add loading state if needed
-            const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/delete/${studentToDelete.id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,  // added authorization header
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            // Log the activity
+    const DeleteStudentDialog = () => {
+        if (!showDeleteConfirmationDialog || !studentToDelete) return null;
+        
+        const confirmDelete = async () => {
             try {
                 const username = localStorage.getItem('username') || 'Admin';
-                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        activityLog: `[Manage Pre-Registration] Deleted student record for ${studentToDelete.name}`,
-                    }),
-                });
-            } catch (logError) {
-                console.error('Failed to log activity:', logError);
-            }
+                
+                await dispatch(deletePreRegistration(studentToDelete.id, studentToDelete.name, username));
 
-            // Update the local state
-            setStudents(prevStudents => prevStudents.filter(student => student._id !== studentToDelete.id));
-            
-            // Close the dialog BEFORE showing the success message
-            setShowDeleteConfirmationDialog(false);
-            setStudentToDelete(null);
+                setShowDeleteConfirmationDialog(false);
+                setStudentToDelete(null);
 
-            // Show success message
-            toast.success(
-                <div>
-                    <p><strong>Record Deleted</strong></p>
-                    <p>Successfully deleted {studentToDelete.name}'s record</p>
-                </div>,
-                {
+                toast.success(
+                    <div>
+                        <p><strong>Record Deleted</strong></p>
+                        <p>Successfully deleted {studentToDelete.name}'s record</p>
+                    </div>,
+                    {
+                        position: "top-center",
+                        autoClose: 3000,
+                    }
+                );
+            } catch (err) {
+                console.error('Failed to delete record:', err);
+                toast.error('Failed to delete record. Please try again.', {
                     position: "top-center",
-                    autoClose: 3000,
-                }
-            );
+                    autoClose: 5000,
+                });
+                setShowDeleteConfirmationDialog(false);
+                setStudentToDelete(null);
+            }
+        };
 
-        } catch (err) {
-            console.error('Failed to delete record:', err);
-            toast.error('Failed to delete record. Please try again.', {
-                position: "top-center",
-                autoClose: 5000,
-            });
-            // Close dialog on error as well
+        const handleCancel = () => {
             setShowDeleteConfirmationDialog(false);
             setStudentToDelete(null);
+        };
+
+        return (
+            <div className="confirmation-overlay">
+                <div className="confirmation-dialog">
+                    <div className="confirmation-header">
+                        <h3>Confirm Delete</h3>
+                    </div>
+                    <div className="confirmation-content">
+                        <p>Are you sure you want to delete the record for <strong>{studentToDelete.name}</strong>?</p>
+                        <p>This action cannot be undone.</p>
+                    </div>
+                    <div className="confirmation-actions">
+                        <button 
+                            className="btn-cancel"
+                            onClick={handleCancel}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            className="btn-confirm delete"
+                            onClick={confirmDelete}
+                        >
+                            <Trash2 size={14} />
+                            Delete Record
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const formatLocalDate = (dateString, incrementDay = false) => {
+        if (!dateString) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            let [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } else {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
         }
     };
 
-
-    const handleCancel = () => {
-        setShowDeleteConfirmationDialog(false);
-        setStudentToDelete(null);
-    };
-
-    return (
-        <div className="confirmation-overlay">
-            <div className="confirmation-dialog">
-                <div className="confirmation-header">
-                    <h3>Confirm Delete</h3>
-                </div>
-                <div className="confirmation-content">
-                    <p>Are you sure you want to delete the record for <strong>{studentToDelete.name}</strong>?</p>
-                    <p>This action cannot be undone.</p>
-                </div>
-                <div className="confirmation-actions">
-                    <button 
-                        className="btn-cancel"
-                        onClick={handleCancel}
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        className="btn-confirm delete"
-                        onClick={confirmDelete}
-                    >
-                        <Trash2 size={14} />
-                        Delete Record
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Utility: Format date string as local date (fixes timezone bug and increments day by 1 for appointment_date)
-const formatLocalDate = (dateString, incrementDay = false) => {
-    if (!dateString) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        let [year, month, day] = dateString.split('-').map(Number);
-        // Do NOT increment the day here, always use the date as-is
-        const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    } else {
-        const date = new Date(dateString);
-        // Do NOT increment the day here, always use the date as-is
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-};
-
-    // Fetch data on component mount or when pagination/filters change
+    // Fetch data when filters change
     useEffect(() => {
-        fetchStudentData();
+        const queryParams = {};
+        
+        if (searchTerm) {
+            queryParams.search = searchTerm.trim();
+            queryParams.name = searchTerm.trim();
+        }
+        queryParams.registration_year = selectedYear || currentYear;
+        if (selectedGrade) queryParams.grade = selectedGrade;
+        if (selectedStrand) queryParams.strand = selectedStrand;
+        if (selectedType) queryParams.type = selectedType;
+        queryParams.limit = 10000; // Fetch all for client-side pagination
+
+        dispatch(fetchPreRegistrations(queryParams));
+    }, [dispatch, searchTerm, selectedYear, selectedGrade, selectedStrand, selectedType]);
+
+    useEffect(() => {
         const checkIsMobile = () => {
             setIsMobile(window.innerWidth <= 768);
-          };
-          
-          // Initial check
-          checkIsMobile();
-          
-          // Add event listener
-          window.addEventListener('resize', checkIsMobile);
-          
-          // Cleanup
-          return () => window.removeEventListener('resize', checkIsMobile);
-    }, [currentPage, limit, searchTerm, selectedYear ,selectedGrade, selectedStrand, selectedType]);
-
-    useEffect(() => {
-        //console.log("Updated student to enroll:", studentToEnroll);
-    }, [studentToEnroll]);
+        };
+        
+        checkIsMobile();
+        window.addEventListener('resize', checkIsMobile);
+        
+        return () => window.removeEventListener('resize', checkIsMobile);
+    }, []);
 
     const tabs = [
         { id: "table", label: "Student Records", icon: <User size={16} /> },
@@ -424,67 +333,8 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         { id: "reports", label: "Reports", icon: <ChartBar size={16} /> },
         { id: "expected", label: "Expected Students", icon: <CheckCircle size={16} /> },
         { id: "enrolled", label: "Enrolled Students", icon: <User size={16} /> }
-      ];
+    ];
 
-    const fetchStudentData = async () => {
-        try {
-            setLoading(true);
-            const token = getToken(); // Get the token here
-
-            // Get the current year if selectedYear is not set
-            const currentYear = new Date().getFullYear().toString();
-            // Construct query parameters based on active filters
-            let queryParams = new URLSearchParams({
-                // Remove 'page' and 'limit' for now to fetch all records
-            });
-            if (searchTerm) {
-                queryParams.append('search', searchTerm.trim());
-                queryParams.append('name', searchTerm.trim());
-            }
-            queryParams.append('registration_year', selectedYear || currentYear);
-            if (selectedGrade) queryParams.append('grade', selectedGrade);
-            if (selectedStrand) queryParams.append('strand', selectedStrand);
-            if (selectedType) queryParams.append('type', selectedType);
-            // Fetch all records (set a very high limit)
-            queryParams.append('limit', 10000);
-
-            const response = await fetch(
-                `https://teamweb-kera.onrender.com/preregistration/?${queryParams.toString()}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`  // Added Authorization header here
-                    }
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            // Sort all students by last name (case-insensitive)
-            const sortedStudents = data.preregistration.sort((a, b) => {
-                const lastA = (a.lastName || '').toLowerCase();
-                const lastB = (b.lastName || '').toLowerCase();
-                if (lastA < lastB) return -1;
-                if (lastA > lastB) return 1;
-                return 0;
-            });
-            // Paginate client-side
-            const startIdx = (currentPage - 1) * limit;
-            const endIdx = startIdx + limit;
-            setStudents(sortedStudents.slice(startIdx, endIdx));
-            setTotalPages(Math.ceil(sortedStudents.length / limit));
-            setTotalRecords(sortedStudents.length);
-        } catch (err) {
-            setError('Failed to fetch student data: ' + err.message);
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Event handlers
     const handlePageChange = (newPage) => {
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
@@ -493,107 +343,63 @@ const formatLocalDate = (dateString, incrementDay = false) => {
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
-        setCurrentPage(1); // Reset to first page when search changes
+        setCurrentPage(1);
     };
 
     const handleYearChange = (e) => {
         setSelectedYear(e.target.value);
-        setCurrentPage(1); // Reset to first page when search changes
+        setCurrentPage(1);
     };
 
     const handleGradeChange = (e) => {
         setSelectedGrade(e.target.value);
-        setCurrentPage(1); // Reset to first page when filter changes
+        setCurrentPage(1);
     };
 
     const handleStrandChange = (e) => {
         setSelectedStrand(e.target.value);
-        setCurrentPage(1); // Reset to first page when filter changes
+        setCurrentPage(1);
     };
 
     const handleTypeChange = (e) => {
         setSelectedType(e.target.value);
-        setCurrentPage(1); // Reset to first page when filter changes
+        setCurrentPage(1);
     };
 
-    // Open confirmation dialog before status change
     const confirmStatusChange = (studentId, currentStatus) => {
         const student = students.find(s => s._id === studentId);
         setStudentToUpdate({
             id: studentId,
             currentStatus: currentStatus,
-            name: student?.name || "this student"
+            name: `${student?.firstName} ${student?.lastName}` || "this student"
         });
         setShowConfirmation(true);
     };
     
-    // Cancel status change
     const cancelStatusChange = () => {
         setShowConfirmation(false);
         setStudentToUpdate(null);
     };
 
-    // Proceed with status change after confirmation
     const handleStatusChange = async () => {
         try {
             if (!studentToUpdate) return;
             
-            // Close the confirmation dialog
             setShowConfirmation(false);
-            
-            // Set the student ID being processed
             setProcessingStatus(studentToUpdate.id);
             
-            // The lowercase value to send to the server
             const newStatus = studentToUpdate.currentStatus === "approved" ? "pending" : "approved";
-            const token = getToken(); // get the auth token
+            const username = localStorage.getItem('username') || 'Admin';
             
-            // Update API endpoint to match server code
-            const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/status/${studentToUpdate.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`, // added authorization header
-                },
-                body: JSON.stringify({ status: newStatus }),
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // Update the local state immediately without refetching
-            setStudents(prevStudents => 
-                prevStudents.map(student => 
-                    student._id === studentToUpdate.id 
-                        ? { ...student, status: newStatus } 
-                        : student
-                )
-            );
-            
-            // Log the activity if the status was updated
-            try {
-                const username = localStorage.getItem('username') || 'Admin';
-                
-                await fetch("https://teamweb-kera.onrender.com/report/add-report", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        'Authorization': `Bearer ${token}`, // also add auth here if required by your backend
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        activityLog: `[Manage Pre-Registration:Student Records] Updated status for student ${studentToUpdate.name} (ID: ${studentToUpdate.id}) to ${newStatus}`,
-                    }),
-                });
-            } catch (logError) {
-                console.error('Failed to log activity:', logError);
-            }
-            
-            // Show notification if email was sent (when approving)
-            if (newStatus === "approved" && data.emailSent) {
+            await dispatch(updatePreRegistrationStatus(
+                studentToUpdate.id, 
+                newStatus, 
+                studentToUpdate.name, 
+                username
+            ));
+
+            // Show notification for email sent
+            if (newStatus === "approved") {
                 const student = students.find(s => s._id === studentToUpdate.id);
                 if (student) {
                     toast.success(
@@ -610,7 +416,6 @@ const formatLocalDate = (dateString, incrementDay = false) => {
                 }
             }
             
-            // Show success toast for status update
             toast.success(
                 <div>
                     <p><strong>Status Updated</strong></p>
@@ -635,17 +440,13 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         }
     };
 
-    
-    // Add these functions near your other handler functions
     const confirmEnrollmentChange = (studentId, currentEnrollmentStatus) => {
         const student = students.find(s => s._id === studentId);
-        console.log("Check enrollment status: " + currentEnrollmentStatus);
-    
-        // Set the state properly
+        
         setStudentToEnroll({
             id: studentId,
-            enrollment: currentEnrollmentStatus, // Make sure this is set correctly
-            name: student?.name || "this student"
+            enrollment: currentEnrollmentStatus,
+            name: `${student?.firstName} ${student?.lastName}` || "this student"
         });
     
         setShowEnrollmentConfirmation(true);
@@ -657,34 +458,16 @@ const formatLocalDate = (dateString, incrementDay = false) => {
 
             setShowEnrollmentConfirmation(false);
             setProcessingEnrollment(studentToEnroll.id);
-            console.log("changing: " + studentToEnroll);
 
-            // Toggle based on the actual enrollment field
             const newEnrollmentStatus = !studentToEnroll.enrollment;
-            const token = getToken(); // get the auth token
+            const username = localStorage.getItem('username') || 'Admin';
 
-            const response = await fetch(`https://teamweb-kera.onrender.com/preregistration/enrollment/${studentToEnroll.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,  // added authorization header
-                },
-                body: JSON.stringify({ enrollment: newEnrollmentStatus }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            setStudents(prevStudents => 
-                prevStudents.map(student => 
-                    student._id === studentToEnroll.id 
-                        ? { ...student, enrollment: newEnrollmentStatus } 
-                        : student
-                )
-            );
+            await dispatch(updatePreRegistrationEnrollment(
+                studentToEnroll.id,
+                newEnrollmentStatus,
+                studentToEnroll.name,
+                username
+            ));
 
             toast.success(
                 <div>
@@ -710,14 +493,10 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         }
     };
 
-
-
-    // Toggle row expansion
     const toggleRow = (index) => {
         setExpandedRow(expandedRow === index ? null : index);
     };
     
-    // Display active filters summary
     const getActiveFiltersText = () => {
         const filters = [];
         
@@ -732,30 +511,23 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             : 'Showing all records';
     };
     
-    // Handle viewing student details from appointment tab
     const handleViewStudentDetails = (studentId) => {
-        // Find the student index in the array
-        const studentIndex = students.findIndex(s => s._id === studentId);
+        const studentIndex = preRegistrations.findIndex(s => s._id === studentId);
         
         if (studentIndex !== -1) {
-            // Set active tab to table view
             setActiveTab('table');
             
-            // If we need to navigate to a different page
             const pageForStudent = Math.floor(studentIndex / limit) + 1;
             if (pageForStudent !== currentPage) {
                 setCurrentPage(pageForStudent);
             }
             
-            // After a short delay to allow for tab switch and possible page change
             setTimeout(() => {
                 setExpandedRow(studentIndex % limit);
                 
-                // Scroll to the student row
                 const studentRow = document.getElementById(`student-row-${studentId}`);
                 if (studentRow) {
                     studentRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Add a highlight class temporarily
                     studentRow.classList.add('highlight-row');
                     setTimeout(() => {
                         studentRow.classList.remove('highlight-row');
@@ -765,7 +537,6 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         }
     };
     
-    // Confirmation Dialog Component
     const ConfirmationDialog = () => {
         if (!showConfirmation) return null;
         
@@ -802,13 +573,10 @@ const formatLocalDate = (dateString, incrementDay = false) => {
         );
     };
     
-    // Add this component near your other dialog components
     const EnrollmentConfirmationDialog = () => {
         if (!showEnrollmentConfirmation) return null;
     
-        console.log("Check status: " + studentToEnroll?.enrollment);
         const isEnrolled = studentToEnroll?.enrollment === true;
-    
         const actionText = isEnrolled ? "Mark as not Enrolled" : "Enroll";
     
         return (
@@ -854,7 +622,6 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             .join(' ');
     }
 
-    // Table renderer
     const renderTable = () => {
         if (loading) return (
             <div className="loading-state">
@@ -863,10 +630,10 @@ const formatLocalDate = (dateString, incrementDay = false) => {
             </div>
         );
         
-        if (error) return (
+        if (reduxError) return (
             <div className="error-state">
                 <AlertCircle size={24} />
-                <p>{error}</p>
+                <p>{reduxError}</p>
             </div>
         );
         
@@ -930,12 +697,12 @@ const formatLocalDate = (dateString, incrementDay = false) => {
                                             id={`student-row-${student._id}`}
                                             className={expandedRow === index ? 'row-expanded' : ''}
                                         >
-                                        <td className="cell-name" title={
-                                        `${capitalizeFullName(student.lastName, true)}, ${capitalizeFullName(student.firstName)}`
-                                        }>
-                                        {capitalizeFullName(student.lastName, true)}, {capitalizeFullName(student.firstName)}
-                                        </td>
-                                        
+                                            <td className="cell-name" title={
+                                                `${capitalizeFullName(student.lastName, true)}, ${capitalizeFullName(student.firstName)}`
+                                            }>
+                                                {capitalizeFullName(student.lastName, true)}, {capitalizeFullName(student.firstName)}
+                                            </td>
+                                            
                                             <td className="cell-center">{student.gender}</td>
                                             <td className="cell-center">{student.isNewStudent}</td>
                                             <td className="cell-center">
@@ -976,63 +743,63 @@ const formatLocalDate = (dateString, incrementDay = false) => {
                                                 </button>
                                             </td>
                                             <td className="cell-status">
-                                            <button
-                                                className={`btn-status ${
-                                                    processingStatus === student._id 
-                                                        ? 'processing' 
-                                                        : student.status?.toLowerCase() || 'pending'
-                                                }`}
-                                                onClick={() => confirmStatusChange(student._id, student.status)}
-                                                disabled={processingStatus === student._id}
-                                            >
-                                                {processingStatus === student._id ? (
-                                                    <>
-                                                        <span className="status-loading"></span>
-                                                        Processing...
-                                                    </>
-                                                ) : student.status === "approved" ? (
-                                                    <><CheckCircle size={14} /> Approved</>
-                                                ) : (
-                                                    <><AlertCircle size={14} /> Pending</>
-                                                )}
-                                            </button>
-                                        </td>
-                                        <td className="cell-status">
-                                            <button
-                                                className={`btn-enrollment ${
-                                                    processingEnrollment === student._id 
-                                                        ? 'processing' 
-                                                        : student.enrollment === true ? true : false
-                                                }`}
-                                                onClick={() => confirmEnrollmentChange(student._id, student.enrollment)}
-                                                disabled={processingEnrollment === student._id}
-                                            >
-                                                {processingEnrollment === student._id ? (
-                                                    <>
-                                                        <span className="status-loading"></span>
-                                                        Processing...
-                                                    </>
-                                                ) : student.enrollment === true ? (
-                                                    <><CheckCircle size={14} /> Enrolled</>
-                                                ) : (
-                                                    <><AlertCircle size={14} /> Not Enrolled</>
-                                                )}
-                                            </button>
-                                        </td>
-                                        <td className="cell-action">
-                                            <button
-                                                className="btn-delete"
-                                                onClick={() => handleDeleteStudent(student._id, student.name)}
-                                                title="Delete record"
-                                            >
-                                                <Trash2 size={14} />
-                                                Delete
-                                            </button>
-                                        </td>
+                                                <button
+                                                    className={`btn-status ${
+                                                        processingStatus === student._id 
+                                                            ? 'processing' 
+                                                            : student.status?.toLowerCase() || 'pending'
+                                                    }`}
+                                                    onClick={() => confirmStatusChange(student._id, student.status)}
+                                                    disabled={processingStatus === student._id}
+                                                >
+                                                    {processingStatus === student._id ? (
+                                                        <>
+                                                            <span className="status-loading"></span>
+                                                            Processing...
+                                                        </>
+                                                    ) : student.status === "approved" ? (
+                                                        <><CheckCircle size={14} /> Approved</>
+                                                    ) : (
+                                                        <><AlertCircle size={14} /> Pending</>
+                                                    )}
+                                                </button>
+                                            </td>
+                                            <td className="cell-status">
+                                                <button
+                                                    className={`btn-enrollment ${
+                                                        processingEnrollment === student._id 
+                                                            ? 'processing' 
+                                                            : student.enrollment === true ? true : false
+                                                    }`}
+                                                    onClick={() => confirmEnrollmentChange(student._id, student.enrollment)}
+                                                    disabled={processingEnrollment === student._id}
+                                                >
+                                                    {processingEnrollment === student._id ? (
+                                                        <>
+                                                            <span className="status-loading"></span>
+                                                            Processing...
+                                                        </>
+                                                    ) : student.enrollment === true ? (
+                                                        <><CheckCircle size={14} /> Enrolled</>
+                                                    ) : (
+                                                        <><AlertCircle size={14} /> Not Enrolled</>
+                                                    )}
+                                                </button>
+                                            </td>
+                                            <td className="cell-action">
+                                                <button
+                                                    className="btn-delete"
+                                                    onClick={() => handleDeleteStudent(student._id, `${student.firstName} ${student.lastName}`)}
+                                                    title="Delete record"
+                                                >
+                                                    <Trash2 size={14} />
+                                                    Delete
+                                                </button>
+                                            </td>
                                         </tr>
                                         {expandedRow === index && (
                                             <tr className="details-row">
-                                                <td colSpan="11">
+                                                <td colSpan="14">
                                                     <div className="details-content">
                                                         <div className="details-section">
                                                             <h4>Appointment Information</h4>
@@ -1060,7 +827,7 @@ const formatLocalDate = (dateString, incrementDay = false) => {
                                             </tr>
                                         )}
                                     </React.Fragment>
-                                );
+                                    );
                             })}
                         </tbody>
                     </table>
@@ -1099,132 +866,118 @@ const formatLocalDate = (dateString, incrementDay = false) => {
                     <p>View and manage student pre-registration records</p>
                 </div>
                 
-      {/* Mobile Dropdown */}
-      {isMobile ? (
-        <div className="mobile-tabs-dropdown">
-          <button 
-            className="dropdown-toggle" 
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            <span className="dropdown-current">
-              {getActiveTabData().icon}
-              <span>{getActiveTabData().label}</span>
-            </span>
-            <ChevronDown size={16} className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
-          </button>
-          
-          {isDropdownOpen && (
-            <div className="dropdown-menu">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  className={`dropdown-item ${activeTab === tab.id ? 'active' : ''}`}
-                  onClick={() => handleTabChange(tab.id)}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        /* Desktop Tabs */
-        <div className="tabs">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              className={`tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-              data-tab={tab.id}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+                {/* Mobile Dropdown */}
+                {isMobile ? (
+                    <div className="mobile-tabs-dropdown">
+                        <button 
+                            className="dropdown-toggle" 
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        >
+                            <span className="dropdown-current">
+                                {getActiveTabData().icon}
+                                <span>{getActiveTabData().label}</span>
+                            </span>
+                            <ChevronDown size={16} className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
+                        </button>
+                        
+                        {isDropdownOpen && (
+                            <div className="dropdown-menu">
+                                {tabs.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        className={`dropdown-item ${activeTab === tab.id ? 'active' : ''}`}
+                                        onClick={() => handleTabChange(tab.id)}
+                                    >
+                                        {tab.icon}
+                                        <span>{tab.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    /* Desktop Tabs */
+                    <div className="tabs">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+                                onClick={() => setActiveTab(tab.id)}
+                                data-tab={tab.id}
+                            >
+                                {tab.icon}
+                                <span>{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+                
                 {activeTab === "table" && (
                     <>
-                    <div className="filters-container">
-                        <div className="search-and-year-container">
-                            <div className="search-container">
-                                <input
-                                    type="text"
-                                    className="search-input"
-                                    placeholder="Search by student name..."
-                                    value={searchTerm}
-                                    onChange={handleSearchChange}
-                                    style={{ paddingLeft: 36 }}
-                                />
-                                <span className="search-icon">
-                                    <svg width="18" height="18" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                </span>
+                        <div className="filters-container">
+                            <div className="search-and-year-container">
+                                <div className="search-container">
+                                    <input
+                                        type="text"
+                                        className="search-input"
+                                        placeholder="Search by student name..."
+                                        value={searchTerm}
+                                        onChange={handleSearchChange}
+                                        style={{ paddingLeft: 36 }}
+                                    />
+                                    <span className="search-icon">
+                                        <svg width="18" height="18" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="filter-group">
+                                <Filter size={16} />
+                                <select
+                                    value={`${selectedYear}`}
+                                    onChange={handleYearChange}
+                                    className="filter-select"
+                                >
+                                    {yearOptions.map((year) => (
+                                        <option key={year} value={year}>
+                                            {year}
+                                        </option>
+                                    ))}
+                                </select>
+                                <select value={selectedGrade} onChange={handleGradeChange} className="filter-select">
+                                    <option value="">All Grades</option>
+                                    <option value="Kinder">Kinder</option>
+                                    <option value="1">Grade 1</option>
+                                    <option value="2">Grade 2</option>
+                                    <option value="3">Grade 3</option>
+                                    <option value="4">Grade 4</option>
+                                    <option value="5">Grade 5</option>
+                                    <option value="6">Grade 6</option>
+                                    <option value="7">Grade 7</option>
+                                    <option value="8">Grade 8</option>
+                                    <option value="9">Grade 9</option>
+                                    <option value="10">Grade 10</option>
+                                    <option value="11">Grade 11</option>
+                                    <option value="12">Grade 12</option>
+                                </select>
+
+                                <select value={selectedStrand} onChange={handleStrandChange} className="filter-select">
+                                    <option value="">All Strands</option>
+                                    <option value="ABM">ABM</option>
+                                    <option value="STEM">STEM</option>
+                                    <option value="HUMSS">HUMSS</option>
+                                </select>
+                                <select value={selectedType} onChange={handleTypeChange} className="filter-select">
+                                    <option value="">All Types</option>
+                                    <option value="new">New</option>
+                                    <option value="old">Old</option>
+                                </select>
                             </div>
                         </div>
-                        <div className="filter-group">
-                            <Filter size={16} />
-                            <select
-                                value={`${selectedYear}`}
-                                onChange={handleYearChange}
-                                className="filter-select"
-                                >
-                                {yearOptions.map((year) => (
-                                    <option key={year} value={year}>
-                                    {year}
-                                    </option>
-                                ))}
-                            </select>
-                            <select value={selectedGrade} onChange={handleGradeChange} className="filter-select">
-                                <option value="">All Grades</option>
-                                <option value="Kinder">Kinder</option>
-                                <option value="1">Grade 1</option>
-                                <option value="2">Grade 2</option>
-                                <option value="3">Grade 3</option>
-                                <option value="4">Grade 4</option>
-                                <option value="5">Grade 5</option>
-                                <option value="6">Grade 6</option>
-                                <option value="7">Grade 7</option>
-                                <option value="8">Grade 8</option>
-                                <option value="9">Grade 9</option>
-                                <option value="10">Grade 10</option>
-                                <option value="11">Grade 11</option>
-                                <option value="12">Grade 12</option>
-                            </select>
-
-                            <select value={selectedStrand} onChange={handleStrandChange} className="filter-select">
-                                <option value="">All Strands</option>
-                                <option value="ABM">ABM</option>
-                                <option value="STEM">STEM</option>
-                                <option value="HUMSS">HUMSS</option>
-                            </select>
-                            <select value={selectedType} onChange={handleTypeChange} className="filter-select">
-                                <option value="">All Types</option>
-                                <option value="new">New</option>
-                                <option value="old">Old</option>
-                            </select>
-                        </div>
-                    </div>
                         
                         {renderTable()}
-                        {/* <div className="danger-zone-section">
-                        <h3>Database Management</h3>
-                        <div className="danger-zone-container">
-                            <div className="danger-zone-warning">
-                            <AlertCircle size={24} />
-                            <div className="danger-zone-text">
-                                <h4>Danger Zone</h4>
-                                <p>The following action will permanently delete all student pre-registration records from the database. This action cannot be undone.</p>
-                            </div>
-                            </div>
-                            <button 
-                            className="btn-danger-zone"
-                            onClick={() => setShowDeleteConfirmation(true)}
-                            >
-                            Delete All Records
-                            </button>
-                        </div>
-                        </div> */}
                     </>
                 )}
                 
@@ -1239,20 +992,19 @@ const formatLocalDate = (dateString, incrementDay = false) => {
 
                 {activeTab === "reports" && (
                     <ViewReports 
-                        studentData={students}
+                        studentData={preRegistrations || []}
                         totalRecords={totalRecords}
                     />
                 )}
 
-                {activeTab === "enrolled" && <EnrolledStudents studentData={students} />}
+                {activeTab === "enrolled" && <EnrolledStudents studentData={preRegistrations || []} />}
             </div>
-            <DeleteConfirmationDialog />
-            {/* Confirmation Dialog */}
-            <ConfirmationDialog />
-            <DeleteStudentDialog /> {/* Add this line */}
-            <EnrollmentConfirmationDialog /> {/* Add this line */}
             
-            {/* Toast notifications container */}
+            <DeleteConfirmationDialog />
+            <ConfirmationDialog />
+            <DeleteStudentDialog />
+            <EnrollmentConfirmationDialog />
+            
             <ToastContainer />
         </div>
     );
