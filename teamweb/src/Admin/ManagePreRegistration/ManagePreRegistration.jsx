@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminHeader from '../Component/AdminHeader.jsx';
-import UpdateAppointment from './UpdateAppointment';
+// import UpdateAppointment from './UpdateAppointment';
 import ViewReports from './ViewReports';
 import {MapPin, Search, Filter, User, Calendar, Phone, Mail, Clock, CheckCircle, AlertCircle, Send, ChartBar, Trash2, ChevronDown } from 'lucide-react';
 import ExpectedStudents from './ExpectedStudents';
@@ -329,7 +329,7 @@ function ManagePreRegistration() {
 
     const tabs = [
         { id: "table", label: "Student Records", icon: <User size={16} /> },
-        { id: "appointment", label: "Appointment Availability", icon: <Calendar size={16} /> },
+        // { id: "appointment", label: "Appointment Availability", icon: <Calendar size={16} /> },
         { id: "reports", label: "Reports", icon: <ChartBar size={16} /> },
         { id: "expected", label: "Expected Students", icon: <CheckCircle size={16} /> },
         { id: "enrolled", label: "Enrolled Students", icon: <User size={16} /> }
@@ -982,13 +982,13 @@ function ManagePreRegistration() {
                 )}
                 
                 {activeTab === "expected" && <ExpectedStudents />}
-                {activeTab === "appointment" && (
+                {/* {activeTab === "appointment" && (
                     <UpdateAppointment 
                         studentData={students}
                         onViewStudentDetails={handleViewStudentDetails}
                         onSetActiveTab={(tab) => setActiveTab(tab)}
                     />
-                )}
+                )} */}
 
                 {activeTab === "reports" && (
                     <ViewReports 

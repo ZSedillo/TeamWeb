@@ -1,3 +1,24 @@
+// Submit booking (preregistration)
 export const BOOKING_REQUEST = "BOOKING_REQUEST";
 export const BOOKING_SUCCESS = "BOOKING_SUCCESS";
 export const BOOKING_FAIL = "BOOKING_FAIL";
+
+// Fetch booking availability
+export const BOOKING_AVAILABILITY_REQUEST = "BOOKING_AVAILABILITY_REQUEST";
+export const BOOKING_AVAILABILITY_SUCCESS = "BOOKING_AVAILABILITY_SUCCESS";
+export const BOOKING_AVAILABILITY_FAIL = "BOOKING_AVAILABILITY_FAIL";
+
+// Fetch bookings (within date range)
+export const BOOKINGS_LIST_REQUEST = "BOOKINGS_LIST_REQUEST";
+export const BOOKINGS_LIST_SUCCESS = "BOOKINGS_LIST_SUCCESS";
+export const BOOKINGS_LIST_FAIL = "BOOKINGS_LIST_FAIL";
+
+// Save (Add/Update) booking availability
+export const BOOKING_SAVE_REQUEST = "BOOKING_SAVE_REQUEST";
+export const BOOKING_SAVE_SUCCESS = "BOOKING_SAVE_SUCCESS";
+export const BOOKING_SAVE_FAIL = "BOOKING_SAVE_FAIL";
+
+// Delete booking availability
+export const BOOKING_DELETE_REQUEST = "BOOKING_DELETE_REQUEST";
+export const BOOKING_DELETE_SUCCESS = "BOOKING_DELETE_SUCCESS";
+export const BOOKING_DELETE_FAIL = "BOOKING_DELETE_FAIL";
