@@ -7,25 +7,27 @@ import './ForgotPassword.css';
 import TeamLogo from "../assets/images/TeamLogo.png";
 
 function ForgotPassword() {
-  const [email, setEmail] = useState(""); // ✅ Use email instead of username
+  const [email, setEmail] = useState("");
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
-  // Get state from Redux store
   const { loading, error } = useSelector(state => state.user);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) return;
 
-    // Clear any existing errors
     dispatch(clearUserErrors());
 
     try {
-      const result = await dispatch(forgotPassword(email)); // ✅ Pass email
+      const result = await dispatch(forgotPassword(email));
 
       if (result.success) {
-        // Navigate to reset-password with resetToken and userId
+        // 🛑 CRITICAL FIX: Clear the "User verified successfully" message 
+        // BEFORE navigating. This prevents the ResetPassword page from 
+        // seeing "success" and immediately redirecting to login.
+        dispatch(clearUserErrors());
+
         navigate('/reset-password', { 
           state: { 
             resetToken: result.resetToken, 
@@ -33,16 +35,15 @@ function ForgotPassword() {
           } 
         });
       }
-      // Error handling is done by Redux
     } catch (error) {
       console.error("Forgot password error:", error);
     }
   };
 
   const handleInputChange = (e) => {
-    setEmail(e.target.value); // ✅ Update email state
+    setEmail(e.target.value);
     if (error) {
-      dispatch(clearUserErrors()); // Clear errors when typing
+      dispatch(clearUserErrors());
     }
   };
 
@@ -70,7 +71,7 @@ function ForgotPassword() {
                 type="email" 
                 placeholder="Email" 
                 className="input-field" 
-                value={email} // ✅ Bind to email
+                value={email}
                 onChange={handleInputChange}
                 disabled={loading}
                 required

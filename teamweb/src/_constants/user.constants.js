@@ -1,27 +1,39 @@
-// Login constants
+// Login
 export const LOGIN_REQUEST = 'LOGIN_REQUEST';
 export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
 export const LOGIN_FAILURE = 'LOGIN_FAILURE';
 
-// Logout constants
+// Logout
 export const LOGOUT_REQUEST = 'LOGOUT_REQUEST';
 export const LOGOUT_SUCCESS = 'LOGOUT_SUCCESS';
 export const LOGOUT_FAILURE = 'LOGOUT_FAILURE';
 
-// Check authentication constants
+// Auth Check
 export const CHECK_AUTH_REQUEST = 'CHECK_AUTH_REQUEST';
 export const CHECK_AUTH_SUCCESS = 'CHECK_AUTH_SUCCESS';
 export const CHECK_AUTH_FAILURE = 'CHECK_AUTH_FAILURE';
 
-// Register constants
+// Get List of Accounts (For ManageAccounts page)
+export const GET_ACCOUNTS_REQUEST = 'GET_ACCOUNTS_REQUEST';
+export const GET_ACCOUNTS_SUCCESS = 'GET_ACCOUNTS_SUCCESS';
+export const GET_ACCOUNTS_FAILURE = 'GET_ACCOUNTS_FAILURE';
+
+// Create (Register)
 export const REGISTER_REQUEST = 'REGISTER_REQUEST';
 export const REGISTER_SUCCESS = 'REGISTER_SUCCESS';
 export const REGISTER_FAILURE = 'REGISTER_FAILURE';
 
-// Clear errors
-export const CLEAR_USER_ERRORS = 'CLEAR_USER_ERRORS';
+// Update
+export const UPDATE_USER_REQUEST = 'UPDATE_USER_REQUEST';
+export const UPDATE_USER_SUCCESS = 'UPDATE_USER_SUCCESS';
+export const UPDATE_USER_FAILURE = 'UPDATE_USER_FAILURE';
 
-// Reset password constants
+// Delete
+export const DELETE_USER_REQUEST = 'DELETE_USER_REQUEST';
+export const DELETE_USER_SUCCESS = 'DELETE_USER_SUCCESS';
+export const DELETE_USER_FAILURE = 'DELETE_USER_FAILURE';
+
+// Password Reset
 export const FORGOT_PASSWORD_REQUEST = 'FORGOT_PASSWORD_REQUEST';
 export const FORGOT_PASSWORD_SUCCESS = 'FORGOT_PASSWORD_SUCCESS';
 export const FORGOT_PASSWORD_FAILURE = 'FORGOT_PASSWORD_FAILURE';
@@ -30,7 +42,5 @@ export const RESET_PASSWORD_REQUEST = 'RESET_PASSWORD_REQUEST';
 export const RESET_PASSWORD_SUCCESS = 'RESET_PASSWORD_SUCCESS';
 export const RESET_PASSWORD_FAILURE = 'RESET_PASSWORD_FAILURE';
 
-// Update user constants
-export const UPDATE_USER_REQUEST = 'UPDATE_USER_REQUEST';
-export const UPDATE_USER_SUCCESS = 'UPDATE_USER_SUCCESS';
-export const UPDATE_USER_FAILURE = 'UPDATE_USER_FAILURE';
+// Utils
+export const CLEAR_USER_ERRORS = 'CLEAR_USER_ERRORS';
