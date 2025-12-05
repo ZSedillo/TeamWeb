@@ -13,7 +13,14 @@ import {
 
 function ManageAnnouncement() {
   const dispatch = useDispatch();
+  
+  // 1. Get Announcement State
   const { announcements, loading, error } = useSelector((state) => state.announcementState);
+  
+  // 2. Get User State (Use Redux instead of localStorage)
+  const { user } = useSelector((state) => state.user);
+  const currentUsername = user?.username || "Admin"; 
+
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     description: "",
@@ -28,11 +35,9 @@ function ManageAnnouncement() {
   const [announcementTitle, setAnnouncementTitle] = useState(null);
   const announcementsPerPage = 6;
   const baseUrl = "https://teamweb-kera.onrender.com";
-  const [username, setUsername] = useState("Admin");
 
+  // Fetch announcements on mount
   useEffect(() => {
-    const loggedInUser = localStorage.getItem("username");
-    if (loggedInUser) setUsername(loggedInUser);
     dispatch(fetchAnnouncements());
   }, [dispatch]);
 
@@ -43,15 +48,21 @@ function ManageAnnouncement() {
       image_url: data.image_url || null,
     };
 
-    if (editingId) await dispatch(editAnnouncement(editingId, payload, username));
-    else await dispatch(addAnnouncement(payload, username));
+    if (editingId) {
+        // ✅ Pass currentUsername
+        await dispatch(editAnnouncement(editingId, payload, currentUsername));
+    } else {
+        // ✅ Pass currentUsername
+        await dispatch(addAnnouncement(payload, currentUsername));
+    }
 
     resetForm();
     showToast(editingId ? "Announcement updated successfully!" : "Announcement posted successfully!");
   };
 
   const handleDelete = async () => {
-    await dispatch(deleteAnnouncement(deleteId, username, announcementTitle));
+    // ✅ Pass currentUsername
+    await dispatch(deleteAnnouncement(deleteId, currentUsername, announcementTitle));
     setShowDeleteModal(false);
     setDeleteId(null);
     setAnnouncementTitle(null);

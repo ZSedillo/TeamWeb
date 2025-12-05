@@ -6,7 +6,13 @@ import "./ViewReport.css";
 
 function ViewReport() {
   const dispatch = useDispatch();
+  
+  // 1. Get Reports state
   const { reports, loading, error, deleting } = useSelector(state => state.report);
+  
+  // 2. Get User state (This fixes the "Admin" vs "Zandro" issue)
+  const { user } = useSelector(state => state.user);
+  const currentUsername = user?.username || "Admin"; 
 
   const [filteredReports, setFilteredReports] = useState([]);
   const [searchQuery, setSearchQuery] = useState({ username: "", month: "", year: "", time: "" });
@@ -14,6 +20,8 @@ function ViewReport() {
   const reportsPerPage = 20;
 
   useEffect(() => { dispatch(fetchReports()); }, [dispatch]);
+  
+  // Re-run filter when reports change (e.g., after delete) or search changes
   useEffect(() => { filterReports(); }, [reports, searchQuery]);
 
   const handleSearchChange = (e) => {
@@ -23,16 +31,23 @@ function ViewReport() {
   };
 
   const filterReports = () => {
+    if (!reports) return; // Guard clause
     let filtered = [...reports];
     if (searchQuery.username) filtered = filtered.filter(r => r.username.toLowerCase().includes(searchQuery.username.toLowerCase()));
-    if (searchQuery.year) filtered = filtered.filter(r => new Date(r.time).getFullYear() === parseInt(searchQuery.year,10));
-    if (searchQuery.month) filtered = filtered.filter(r => new Date(r.time).getMonth() + 1 === parseInt(searchQuery.month,10));
-    if (searchQuery.time) filtered = filtered.filter(r => new Date(r.time).getHours() === parseInt(searchQuery.time,10));
+    if (searchQuery.year) filtered = filtered.filter(r => new Date(r.time).getFullYear() === parseInt(searchQuery.year, 10));
+    if (searchQuery.month) filtered = filtered.filter(r => new Date(r.time).getMonth() + 1 === parseInt(searchQuery.month, 10));
+    if (searchQuery.time) filtered = filtered.filter(r => new Date(r.time).getHours() === parseInt(searchQuery.time, 10));
     setFilteredReports(filtered);
   };
 
   const clearFilters = () => { setSearchQuery({ username:"", month:"", year:"", time:"" }); setCurrentPage(1); };
-  const handleDeleteLogs = () => { if(window.confirm("Are you sure?")) dispatch(deleteReports()); };
+
+  // 3. Pass currentUsername to the delete action
+  const handleDeleteLogs = () => { 
+    if(window.confirm("Are you sure you want to delete all logs? This action will be recorded.")) {
+      dispatch(deleteReports(currentUsername)); 
+    }
+  };
 
   const sortedReports = [...filteredReports].sort((a,b) => new Date(b.time) - new Date(a.time));
   const indexOfLastReport = currentPage * reportsPerPage;
@@ -76,12 +91,14 @@ function ViewReport() {
 
             <div className="button-row">
               <button className="clear-filters-button" onClick={clearFilters}>Clear Filters</button>
-              <button className="delete-logs-button" onClick={handleDeleteLogs} disabled={deleting}>{deleting ? "Deleting..." : "Delete Logs"}</button>
+              <button className="delete-logs-button" onClick={handleDeleteLogs} disabled={deleting || reports.length === 0}>
+                {deleting ? "Deleting..." : "Delete Logs"}
+              </button>
             </div>
 
             <div className="search-results-info">
               <p>
-                Showing {filteredReports.length} of {reports.length} logs
+                Showing {filteredReports.length} of {reports ? reports.length : 0} logs
                 {(searchQuery.username || searchQuery.month || searchQuery.year || searchQuery.time) && " (filtered)"}
               </p>
             </div>
@@ -118,13 +135,15 @@ function ViewReport() {
               </table>
 
               {/* Pagination */}
-              <div className="pagination-container">
-                <button onClick={()=>setCurrentPage(prev=>Math.max(prev-1,1))} disabled={currentPage===1}>&laquo; Prev</button>
-                {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
-                  <button key={p} className={`pagination-button ${currentPage===p?"active":""}`} onClick={()=>setCurrentPage(p)}>{p}</button>
-                ))}
-                <button onClick={()=>setCurrentPage(prev=>Math.min(prev+1,totalPages))} disabled={currentPage===totalPages}>Next &raquo;</button>
-              </div>
+              {totalPages > 1 && (
+                <div className="pagination-container">
+                    <button onClick={()=>setCurrentPage(prev=>Math.max(prev-1,1))} disabled={currentPage===1}>&laquo; Prev</button>
+                    {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                    <button key={p} className={`pagination-button ${currentPage===p?"active":""}`} onClick={()=>setCurrentPage(p)}>{p}</button>
+                    ))}
+                    <button onClick={()=>setCurrentPage(prev=>Math.min(prev+1,totalPages))} disabled={currentPage===totalPages}>Next &raquo;</button>
+                </div>
+              )}
             </>
           )}
         </div>

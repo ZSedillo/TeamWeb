@@ -8,9 +8,12 @@ import './EnrolledStudents.css';
 function EnrolledStudents() {
     const dispatch = useDispatch();
     
-    // Redux State
+    // 1. Get State from Redux
     const { enrolledStudents, loading, error, totalPages, totalRecords } = useSelector(state => state.preRegistration);
+    
+    // 2. Get User from Redux (Correctly grab username)
     const { user } = useSelector(state => state.user);
+    const currentUsername = user?.username || "Admin"; 
 
     // Local State
     const [processingEnrollment, setProcessingEnrollment] = useState(null);
@@ -87,11 +90,12 @@ function EnrolledStudents() {
         setProcessingEnrollment(studentToEnroll.id);
         const newStatus = !studentToEnroll.currentStatus;
 
+        // ✅ Use currentUsername
         await dispatch(updatePreRegistrationEnrollment(
             studentToEnroll.id, 
             newStatus, 
             studentToEnroll.name, 
-            user?.username || "Admin"
+            currentUsername 
         ));
 
         // Refresh data
@@ -136,13 +140,13 @@ function EnrolledStudents() {
         link.click();
         document.body.removeChild(link);
     
-        // Log export activity using HTTP-Only cookies
+        // ✅ Log export activity using currentUsername and HTTP-Only Cookie
         fetch("https://teamweb-kera.onrender.com/report/add-report", {
             method: "POST",
-            credentials: "include", // ✅ Auth fix
+            credentials: "include", 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                username: user?.username || 'Admin',
+                username: currentUsername, // Correct username
                 activityLog: `[Enrolled Students] Exported data for ${selectedYear}`
             }),
         });

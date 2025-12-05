@@ -17,6 +17,7 @@ const initialState = {
 
 export const reportReducer = (state = initialState, action) => {
   switch (action.type) {
+    // --- Fetch Reports ---
     case REPORTS_REQUEST:
       return { ...state, loading: true, error: null };
     case REPORTS_SUCCESS:
@@ -24,10 +25,11 @@ export const reportReducer = (state = initialState, action) => {
     case REPORTS_FAIL:
       return { ...state, loading: false, error: action.payload };
     
+    // --- Delete Reports ---
     case REPORTS_DELETE_REQUEST:
       return { ...state, deleting: true, deleteSuccess: false, error: null };
     case REPORTS_DELETE_SUCCESS:
-      return { ...state, deleting: false, deleteSuccess: true };
+      return { ...state, deleting: false, deleteSuccess: true, reports: [] }; // Clear local list immediately
     case REPORTS_DELETE_FAIL:
       return { ...state, deleting: false, error: action.payload };
 
