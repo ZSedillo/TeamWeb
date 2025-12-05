@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const userModel = require('../models/user.model'); // Adjust path if needed
+const userModel = require('./user.model');
 const dotenv = require('dotenv');
 const nodemailer = require('nodemailer');
 
