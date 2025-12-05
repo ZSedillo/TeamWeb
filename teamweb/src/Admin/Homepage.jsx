@@ -16,9 +16,9 @@ function Homepage() {
   const [imageDescription, setImageDescription] = useState("");
   const [showUploadConfirm, setShowUploadConfirm] = useState(false);
 
-  // ✅ Get user from Redux store (Fixes "Admin" vs "Zandro")
-  const { user } = useSelector(state => state.user);
-  const currentUsername = user?.username || "Admin"; 
+  // ✅ Get user from Redux store
+  const { user } = useSelector((state) => state.user);
+  const currentUsername = user?.username || "Admin";
 
   useEffect(() => {
     fetchImages();
@@ -26,9 +26,8 @@ function Homepage() {
 
   const fetchImages = async () => {
     try {
-      // ✅ Use credentials: 'include' for read operations too if protected
       const response = await fetch("https://teamweb-kera.onrender.com/homepage/images", {
-          credentials: 'include'
+        credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch images");
       const data = await response.json();
@@ -74,12 +73,12 @@ function Homepage() {
         });
       }, 200);
 
-      // ✅ Upload Image (with Cookies)
+      // ✅ Upload Image
       const response = await fetch(
         "https://teamweb-kera.onrender.com/homepage/upload-image",
         {
           method: "POST",
-          credentials: 'include', // Auth
+          credentials: "include", // Auth
           body: formData,
         }
       );
@@ -90,15 +89,15 @@ function Homepage() {
       if (response.ok) {
         fetchImages();
 
-        // ✅ Log Activity (with Cookies & Correct Username)
+        // ✅ Log Activity
         await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: 'include', // Auth
+          credentials: "include", // Auth
           body: JSON.stringify({
-            username: currentUsername, // Uses Redux user
+            username: currentUsername,
             activityLog: `[Manage Homepage] Uploaded an Image: ${selectedFile.name}`,
           }),
         });
@@ -128,39 +127,41 @@ function Homepage() {
     setShowDeleteConfirm(true);
   };
 
+  // ✅ FIXED DELETE FUNCTION
   const handleDelete = async () => {
     if (!selectedImage) return;
 
-    // Logic to extract key from URL (Adjust based on your S3 URL structure)
-    const imageKey = selectedImage.image_url.split('/').pop();
+    // Use the 'key' stored in DB (e.g., "images/uuid...")
+    // We default to splitting the URL only if key is missing (fallback)
+    const imageKey = selectedImage.key || selectedImage.image_url.split('/').pop();
 
     try {
-      // ✅ Delete Image (with Cookies)
+      // We must encodeURIComponent because the key contains a slash ('/')
       const response = await fetch(
         `https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(imageKey)}`,
         {
           method: "DELETE",
-          credentials: 'include', // Auth
+          credentials: "include", // Auth
         }
       );
 
       if (response.ok) {
         fetchImages();
         setShowDeleteConfirm(false);
-        
-        // ✅ Log Activity (with Cookies & Correct Username)
+
+        // ✅ Log Activity
         await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: 'include', // Auth
+          credentials: "include",
           body: JSON.stringify({
-            username: currentUsername, // Uses Redux user
+            username: currentUsername,
             activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
           }),
         });
-        
+
         setSelectedImage(null);
       } else {
         console.error("Failed to delete image:", await response.text());
