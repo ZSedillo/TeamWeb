@@ -4,7 +4,6 @@ import AdminHeader from "./Component/AdminHeader.jsx";
 import "./Homepage.css";
 
 function Homepage() {
-  // Remove localStorage token getter - now using cookies
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -17,9 +16,9 @@ function Homepage() {
   const [imageDescription, setImageDescription] = useState("");
   const [showUploadConfirm, setShowUploadConfirm] = useState(false);
 
-  // Get user from Redux store instead of localStorage
+  // ✅ Get user from Redux store (Fixes "Admin" vs "Zandro")
   const { user } = useSelector(state => state.user);
-  const username = user?.username || "Admin";
+  const currentUsername = user?.username || "Admin"; 
 
   useEffect(() => {
     fetchImages();
@@ -27,7 +26,10 @@ function Homepage() {
 
   const fetchImages = async () => {
     try {
-      const response = await fetch("https://teamweb-kera.onrender.com/homepage/images");
+      // ✅ Use credentials: 'include' for read operations too if protected
+      const response = await fetch("https://teamweb-kera.onrender.com/homepage/images", {
+          credentials: 'include'
+      });
       if (!response.ok) throw new Error("Failed to fetch images");
       const data = await response.json();
       setImages(data);
@@ -72,12 +74,12 @@ function Homepage() {
         });
       }, 200);
 
-      // Updated to use cookies instead of Authorization header
+      // ✅ Upload Image (with Cookies)
       const response = await fetch(
         "https://teamweb-kera.onrender.com/homepage/upload-image",
         {
           method: "POST",
-          credentials: 'include', // Use cookies instead of Authorization header
+          credentials: 'include', // Auth
           body: formData,
         }
       );
@@ -88,15 +90,15 @@ function Homepage() {
       if (response.ok) {
         fetchImages();
 
-        // Also update the report API call to use cookies
+        // ✅ Log Activity (with Cookies & Correct Username)
         await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: 'include', // Use cookies instead of Authorization header
+          credentials: 'include', // Auth
           body: JSON.stringify({
-            username: username,
+            username: currentUsername, // Uses Redux user
             activityLog: `[Manage Homepage] Uploaded an Image: ${selectedFile.name}`,
           }),
         });
@@ -129,40 +131,37 @@ function Homepage() {
   const handleDelete = async () => {
     if (!selectedImage) return;
 
-    const imageKey = selectedImage.image_url.replace(
-      "https://teamweb-image.s3.ap-southeast-1.amazonaws.com/",
-      ""
-    );
+    // Logic to extract key from URL (Adjust based on your S3 URL structure)
+    const imageKey = selectedImage.image_url.split('/').pop();
 
     try {
-      // Updated to use cookies instead of Authorization header
+      // ✅ Delete Image (with Cookies)
       const response = await fetch(
-        `https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(
-          imageKey
-        )}`,
+        `https://teamweb-kera.onrender.com/homepage/delete-image/${encodeURIComponent(imageKey)}`,
         {
           method: "DELETE",
-          credentials: 'include', // Use cookies instead of Authorization header
+          credentials: 'include', // Auth
         }
       );
 
       if (response.ok) {
         fetchImages();
         setShowDeleteConfirm(false);
-        setSelectedImage(null);
-
-        // Also update the report API call to use cookies
+        
+        // ✅ Log Activity (with Cookies & Correct Username)
         await fetch("https://teamweb-kera.onrender.com/report/add-report", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: 'include', // Use cookies instead of Authorization header
+          credentials: 'include', // Auth
           body: JSON.stringify({
-            username: username,
+            username: currentUsername, // Uses Redux user
             activityLog: `[Manage Homepage] Deleted Image: ${selectedImage.image_url}`,
           }),
         });
+        
+        setSelectedImage(null);
       } else {
         console.error("Failed to delete image:", await response.text());
       }
@@ -252,7 +251,7 @@ function Homepage() {
                     <img src={img.image_url} alt="News" className="preview-image" />
                   </div>
                   <div className="image-info">
-                    <span className="image-filename">{img.image_url}</span>
+                    <span className="image-filename">{img.image_url.split('/').pop()}</span>
                     {img.description && (
                       <div
                         className="image-description"
@@ -339,7 +338,7 @@ function Homepage() {
                 <p style={{ marginTop: "10px", color: "#333" }}>
                   <strong>Description:</strong> {imageDescription}
                 </p>
-                )}
+              )}
             </div>
             <div className="modal-footer">
               <button className="cancel-btn" onClick={() => setShowUploadConfirm(false)}>

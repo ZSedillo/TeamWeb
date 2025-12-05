@@ -10,35 +10,35 @@ import {
   deletePreviousYearEvents
 } from '../../_actions/calendar.actions';
 
-// Main Calendar component
 const ManageCalendar = () => {
   const dispatch = useDispatch();
   
-  // Redux State
+  // 1. Get Calendar State
   const { events: rawEvents, loading, error } = useSelector((state) => state.calendarState || state.calendarReducer || {});
+  
+  // 2. Get User State (Fix for username logging)
+  const { user } = useSelector((state) => state.user);
+  const currentUsername = user?.username || "Admin";
 
   const initialYear = new Date().getFullYear();
   const [currentYear, setCurrentYear] = useState(initialYear);
   const [hasSeenInitialYear, setHasSeenInitialYear] = useState(false);
   
-  // Mapped events for the calendar grid
   const [events, setEvents] = useState([]);
   
   const [currentEvent, setCurrentEvent] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEventDate, setNewEventDate] = useState('');
   const [newEventName, setNewEventName] = useState('');
-  const [action, setAction] = useState('add'); // 'add' or 'edit'
+  const [action, setAction] = useState('add'); 
   const [notification, setNotification] = useState(null);
   const [tooltip, setTooltip] = useState({ visible: false, text: "", x: 0, y: 0 });
   const [today, setToday] = useState('');
   
-  // Confirmation modal state
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
-  const [username, setUsername] = useState("Admin");
 
-  // Static holidays data
+  // Static holidays
   const staticHolidays = [
     { title: "New Year's Day", month: 0, day: 1 },
     { title: "Araw ng Kagitingan", month: 3, day: 9 }, 
@@ -61,21 +61,12 @@ const ManageCalendar = () => {
   ];
 
   useEffect(() => {
-    const loggedInUser = localStorage.getItem('username');
-    if (loggedInUser) {
-        setUsername(loggedInUser);
-    }
-    
     setToday(new Date().toISOString().split('T')[0]);
-
-    // Fetch via Redux
     dispatch(fetchCalendarEvents());
-    
-    // Cleanup previous year
     dispatch(deletePreviousYearEvents());
   }, [dispatch]);
 
-  // Sync Redux state with local 'events' format required by grid
+  // Sync Redux state with local 'events' format
   useEffect(() => {
     if (rawEvents) {
       const formattedEvents = rawEvents.map(item => ({
@@ -94,13 +85,10 @@ const ManageCalendar = () => {
     }
   }, [error]);
 
-  // Navigation functions
   const prevYear = () => {
     if (currentYear > initialYear) {
       setCurrentYear(currentYear - 1);
-      if (currentYear - 1 === initialYear) {
-        setHasSeenInitialYear(true);
-      }
+      if (currentYear - 1 === initialYear) setHasSeenInitialYear(true);
     }
   };
 
@@ -110,7 +98,6 @@ const ManageCalendar = () => {
     }
   };
 
-  // Modal handling
   const openAddModal = (date) => {
     setCurrentEvent(null);
     setNewEventDate(date);
@@ -138,7 +125,6 @@ const ManageCalendar = () => {
     setCurrentEvent(null);
   };
 
-  // Tooltip handling
   const handleMouseEnter = (event, text) => {
     const rect = event.target.getBoundingClientRect();
     setTooltip({
@@ -153,7 +139,6 @@ const ManageCalendar = () => {
     setTooltip({ visible: false, text: "", x: 0, y: 0 });
   };
 
-  // Event management
   const addEvent = async () => {
       if (newEventName.trim() === '') return;
 
@@ -163,7 +148,8 @@ const ManageCalendar = () => {
         type: "event" 
       };
 
-      await dispatch(addCalendarEvent(newEvent, username));
+      // ✅ Pass currentUsername
+      await dispatch(addCalendarEvent(newEvent, currentUsername));
       
       closeModal();
       showNotification('Event added successfully!');
@@ -178,26 +164,26 @@ const ManageCalendar = () => {
           type: "event"
       };
 
-      await dispatch(editCalendarEvent(currentEvent.id, payload, username));
+      // ✅ Pass currentUsername
+      await dispatch(editCalendarEvent(currentEvent.id, payload, currentUsername));
 
       closeModal();
       showNotification('Event updated successfully!');
   };
 
-  // Show confirmation dialog before deleting
   const confirmDelete = (eventToDelete) => {
     if (!eventToDelete?.id) return;
     setEventToDelete(eventToDelete);
     setIsConfirmationOpen(true);
   };
   
-  // Proceed with deletion after confirmation
   const performDelete = async () => {
       if (!eventToDelete?.id) return;
 
+      // ✅ Pass currentUsername
       await dispatch(deleteCalendarEvent(
         eventToDelete.id, 
-        username, 
+        currentUsername, 
         eventToDelete.name, 
         eventToDelete.date
       ));
@@ -220,12 +206,9 @@ const ManageCalendar = () => {
     }, 3000);
   };
 
-  // Calendar generation functions
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
-  const formatDate = (year, month, day) => {
-    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  };
+  const formatDate = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
   const getHolidayForDate = (year, month, day) => {
     const holiday = staticHolidays.find(h => h.month === month && h.day === day);
@@ -276,7 +259,6 @@ const ManageCalendar = () => {
       </div>
       <div className="calendar-container admin-calendar">
         
-        {/* Loading Spinner */}
         {loading && <div className="loading-overlay">Loading...</div>}
 
         <div className="calendar-header">
@@ -291,7 +273,6 @@ const ManageCalendar = () => {
           </div>
         )}
 
-        {/* Calendar grid */}
         <div className="full-year-calendar">
           {monthNames.map((monthName, monthIndex) => {
             const daysInMonth = getDaysInMonth(currentYear, monthIndex);
@@ -350,7 +331,6 @@ const ManageCalendar = () => {
           })}
         </div>
 
-        {/* Upcoming events section */}
         <div className="events-section">
           <h3>Upcoming Events</h3>
           {events.length === 0 ? (
@@ -383,7 +363,6 @@ const ManageCalendar = () => {
           )}
         </div>
 
-        {/* Upcoming holidays section */}
         <div className="events-section">
           <h3>Upcoming Holidays</h3>
           {getUpcomingHolidays().length === 0 ? (
@@ -406,7 +385,6 @@ const ManageCalendar = () => {
           )}
         </div>
 
-        {/* Add/Edit Modal */}
         {isModalOpen && (
           <div className="modal-overlay">
             <div className="modal-content">
@@ -432,7 +410,6 @@ const ManageCalendar = () => {
           </div>
         )}
         
-        {/* Delete Confirmation Modal */}
         {isConfirmationOpen && (
           <div className="modal-overlay">
             <div className="modal-content confirmation-modal">
@@ -455,14 +432,12 @@ const ManageCalendar = () => {
           </div>
         )}
 
-        {/* Tooltip */}
         {tooltip.visible && (
           <div className="tooltip visible" style={{ position: "absolute", left: `${tooltip.x}px`, top: `${tooltip.y}px` }}>
             {tooltip.text}
           </div>
         )}
 
-        {/* Notification */}
         {notification && (
           <div className={`notification ${notification.isError ? 'error' : 'success'}`}>
             {notification.message}
