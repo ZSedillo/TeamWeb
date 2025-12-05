@@ -1,29 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchReportData } from '../../_actions/preRegistration.actions';
 import './ViewReports.css';
 
 const ViewReports = () => {
-  const getToken = () => localStorage.getItem("token");
-  // State for storing registration data
-  const [registrationData, setRegistrationData] = useState([]);
+  const dispatch = useDispatch();
+  
+  // ✅ 1. Get state from Redux (instead of local state)
+  const { reportData, loading: isLoading, error } = useSelector(state => state.preRegistration);
+  const { user } = useSelector(state => state.user); // Get current admin user
+  
+  // Local state for UI calculations
   const [gradesData, setGradesData] = useState([]);
   const [totalApproved, setTotalApproved] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [sectionCounts, setSectionCounts] = useState({
-    earlyChildhood: 0,
-    elementary: 0,
-    juniorHigh: 0,
-    seniorHigh: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // State for report view
   const [reportView, setReportView] = useState('byGrade');
-  
-  // State for selected year
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
-  // Generate years from 2020 to current year for the dropdown
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2019 }, (_, i) => (2020 + i).toString());
 
@@ -38,74 +31,84 @@ const ViewReports = () => {
     }
   };
   
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  // Fetch registration data with year parameter
-  const fetchRegistrations = async (year = selectedYear) => {
-    setIsLoading(true);
-    setError(null);
+  // ✅ 2. Fetch Data using Redux Action
+  useEffect(() => {
+    dispatch(fetchReportData(selectedYear));
+  }, [dispatch, selectedYear]);
 
-    try {
-      const token = getToken(); // Get auth token
-
-      const response = await fetch(`https://teamweb-kera.onrender.com/preregistration?registration_year=${year}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      // Ensure data is properly extracted from the response
-      if (Array.isArray(data)) {
-        setRegistrationData(data);
-      } else if (data && typeof data === 'object') {
-        // Check for preregistration array in response
-        if (data.preregistration && Array.isArray(data.preregistration)) {
-          setRegistrationData(data.preregistration);
-        } else if (data.data && Array.isArray(data.data)) {
-          // Sometimes APIs return data nested in a data property
-          setRegistrationData(data.data);
-        } else {
-          console.error("API did not return data in expected format:", data);
-          setError("Invalid data format received from API");
-          setRegistrationData([]);
-        }
-      } else {
-        console.error("API did not return valid data:", data);
-        setError("Invalid data format received from API");
-        setRegistrationData([]);
-      }
-
+  // ✅ 3. Process Data when Redux state changes
+  useEffect(() => {
+    // Ensure reportData is an array before processing
+    const dataToProcess = Array.isArray(reportData) ? reportData : [];
+    
+    if (dataToProcess.length >= 0) {
       setLastUpdated(new Date());
-    } catch (err) {
-      console.error("Error fetching registration data:", err);
-      setError(err.message);
-      setRegistrationData([]);
-    } finally {
-      setIsLoading(false);
+      const processedData = [];
+      let totalStudents = 0;
+      let earlyChildhoodCount = 0;
+      let elementaryCount = 0;
+      let juniorHighCount = 0;
+      let seniorHighCount = 0;
+      
+      // Count early childhood students
+      gradeLevels.earlyChildhood.forEach(grade => {
+        const count = dataToProcess.filter(student => student.grade_level === grade && student.status === 'approved').length;
+        processedData.push({ 
+          grade: grade === 'Kinder1' ? 'Kinder 1' : grade === 'Kinder2' ? 'Kinder 2' : grade, 
+          approved: count 
+        });
+        earlyChildhoodCount += count;
+        totalStudents += count;
+      });
+      
+      // Count elementary students
+      gradeLevels.elementary.forEach(grade => {
+        const count = dataToProcess.filter(student => student.grade_level === grade && student.status === 'approved').length;
+        processedData.push({ grade: `Grade ${grade}`, approved: count });
+        elementaryCount += count;
+        totalStudents += count;
+      });
+      
+      // Count junior high students
+      gradeLevels.juniorHigh.forEach(grade => {
+        const count = dataToProcess.filter(student => student.grade_level === grade && student.status === 'approved').length;
+        processedData.push({ grade: `Grade ${grade}`, approved: count });
+        juniorHighCount += count;
+        totalStudents += count;
+      });
+      
+      // Count senior high students
+      ['11', '12'].forEach(gradeLevel => {
+        gradeLevels.seniorHigh[gradeLevel].forEach(strand => {
+          const count = dataToProcess.filter(
+            student => student.grade_level === gradeLevel && student.strand === strand && student.status === 'approved'
+          ).length;
+          processedData.push({ grade: `Grade ${gradeLevel} - ${strand}`, approved: count });
+          seniorHighCount += count;
+          totalStudents += count;
+        });
+      });
+      
+      setGradesData(processedData);
+      setTotalApproved(totalStudents);
     }
-  };
+  }, [reportData]); // Depend on Redux state
 
-
-  // Handle year change
   const handleYearChange = (e) => {
-    const year = e.target.value;
-    setSelectedYear(year);
-    console.log("Year Selected" + year);
-    fetchRegistrations(year);
+    setSelectedYear(e.target.value);
   };
 
-  // Export functionality
+  const handleRefresh = () => {
+    dispatch(fetchReportData(selectedYear));
+  };
+
+  // ✅ 4. Export Functionality (Fixed Auth)
   const handleExport = () => {
-    if (!Array.isArray(registrationData) || registrationData.length === 0) {
+    const dataToExport = Array.isArray(reportData) ? reportData : [];
+
+    if (dataToExport.length === 0) {
       alert("No data available to export");
       return;
     }
@@ -115,7 +118,7 @@ const ViewReports = () => {
       ['Name', 'Phone Number', 'Grade Level', 'Strand', 'Gender', 'Email', 'Student Type', 'Status', 'Registration Date']
     ];
 
-    registrationData.forEach(student => {
+    dataToExport.forEach(student => {
       csvRows.push([
         student.name || '',
         student.phone_number || '',
@@ -129,10 +132,7 @@ const ViewReports = () => {
       ]);
     });
 
-    // Convert to CSV string
     const csvContent = csvRows.map(e => e.join(",")).join("\n");
-
-    // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -143,94 +143,20 @@ const ViewReports = () => {
     link.click();
     document.body.removeChild(link);
 
-    // ✅ Call `/add-report` API with token
-    const token = getToken(); // Get auth token
-
+    // ✅ Log Activity using HTTP-Only Cookie
     fetch("https://teamweb-kera.onrender.com/report/add-report", {
       method: "POST",
+      credentials: "include", // <--- CRITICAL FIX
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
-        username: localStorage.getItem('username') || 'user',
-        activityLog: `[Manage Pre-Registration: Reports] Registration data for ${selectedYear} exported as CSV on ${new Date().toLocaleString()}`
+        username: user?.username || 'Admin',
+        activityLog: `[Manage Pre-Registration: Reports] Registration data for ${selectedYear} exported as CSV`
       }),
     });
   };
 
-
-  // Refresh functionality
-  const handleRefresh = () => {
-    fetchRegistrations(selectedYear);
-  };
-
-  // Initial data fetch
-  useEffect(() => {
-    fetchRegistrations();
-  }, []);
-  
-  // Process registration data into grade counts
-  useEffect(() => {
-    if (Array.isArray(registrationData) && registrationData.length > 0) {
-      const processedData = [];
-      let totalStudents = 0;
-      let earlyChildhoodCount = 0;
-      let elementaryCount = 0;
-      let juniorHighCount = 0;
-      let seniorHighCount = 0;
-      
-      // Count early childhood students
-      gradeLevels.earlyChildhood.forEach(grade => {
-        const count = registrationData.filter(student => student.grade_level === grade && student.status === 'approved').length;
-        processedData.push({ 
-          grade: grade === 'Kinder1' ? 'Kinder 1' : grade === 'Kinder2' ? 'Kinder 2' : grade, 
-          approved: count 
-        });
-        earlyChildhoodCount += count;
-        totalStudents += count;
-      });
-      
-      // Count elementary students
-      gradeLevels.elementary.forEach(grade => {
-        const count = registrationData.filter(student => student.grade_level === grade && student.status === 'approved').length;
-        processedData.push({ grade: `Grade ${grade}`, approved: count });
-        elementaryCount += count;
-        totalStudents += count;
-      });
-      
-      // Count junior high students
-      gradeLevels.juniorHigh.forEach(grade => {
-        const count = registrationData.filter(student => student.grade_level === grade && student.status === 'approved').length;
-        processedData.push({ grade: `Grade ${grade}`, approved: count });
-        juniorHighCount += count;
-        totalStudents += count;
-      });
-      
-      // Count senior high students
-      ['11', '12'].forEach(gradeLevel => {
-        gradeLevels.seniorHigh[gradeLevel].forEach(strand => {
-          const count = registrationData.filter(
-            student => student.grade_level === gradeLevel && student.strand === strand && student.status === 'approved'
-          ).length;
-          processedData.push({ grade: `Grade ${gradeLevel} - ${strand}`, approved: count });
-          seniorHighCount += count;
-          totalStudents += count;
-        });
-      });
-      
-      setGradesData(processedData);
-      setTotalApproved(totalStudents);
-      setSectionCounts({
-        earlyChildhood: earlyChildhoodCount,
-        elementary: elementaryCount,
-        juniorHigh: juniorHighCount,
-        seniorHigh: seniorHighCount
-      });
-    }
-  }, [registrationData]);
-
-  // Helper function to safely filter array data
   const safeFilter = (array, filterFn) => {
     if (!Array.isArray(array)) return [];
     return array.filter(filterFn);
@@ -280,11 +206,6 @@ const ViewReports = () => {
         <div className="error-message">
           <p>Error fetching registration data: {error}</p>
           <p>Please check your connection and try again.</p>
-        </div>
-      ) : !Array.isArray(registrationData) ? (
-        <div className="error-message">
-          <p>Invalid data format received. Expected an array of registrations.</p>
-          <p>Please check the API response and try again.</p>
         </div>
       ) : (
         <>
@@ -387,13 +308,13 @@ const ViewReports = () => {
                 <div className="grade-level-item">
                   <span className="grade-level-item-label">New Students</span>
                   <span className="grade-level-item-count">
-                    {safeFilter(registrationData, s => s.isNewStudent === 'new' && s.status === 'approved').length}
+                    {safeFilter(Array.isArray(reportData) ? reportData : [], s => s.isNewStudent === 'new' && s.status === 'approved').length}
                   </span>
                 </div>
                 <div className="grade-level-item">
                   <span className="grade-level-item-label">Returning Students</span>
                   <span className="grade-level-item-count">
-                    {safeFilter(registrationData, s => s.isNewStudent === 'old' && s.status === 'approved').length}
+                    {safeFilter(Array.isArray(reportData) ? reportData : [], s => s.isNewStudent === 'old' && s.status === 'approved').length}
                   </span>
                 </div>
               </div>
@@ -407,7 +328,7 @@ const ViewReports = () => {
               <div className="grade-level-section-content">
                 {months.map(month => {
                   const monthRegistrations = safeFilter(
-                    registrationData, 
+                    Array.isArray(reportData) ? reportData : [], 
                     s => s.status === 'approved' && s.createdAt && new Date(s.createdAt).getMonth() === months.indexOf(month)
                   );
                   return (

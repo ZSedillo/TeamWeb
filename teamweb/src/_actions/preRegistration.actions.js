@@ -1,55 +1,65 @@
-import {
-  PRE_REGISTRATION_REQUEST,
-  PRE_REGISTRATION_SUCCESS,
-  PRE_REGISTRATION_FAIL,
-  PRE_REGISTRATIONS_REQUEST,
-  PRE_REGISTRATIONS_SUCCESS,
-  PRE_REGISTRATIONS_FAIL,
-  PRE_REGISTRATION_ADD_REQUEST,
-  PRE_REGISTRATION_ADD_SUCCESS,
-  PRE_REGISTRATION_ADD_FAIL,
-  PRE_REGISTRATION_STATUS_UPDATE_REQUEST,
-  PRE_REGISTRATION_STATUS_UPDATE_SUCCESS,
-  PRE_REGISTRATION_STATUS_UPDATE_FAIL,
-  PRE_REGISTRATION_ENROLLMENT_UPDATE_REQUEST,
-  PRE_REGISTRATION_ENROLLMENT_UPDATE_SUCCESS,
-  PRE_REGISTRATION_ENROLLMENT_UPDATE_FAIL,
-  PRE_REGISTRATION_DELETE_REQUEST,
-  PRE_REGISTRATION_DELETE_SUCCESS,
-  PRE_REGISTRATION_DELETE_FAIL,
-  PRE_REGISTRATION_DELETE_ALL_REQUEST,
-  PRE_REGISTRATION_DELETE_ALL_SUCCESS,
-  PRE_REGISTRATION_DELETE_ALL_FAIL,
-} from "../_constants/preRegistration.constants";
+import * as preRegConstants from "../_constants/preRegistration.constants";
 
 const BASE_URL = "https://teamweb-kera.onrender.com";
-// ========================== PUBLIC PRE-REGISTRATION SUBMIT ==========================
-export const submitPreRegistration = (preRegData) => async (dispatch) => {
+
+// Helper for Reports (Internal)
+const logActivity = async (username, activityLog) => {
   try {
-    dispatch({ type: PRE_REGISTRATION_REQUEST });
+    await fetch(`${BASE_URL}/report/add-report`, {
+      method: "POST",
+      credentials: "include", // Cookie Auth
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, activityLog }),
+    });
+  } catch (err) {
+    console.error("Logging failed", err);
+  }
+};
+
+// =================================================================
+//  PUBLIC ACTIONS (No Authentication Required)
+// =================================================================
+
+// 1. Submit Pre-Registration (For Students/Parents)
+export const submitPreRegistration = (formData) => async (dispatch) => {
+  try {
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_REQUEST });
 
     const response = await fetch(`${BASE_URL}/preregistration/add`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(preRegData),
+      body: JSON.stringify(formData),
     });
 
-    const result = await response.json();
+    const data = await response.json();
 
-    if (!response.ok) throw new Error(result.error || "Failed to submit pre-registration");
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to submit registration");
+    }
 
-    dispatch({ type: PRE_REGISTRATION_SUCCESS, payload: result });
+    dispatch({
+      type: preRegConstants.PRE_REGISTRATION_SUCCESS,
+      payload: data.message || "Registration submitted successfully",
+    });
+    
+    return { success: true }; // Allow component to know it succeeded
   } catch (error) {
-    dispatch({ type: PRE_REGISTRATION_FAIL, payload: error.message });
+    dispatch({
+      type: preRegConstants.PRE_REGISTRATION_FAIL,
+      payload: error.message,
+    });
+    return { success: false, error: error.message };
   }
 };
 
-// ========================== ADMIN SIDE ACTIONS ==========================
-// ---------------- Fetch All Pre-Registrations ----------------
+// =================================================================
+//  ADMIN ACTIONS (Authentication Required)
+// =================================================================
+
+// 2. Fetch All (Main Table)
 export const fetchPreRegistrations = (queryParams = {}) => async (dispatch) => {
   try {
-    dispatch({ type: PRE_REGISTRATIONS_REQUEST });
-
+    dispatch({ type: preRegConstants.PRE_REGISTRATIONS_REQUEST });
     const params = new URLSearchParams(queryParams).toString();
     const url = params ? `${BASE_URL}/preregistration/?${params}` : `${BASE_URL}/preregistration/`;
 
@@ -59,20 +69,19 @@ export const fetchPreRegistrations = (queryParams = {}) => async (dispatch) => {
     });
 
     if (!response.ok) throw new Error("Failed to fetch pre-registrations");
-
     const data = await response.json();
 
-    // Sort by last name
+    // Sort locally by name for consistency
     const sortedRegistrations = (data.preregistration || []).sort((a, b) => {
-      const lastA = (a.lastName || '').toLowerCase();
-      const lastB = (b.lastName || '').toLowerCase();
-      if (lastA < lastB) return -1;
-      if (lastA > lastB) return 1;
-      return 0;
+        const lastA = (a.lastName || '').toLowerCase();
+        const lastB = (b.lastName || '').toLowerCase();
+        if (lastA < lastB) return -1;
+        if (lastA > lastB) return 1;
+        return 0;
     });
 
     dispatch({
-      type: PRE_REGISTRATIONS_SUCCESS,
+      type: preRegConstants.PRE_REGISTRATIONS_SUCCESS,
       payload: {
         preRegistrations: sortedRegistrations,
         totalPages: data.totalPages || 1,
@@ -81,14 +90,103 @@ export const fetchPreRegistrations = (queryParams = {}) => async (dispatch) => {
       },
     });
   } catch (error) {
-    dispatch({ type: PRE_REGISTRATIONS_FAIL, payload: error.message });
+    dispatch({ type: preRegConstants.PRE_REGISTRATIONS_FAIL, payload: error.message });
   }
 };
 
-// ---------------- Add Pre-Registration ----------------
-export const addPreRegistration = (preRegData) => async (dispatch) => {
+// 3. Fetch Enrolled Students (Enrolled Page)
+export const fetchEnrolledStudents = (queryParams = {}) => async (dispatch) => {
   try {
-    dispatch({ type: PRE_REGISTRATION_ADD_REQUEST });
+    dispatch({ type: preRegConstants.GET_ENROLLED_REQUEST });
+    const params = new URLSearchParams(queryParams).toString();
+    const url = `${BASE_URL}/preregistration/enrolled?${params}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch enrolled students");
+    const data = await response.json();
+
+    dispatch({
+      type: preRegConstants.GET_ENROLLED_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({ type: preRegConstants.GET_ENROLLED_FAIL, payload: error.message });
+  }
+};
+
+// 4. Fetch Report Data (For Expected & Reports Page)
+export const fetchReportData = (year) => async (dispatch) => {
+  try {
+    dispatch({ type: preRegConstants.GET_REPORT_DATA_REQUEST });
+    const url = `${BASE_URL}/preregistration?registration_year=${year}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch report data");
+    const data = await response.json();
+    
+    // Normalize data structure (handle backend variations)
+    const finalData = data.preregistration || data; 
+
+    dispatch({ type: preRegConstants.GET_REPORT_DATA_SUCCESS, payload: finalData });
+  } catch (error) {
+    dispatch({ type: preRegConstants.GET_REPORT_DATA_FAIL, payload: error.message });
+  }
+};
+
+// 5. Update Enrollment Status
+export const updatePreRegistrationEnrollment = (id, enrollment, studentName, username) => async (dispatch) => {
+  try {
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_ENROLLMENT_UPDATE_REQUEST });
+    const response = await fetch(`${BASE_URL}/preregistration/enrollment/${id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enrollment }),
+    });
+    if (!response.ok) throw new Error("Failed to update enrollment");
+    
+    await logActivity(username, `[Manage Enrollment] Updated ${studentName} to ${enrollment ? 'Enrolled' : 'Not Enrolled'}`);
+    
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_ENROLLMENT_UPDATE_SUCCESS });
+  } catch (error) {
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_ENROLLMENT_UPDATE_FAIL, payload: error.message });
+  }
+};
+
+// 6. Update Application Status (Approved/Rejected)
+export const updatePreRegistrationStatus = (id, status, studentName, username) => async (dispatch) => {
+  try {
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_STATUS_UPDATE_REQUEST });
+    const response = await fetch(`${BASE_URL}/preregistration/status/${id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) throw new Error("Failed to update status");
+
+    await logActivity(username, `[Manage Pre-Registration] Updated status for ${studentName} to ${status}`);
+
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_STATUS_UPDATE_SUCCESS });
+    dispatch(fetchPreRegistrations());
+  } catch (error) {
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_STATUS_UPDATE_FAIL, payload: error.message });
+  }
+};
+
+// 7. Admin Add (Manually adding a student from dashboard)
+export const addPreRegistration = (preRegData, username) => async (dispatch) => {
+  try {
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_ADD_REQUEST });
 
     const response = await fetch(`${BASE_URL}/preregistration/add`, {
       method: "POST",
@@ -102,178 +200,51 @@ export const addPreRegistration = (preRegData) => async (dispatch) => {
       throw new Error(result.error || "Failed to submit pre-registration");
     }
 
-    dispatch({ type: PRE_REGISTRATION_ADD_SUCCESS });
+    await logActivity(username, `[Manage Pre-Registration] Manually added student: ${preRegData.firstName} ${preRegData.lastName}`);
 
-    // Refresh pre-registrations
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_ADD_SUCCESS });
     dispatch(fetchPreRegistrations());
   } catch (error) {
-    dispatch({ type: PRE_REGISTRATION_ADD_FAIL, payload: error.message });
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_ADD_FAIL, payload: error.message });
   }
 };
 
-// ---------------- Update Status ----------------
-export const updatePreRegistrationStatus = (id, status, studentName, username = "Admin") => async (dispatch) => {
+// 8. Delete One
+export const deletePreRegistration = (id, studentName, username) => async (dispatch) => {
   try {
-    dispatch({ type: PRE_REGISTRATION_STATUS_UPDATE_REQUEST });
-
-    const response = await fetch(`${BASE_URL}/preregistration/status/${id}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-
-    if (!response.ok) throw new Error("Failed to update status");
-
-    // Add report
-    await fetch(`${BASE_URL}/report/add-report`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        activityLog: `[Manage Pre-Registration:Student Records] Updated status for student ${studentName} (ID: ${id}) to ${status}`,
-      }),
-    });
-
-    dispatch({ type: PRE_REGISTRATION_STATUS_UPDATE_SUCCESS });
-    dispatch(fetchPreRegistrations());
-  } catch (error) {
-    dispatch({ type: PRE_REGISTRATION_STATUS_UPDATE_FAIL, payload: error.message });
-  }
-};
-
-// ---------------- Update Enrollment ----------------
-export const updatePreRegistrationEnrollment = (id, enrollment, studentName, username = "Admin") => async (dispatch) => {
-  try {
-    dispatch({ type: PRE_REGISTRATION_ENROLLMENT_UPDATE_REQUEST });
-
-    const response = await fetch(`${BASE_URL}/preregistration/enrollment/${id}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enrollment }),
-    });
-
-    if (!response.ok) throw new Error("Failed to update enrollment status");
-
-    // Add report
-    await fetch(`${BASE_URL}/report/add-report`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        activityLog: `[Manage Pre-Registration:Student Records] Updated enrollment for student ${studentName} (ID: ${id}) to ${enrollment ? 'Enrolled' : 'Not Enrolled'}`,
-      }),
-    });
-
-    dispatch({ type: PRE_REGISTRATION_ENROLLMENT_UPDATE_SUCCESS });
-    dispatch(fetchPreRegistrations());
-  } catch (error) {
-    dispatch({ type: PRE_REGISTRATION_ENROLLMENT_UPDATE_FAIL, payload: error.message });
-  }
-};
-
-// ---------------- Delete Pre-Registration ----------------
-export const deletePreRegistration = (id, studentName, username = "Admin") => async (dispatch) => {
-  try {
-    dispatch({ type: PRE_REGISTRATION_DELETE_REQUEST });
-
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_DELETE_REQUEST });
     const response = await fetch(`${BASE_URL}/preregistration/delete/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Failed to delete pre-registration");
+    if (!response.ok) throw new Error("Failed to delete record");
 
-    // Add report
-    await fetch(`${BASE_URL}/report/add-report`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        activityLog: `[Manage Pre-Registration] Deleted student record for ${studentName}`,
-      }),
-    });
+    await logActivity(username, `[Manage Pre-Registration] Deleted student record for ${studentName}`);
 
-    dispatch({ type: PRE_REGISTRATION_DELETE_SUCCESS });
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_DELETE_SUCCESS });
     dispatch(fetchPreRegistrations());
   } catch (error) {
-    dispatch({ type: PRE_REGISTRATION_DELETE_FAIL, payload: error.message });
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_DELETE_FAIL, payload: error.message });
   }
 };
 
-// ---------------- Delete All Pre-Registrations ----------------
-export const deleteAllPreRegistrations = (registrationData = [], username = "Admin") => async (dispatch) => {
+// 9. Delete All
+export const deleteAllPreRegistrations = (username) => async (dispatch) => {
   try {
-    dispatch({ type: PRE_REGISTRATION_DELETE_ALL_REQUEST });
-
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_DELETE_ALL_REQUEST });
     const response = await fetch(`${BASE_URL}/preregistration/deleteAll`, {
       method: "DELETE",
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Failed to delete all pre-registrations");
+    if (!response.ok) throw new Error("Failed to delete all records");
 
-    // Add report for deletion
-    await fetch(`${BASE_URL}/report/add-report`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        activityLog: `[Manage Pre-Registration] Deleted all pre-registration records`,
-      }),
-    });
+    await logActivity(username, `[Manage Pre-Registration] Deleted ALL student records`);
 
-    // Export CSV if data exists
-    if (Array.isArray(registrationData) && registrationData.length > 0) {
-      const csvRows = [
-        ['Name', 'Phone Number', 'Grade Level', 'Strand', 'Gender', 'Email', 'Student Type', 'Status', 'Registration Date']
-      ];
-
-      registrationData.forEach(student => {
-        csvRows.push([
-          student.name || '',
-          student.phone_number || '',
-          student.grade_level || '',
-          student.strand || 'N/A',
-          student.gender || '',
-          student.email || '',
-          student.isNewStudent === 'new' ? 'New Student' : 'Returning Student',
-          student.status || '',
-          student.createdAt ? new Date(student.createdAt).toLocaleDateString() : ''
-        ]);
-      });
-
-      const csvContent = csvRows.map(e => e.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `pre_registration_report_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Log export activity
-      await fetch(`${BASE_URL}/report/add-report`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          activityLog: `[Manage Pre-Registration: Reports] Pre-registration records exported as CSV on ${new Date().toLocaleString()}`,
-        }),
-      });
-    }
-
-    dispatch({ type: PRE_REGISTRATION_DELETE_ALL_SUCCESS });
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_DELETE_ALL_SUCCESS });
     dispatch(fetchPreRegistrations());
   } catch (error) {
-    dispatch({ type: PRE_REGISTRATION_DELETE_ALL_FAIL, payload: error.message });
+    dispatch({ type: preRegConstants.PRE_REGISTRATION_DELETE_ALL_FAIL, payload: error.message });
   }
 };
